@@ -2,27 +2,35 @@
 
 
 [[projects]]
-  digest = "1:10df833445d1ce15cb3bb4277b9252f3fc5664f4675b40e2236540ccbdd2d1a1"
-  name = "github.com/ahl5esoft/golang-underscore"
-  packages = ["."]
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
   pruneopts = "UT"
-  revision = "2d8e3d58ac101d8ad2f2ff6ca6defb0809b250af"
-  version = "v2.0.0"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:be3bd107094de27145a9a92e9e5e2b3eb03d3d92a5dec68da31b8eba4e4c6ae2"
-  name = "github.com/iancoleman/strcase"
-  packages = ["."]
+  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
   pruneopts = "UT"
-  revision = "e506e3ef73653e84c592ba44aab577a46678f68c"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
+  digest = "1:5da8ce674952566deae4dbc23d07c85caafc6cfa815b0b3e03e41979cedb8750"
+  name = "github.com/stretchr/testify"
+  packages = [
+    "assert",
+    "require",
+  ]
+  pruneopts = "UT"
+  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
+  version = "v1.3.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = [
-    "github.com/ahl5esoft/golang-underscore",
-    "github.com/iancoleman/strcase",
-  ]
+  input-imports = ["github.com/stretchr/testify/require"]
   solver-name = "gps-cdcl"
   solver-version = 1
