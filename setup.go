@@ -93,26 +93,26 @@ func Init(conf *Config, mapTypes ...interface{}) error{
 	if conf.IndexStrategy == ASSERT_INDEX{
 		log.Debug("chose ASSERT_INDEX strategy")
 		log.Debug("dropping all known indexes")
-		err = dropAllIndexes()
+		err = dropAllIndexesAndConstraints()
 		if err != nil{
 			return err
 		}
 
 		log.Debug("creating all mapped indexes")
-		err = createAllIndexes()
+		err = createAllIndexesAndConstraints()
 		if err != nil{
 			return err
 		}
 
 		log.Debug("verifying all indexes")
-		err = verifyAllIndexes()
+		err = verifyAllIndexesAndConstraints()
 		if err != nil {
 			return err
 		}
 	} else if conf.IndexStrategy == VALIDATE_INDEX{
 		log.Debug("chose VALIDATE_INDEX strategy")
 		log.Debug("verifying all indexes")
-		err = verifyAllIndexes()
+		err = verifyAllIndexesAndConstraints()
 		if err != nil {
 			return err
 		}
