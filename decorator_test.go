@@ -140,15 +140,153 @@ func TestDecoratorConfig_Validate(t *testing.T) {
 }
 
 func TestStructDecoratorConfig_Validate(t *testing.T) {
+	req := require.New(t)
 
+	//nil fields
+	test := structDecoratorConfig{
+		Fields: nil,
+		IsVertex: true,
+	}
+
+	req.NotNil(test.Validate())
+
+	//valid pk
+	test = structDecoratorConfig{
+		Fields: map[string]decoratorConfig{
+			"uuid": {
+				PrimaryKey: true,
+				Name: "uuid",
+				Type: reflect.TypeOf(""),
+			},
+		},
+		IsVertex: true,
+	}
+
+	req.Nil(test.Validate())
+
+	//invalid pk
+	test = structDecoratorConfig{
+		Fields: map[string]decoratorConfig{
+			"uuid": {
+				PrimaryKey: true,
+				Name: "uuid",
+				Type: reflect.TypeOf(""),
+			},
+			"id": {
+				PrimaryKey: true,
+				Name: "id",
+				Type: reflect.TypeOf(int64(1)),
+			},
+		},
+		IsVertex: true,
+	}
+
+	req.NotNil(test.Validate())
+
+	//invalid rels
+	test = structDecoratorConfig{
+		Fields: map[string]decoratorConfig{
+			"uuid": {
+				PrimaryKey: true,
+				Name: "uuid",
+				Type: reflect.TypeOf(""),
+			},
+			"rel_test": {
+				Relationship: "test",
+				Name: "test",
+				Type: reflect.TypeOf([]interface{}{}),
+			},
+		},
+		IsVertex: false,
+	}
+
+	req.NotNil(test.Validate())
 }
 
 func TestNewDecoratorConfig(t *testing.T){
+	req := require.New(t)
+	var err error
+	var compare *decoratorConfig
 
-}
 
-func TestGetStructDecoratorConfig(t *testing.T){
+	decName := "name=id"
+	decNameStruct := decoratorConfig{
+		Name: "id",
+		Type: reflect.TypeOf(int64(1)),
+	}
 
+	compare, err = newDecoratorConfig(decName, "", reflect.TypeOf(int64(0)))
+	req.Nil(err)
+	req.NotNil(compare)
+	req.EqualValues(decNameStruct, *compare)
+
+	decUUID := "pk;name=uuid"
+	decUUIDStruct := decoratorConfig{
+		Name: "uuid",
+		PrimaryKey: true,
+		Type: reflect.TypeOf(""),
+	}
+
+	compare, err = newDecoratorConfig(decUUID, "", reflect.TypeOf(""))
+	req.Nil(err)
+	req.NotNil(compare)
+	req.EqualValues(decUUIDStruct, *compare)
+
+	decIndexField := "index;name=index_field"
+	decIndexFieldStruct := decoratorConfig{
+		Index: true,
+		Name: "index_field",
+		Type: reflect.TypeOf(""),
+	}
+
+	compare, err = newDecoratorConfig(decIndexField, "", reflect.TypeOf(""))
+	req.Nil(err)
+	req.NotNil(compare)
+	req.EqualValues(decIndexFieldStruct, *compare)
+
+	decUniqueField := "unique;name=unique_name"
+	decUniqueFieldStruct := decoratorConfig{
+		Unique: true,
+		Name: "unique_name",
+		Type: reflect.TypeOf(""),
+	}
+
+	compare, err = newDecoratorConfig(decUniqueField, "", reflect.TypeOf(""))
+	req.Nil(err)
+	req.NotNil(compare)
+	req.EqualValues(decUniqueFieldStruct, *compare)
+
+	decOne2One := "relationship=one2one;direction=incoming;name=o2o"
+	decOne2OneStruct := decoratorConfig{
+		Relationship: "one2one",
+		Name: "o2o",
+		Direction: "incoming",
+		Type: reflect.TypeOf([]interface{}{}),
+	}
+
+	compare, err = newDecoratorConfig(decOne2One, "", reflect.TypeOf([]interface{}{}))
+	req.Nil(err)
+	req.NotNil(compare)
+	req.EqualValues(decOne2OneStruct, *compare)
+
+	decProps := "properties;name=test"
+	decPropsStruct := decoratorConfig{
+		Properties: true,
+		Name: "test",
+		Type: reflect.TypeOf(map[string]interface{}{}),
+	}
+
+	compare, err = newDecoratorConfig(decProps, "", reflect.TypeOf(map[string]interface{}{}))
+	req.Nil(err)
+	req.NotNil(compare)
+	req.EqualValues(decPropsStruct, *compare)
+
+	decIgnore := "-"
+
+	compare, err = newDecoratorConfig(decIgnore, "", reflect.TypeOf(int64(0)))
+	req.Nil(err)
+	req.NotNil(compare)
+	req.True(compare.Ignore)
 }
 
 //structs with decorators for testing
@@ -158,10 +296,14 @@ type validStruct struct{
 	UUID string `gogm:"pk;name=uuid"`
 	IndexField string `gogm:"index;name=index_field"`
 	UniqueField int `gogm:"unique;name=unique_field"`
-	OneToOne interface{} `gogm:"relationship=one2one;direction=incoming"`
-	ManyToOne []interface{} `gogm:"relationship=many2one;direction=outgoing"`
-	Props map[string]string `gogm:"properties"`
+	OneToOne *validStruct `gogm:"relationship=one2one;direction=incoming;name=o2o"`
+	ManyToOne []interface{} `gogm:"relationship=many2one;direction=outgoing;name=m2o"`
+	Props map[string]interface{} `gogm:"properties;name=props"`
 	IgnoreMe int `gogm:"-"`
+}
+
+func (v *validStruct) GetLabels() []string {
+	return []string{"validStruct"}
 }
 
 //issue is that it has no id defined
@@ -170,8 +312,16 @@ type mostlyValidStruct struct{
 	UniqueField int `gogm:"unique;name=unique_field"`
 }
 
+func (m *mostlyValidStruct) GetLabels() []string {
+	return []string{"mostlyValidStruct"}
+}
+
 //nothing defined
 type emptyStruct struct {}
+
+func (e *emptyStruct) GetLabels() []string {
+	return []string{"emptyStruct"}
+}
 
 //has a valid field but also has a messed up one
 type invalidStructDecorator struct{
@@ -181,9 +331,117 @@ type invalidStructDecorator struct{
 	MessedUp int `gogm:"sdfasdfasdfa"`
 }
 
+func (i *invalidStructDecorator) GetLabels() []string {
+	return []string{"invalidStructDecorator"}
+}
+
 type invalidStructProperties struct {
 	Id int64 `gogm:"name=id"`
 	UUID string `gogm:"pk;name=uuid"`
 
 	Props map[string]string `gogm:"name=props"` //should have properties decorator
+}
+
+func (i *invalidStructProperties) GetLabels() []string {
+	return []string{"invalidStructProperties"}
+}
+
+type invalidEdge struct{
+	UUID string `gogm:"pk;name=uuid"`
+	Rel interface{} `gogm:"relationship=should_fail"`
+}
+
+func (i *invalidEdge) GetLabels() []string {
+	return []string{"invalidEdge"}
+}
+
+func (i *invalidEdge) GetStartNode() IVertex {
+	return nil
+}
+
+func (i *invalidEdge) SetStartNode(v IVertex) error {
+	return nil
+}
+
+func (i *invalidEdge) GetEndNode() IVertex {
+	return nil
+}
+
+func (i *invalidEdge) SetEndNode(v IVertex) error {
+	return nil
+}
+
+func TestGetStructDecoratorConfig(t *testing.T){
+	req := require.New(t)
+
+	conf, err := getStructDecoratorConfig(&validStruct{})
+	req.Nil(err)
+	req.NotNil(conf)
+	checkObj := structDecoratorConfig{
+		IsVertex: true,
+		Fields: map[string]decoratorConfig{
+			"Id": {
+				Name: "id",
+				Type: reflect.TypeOf(int64(0)),
+			},
+			"UUID": {
+				Name: "uuid",
+				PrimaryKey: true,
+				Type: reflect.TypeOf(""),
+			},
+			"IndexField": {
+				Name: "index_field",
+				Index: true,
+				Type: reflect.TypeOf(""),
+			},
+			"UniqueField": {
+				Unique: true,
+				Name: "unique_field",
+				Type: reflect.TypeOf(int(1)),
+			},
+			"OneToOne": {
+				Relationship: "one2one",
+				Direction: "incoming",
+				Name: "o2o",
+				Type: reflect.TypeOf(&validStruct{}),
+			},
+			"ManyToOne": {
+				Relationship: "many2one",
+				Direction: "outgoing",
+				Name: "m2o",
+				Type: reflect.TypeOf([]interface{}{}),
+			},
+			"Props": {
+				Properties: true,
+				Name: "props",
+				Type: reflect.TypeOf(map[string]interface{}{}),
+			},
+			"IgnoreMe": {
+				Name: "IgnoreMe",
+				Ignore: true,
+				Type: reflect.TypeOf(int(1)),
+			},
+		},
+	}
+	req.EqualValues(checkObj, *conf)
+
+	conf, err = getStructDecoratorConfig(&mostlyValidStruct{})
+	req.NotNil(err)
+	req.Nil(conf)
+
+	conf, err = getStructDecoratorConfig(&emptyStruct{})
+	req.NotNil(err)
+	req.Nil(conf)
+
+	conf, err = getStructDecoratorConfig(&invalidStructDecorator{})
+	req.NotNil(err)
+	req.Nil(conf)
+
+	conf, err = getStructDecoratorConfig(&invalidStructProperties{})
+	req.NotNil(err)
+	req.Nil(conf)
+
+	conf, err = getStructDecoratorConfig(&invalidEdge{})
+	req.NotNil(err)
+	req.Nil(conf)
 }

@@ -1,15 +1,12 @@
 package gogm
 
-type iGogm interface {
+
+type IVertex interface {
 	GetLabels() []string
 }
 
-type IVertex interface {
-	iGogm
-}
-
 type IEdge interface {
-	iGogm
+	GetLabels() []string
 	GetStartNode() IVertex
 	SetStartNode(v IVertex) error
 

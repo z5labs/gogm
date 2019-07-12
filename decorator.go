@@ -43,7 +43,7 @@ func (d *decoratorConfig) Validate() error{
 
 	//shouldn't happen, more of a sanity check
 	if d.Name == ""{
-		return NewInvalidStructConfigError("name must be defined", "")
+		return NewInvalidDecoratorConfigError("name must be defined", "")
 	}
 
 	kind := d.Type.Kind()
@@ -51,15 +51,15 @@ func (d *decoratorConfig) Validate() error{
 	//check for valid properties
 	if kind == reflect.Map || d.Properties{
 		if !d.Properties{
-			return NewInvalidStructConfigError("properties must be added to gogm config on field with a map", d.Name)
+			return NewInvalidDecoratorConfigError("properties must be added to gogm config on field with a map", d.Name)
 		}
 
 		if kind != reflect.Map || d.Type != reflect.TypeOf(map[string]interface{}{}){
-			return NewInvalidStructConfigError("properties must be a map with signature map[string]interface{}", d.Name)
+			return NewInvalidDecoratorConfigError("properties must be a map with signature map[string]interface{}", d.Name)
 		}
 
 		if d.PrimaryKey || d.Relationship != "" || d.Direction != "" || d.Index || d.Unique{
-			return NewInvalidStructConfigError("field marked as properties can only have name defined", d.Name)
+			return NewInvalidDecoratorConfigError("field marked as properties can only have name defined", d.Name)
 		}
 
 		//valid properties
@@ -75,7 +75,7 @@ func (d *decoratorConfig) Validate() error{
 	//check valid relationship
 	if d.Direction != "" || d.Relationship != "" || kind == reflect.Struct || kind == reflect.Slice{
 		if d.Relationship == ""{
-			return NewInvalidStructConfigError("relationship has to be defined when creating a relationship", d.Name)
+			return NewInvalidDecoratorConfigError("relationship has to be defined when creating a relationship", d.Name)
 		}
 
 		//check empty/undefined direction
@@ -83,17 +83,17 @@ func (d *decoratorConfig) Validate() error{
 			d.Direction = "outgoing" //default direction is outgoing
 		} else {
 			if !isValidDirection(d.Direction){
-				return NewInvalidStructConfigError(fmt.Sprintf("invalid direction '%s'", d.Direction), d.Name)
+				return NewInvalidDecoratorConfigError(fmt.Sprintf("invalid direction '%s'", d.Direction), d.Name)
 			}
 		}
 
 		if kind != reflect.Struct && kind != reflect.Slice{
-			return NewInvalidStructConfigError("relationship can only be defined on a struct or a slice", d.Name)
+			return NewInvalidDecoratorConfigError("relationship can only be defined on a struct or a slice", d.Name)
 		}
 
 		//check that it isn't defining anything else that shouldn't be defined
 		if d.PrimaryKey || d.Properties || d.Index || d.Unique {
-			return NewInvalidStructConfigError("can only define relationship, direction and name on a relationship", d.Name)
+			return NewInvalidDecoratorConfigError("can only define relationship, direction and name on a relationship", d.Name)
 		}
 
 		//relationship is valid now
@@ -104,11 +104,11 @@ func (d *decoratorConfig) Validate() error{
 
 	//check pk and index and unique on the same field
 	if d.PrimaryKey && (d.Index || d.Unique) {
-		return NewInvalidStructConfigError("can not specify Index or Unique on primary key", d.Name)
+		return NewInvalidDecoratorConfigError("can not specify Index or Unique on primary key", d.Name)
 	}
 
 	if d.Index && d.Unique{
-		return NewInvalidStructConfigError("can not specify Index and Unique on the same field", d.Name)
+		return NewInvalidDecoratorConfigError("can not specify Index and Unique on the same field", d.Name)
 	}
 
 	//validate pk
@@ -116,24 +116,21 @@ func (d *decoratorConfig) Validate() error{
 		rootKind := d.Type.Kind()
 
 		if rootKind != reflect.String && rootKind != reflect.Int64{
-			return NewInvalidStructConfigError(fmt.Sprintf("invalid type for primary key %s", rootKind.String()), d.Name)
+			return NewInvalidDecoratorConfigError(fmt.Sprintf("invalid type for primary key %s", rootKind.String()), d.Name)
 		}
 
 		if rootKind == reflect.String{
 			if d.Name != "uuid"{
-				return NewInvalidStructConfigError("primary key with type string must be named 'uuid'", d.Name)
+				return NewInvalidDecoratorConfigError("primary key with type string must be named 'uuid'", d.Name)
 			}
 		}
 
 		if rootKind == reflect.Int64{
 			if d.Name != "id"{
-				return NewInvalidStructConfigError("primary key with type int64 must be named 'id'", d.Name)
+				return NewInvalidDecoratorConfigError("primary key with type int64 must be named 'id'", d.Name)
 			}
 		}
-	} else if d.Name == "id" || d.Name == "uuid"{
-		return NewInvalidStructConfigError("name can not be id or uuid if not primary key", d.Name)
 	}
-
 
 	//should be good from here
 	return nil
@@ -215,6 +212,7 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		toReturn.Name = name
 	}
 
+	//map the type
 	toReturn.Type = varType
 
 	//ensure config complies with constraints
@@ -226,26 +224,65 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 	return &toReturn, nil
 }
 
-// field name : decorator configuration
+
 type structDecoratorConfig struct{
+	// field name : decorator configuration
 	Fields   map[string]decoratorConfig
 	IsVertex bool
 }
 
 //validates struct configuration
 func (s *structDecoratorConfig) Validate() error{
+	if s.Fields == nil{
+		return errors.New("no fields defined")
+	}
 
+	pkCount := 0
+	rels := 0
+
+	for _, conf := range s.Fields{
+		if conf.PrimaryKey{
+			pkCount ++
+		}
+
+		if conf.Relationship != ""{
+			rels ++
+		}
+	}
+
+	if pkCount == 0{
+		return NewInvalidStructConfigError("primary key required")
+	} else if pkCount > 1{
+		return NewInvalidStructConfigError("too many primary keys defined")
+	}
+
+	//edge specific check
+	if !s.IsVertex{
+		if rels > 0 {
+			return NewInvalidStructConfigError("relationships can not be defined on edges")
+		}
+	}
+
+	//good now
 	return nil
 }
 
 func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, error){
 	toReturn := &structDecoratorConfig{}
 
+	t := reflect.TypeOf(i)
+
+	if t.Kind() != reflect.Ptr{
+		return nil, errors.New("must pass pointer to struct")
+	}
+
+	t = t.Elem()
+
 	isEdge := false
 	isVertex := false
 
 	//check if its an edge
-	if _, ok := i. (IEdge); ok{
+	if _, ok := i.(IEdge); ok{
 		isEdge = true
 	}
 
@@ -257,12 +294,9 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, error){
 		if !isVertex{
 			return nil, errors.New("has to implement either IEdge or IVertex")
 		}
-		return nil, errors.New("can not implement both IEdge and IVertex")
 	}
 
-	toReturn.IsVertex = isVertex
-
-	t := reflect.TypeOf(i)
+	toReturn.IsVertex = !isEdge
 
 	if t.NumField() == 0{
 		return nil, errors.New("struct has no fields") //todo make error more thorough
