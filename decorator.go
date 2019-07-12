@@ -228,6 +228,7 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 type structDecoratorConfig struct{
 	// field name : decorator configuration
 	Fields   map[string]decoratorConfig
+	Labels []string
 	IsVertex bool
 }
 
@@ -282,12 +283,16 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, error){
 	isVertex := false
 
 	//check if its an edge
-	if _, ok := i.(IEdge); ok{
+	if e, ok := i.(IEdge); ok{
 		isEdge = true
+	} else {
+		toReturn.Labels = e.GetLabels()
 	}
 
-	if _, ok := i.(IVertex); ok{
+	if v, ok := i.(IVertex); ok{
 		isVertex = true
+	} else {
+		toReturn.Labels = v.GetLabels()
 	}
 
 	if isEdge == isVertex{

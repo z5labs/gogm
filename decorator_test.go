@@ -379,6 +379,7 @@ func TestGetStructDecoratorConfig(t *testing.T){
 	req.NotNil(conf)
 	checkObj := structDecoratorConfig{
 		IsVertex: true,
+		Labels: []string{"validStruct"},
 		Fields: map[string]decoratorConfig{
 			"Id": {
 				Name: "id",
