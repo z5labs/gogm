@@ -8,6 +8,12 @@ import (
 )
 
 func TestDropAllIndexesAndConstraints(t *testing.T){
+	//requires connection
+	if testing.Short(){
+		t.SkipNow()
+		return
+	}
+
 	err := dsl.Init(&dsl.ConnectionConfig{
 		Username: "neo4j",
 		Password: "password",
@@ -38,6 +44,12 @@ func TestDropAllIndexesAndConstraints(t *testing.T){
 }
 
 func TestIndexManagement(t *testing.T){
+	//requires connection
+	if testing.Short(){
+		t.SkipNow()
+		return
+	}
+
 	req := require.New(t)
 
 	//init
