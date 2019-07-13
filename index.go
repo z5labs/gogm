@@ -19,59 +19,78 @@ func dropAllIndexesAndConstraints() error{
 		return err
 	}
 
+	dropSess := dsl.NewSession()
+	defer dropSess.Close()
+
+	//if there is anything, get rid of it
+	if len(constraints) != 0{
+		err = dropSess.Begin()
+		if err != nil{
+			return err
+		}
+
+		for _, constraint := range constraints {
+			log.Debugf("dropping constraint '%s'", constraint)
+			_, err := dropSess.Query().Cypher(fmt.Sprintf("DROP %s", constraint)).Exec(nil)
+			if err != nil{
+				oerr := err
+				err = dropSess.Rollback()
+				if err != nil{
+					return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
+				}
+
+				return oerr
+			}
+		}
+
+		err = dropSess.Commit()
+		if err != nil{
+			return err
+		}
+	}
+
 	indexRows, err := dsl.QB(true).Cypher("CALL db.indexes()").Query(nil)
 	if err != nil{
 		return err
 	}
 
-	indexes, err := dsl.RowsTo2dStringArray(indexRows)
+	indexes, err := dsl.RowsTo2DInterfaceArray(indexRows)
 	if err != nil{
 		return err
 	}
 
-	dropSess := dsl.NewSession()
-	defer dropSess.Close()
-	err = dropSess.Begin()
-	if err != nil{
-		return err
-	}
-
-	for _, constraint := range constraints {
-		log.Debugf("dropping constraint '%s'", constraint)
-		_, err := dropSess.Query().Cypher(fmt.Sprintf("DROP %s", constraint)).Exec(nil)
+	//if there is anything, get rid of it
+	if len(indexes) != 0{
+		err = dropSess.Begin()
 		if err != nil{
-			oerr := err
-			err = dropSess.Rollback()
-			if err != nil{
-				return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
+			return err
+		}
+
+		for _, index := range indexes{
+			if len(index) == 0{
+				return errors.New("invalid index config")
 			}
 
-			return oerr
-		}
-	}
-
-	for _, index := range indexes{
-		if len(index) == 0{
-			return errors.New("invalid index config")
-		}
-
-		_, err := dropSess.Query().Cypher(fmt.Sprintf("DROP %s", index[0])).Exec(nil)
-		if err != nil{
-			oerr := err
-			err = dropSess.Rollback()
+			_, err := dropSess.Query().Cypher(fmt.Sprintf("DROP %s", index[0].(string))).Exec(nil)
 			if err != nil{
-				return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
+				oerr := err
+				err = dropSess.Rollback()
+				if err != nil{
+					return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
+				}
+
+				return oerr
 			}
-
-			return oerr
 		}
-	}
 
-	return dropSess.Commit()
+		return dropSess.Commit()
+	} else {
+		return nil
+	}
 }
 
 //creates all indexes
-func createAllIndexesAndConstraints() error{
+func createAllIndexesAndConstraints(mappedTypes map[string]structDecoratorConfig) error{
 	//validate that we have to do anything
 	if mappedTypes == nil || len(mappedTypes) == 0{
 		return errors.New("must have types to map")
@@ -82,6 +101,7 @@ func createAllIndexesAndConstraints() error{
 	//setup session
 	sess := dsl.NewSession()
 	defer sess.Close()
+
 	err := sess.Begin()
 	if err != nil{
 		return err
@@ -95,7 +115,7 @@ func createAllIndexesAndConstraints() error{
 
 		var indexFields []string
 
-		for fieldName, config := range structConfig.Fields{
+		for _, config := range structConfig.Fields{
 			//pk is a special unique key
 			if config.PrimaryKey || config.Unique{
 				for _, label := range structConfig.Labels{
@@ -105,7 +125,7 @@ func createAllIndexesAndConstraints() error{
 						Unique: true,
 						Name: node,
 						Type: label,
-						Field: fieldName,
+						Field: config.Name,
 					})).Exec(nil)
 					if err != nil{
 						oerr := err
@@ -119,7 +139,7 @@ func createAllIndexesAndConstraints() error{
 				}
 
 			} else if config.Index{
-				indexFields = append(indexFields)
+				indexFields = append(indexFields, config.Name)
 			}
 		}
 
@@ -150,7 +170,7 @@ func createAllIndexesAndConstraints() error{
 }
 
 //verifies all indexes
-func verifyAllIndexesAndConstraints() error{
+func verifyAllIndexesAndConstraints(mappedTypes map[string]structDecoratorConfig) error{
 	//validate that we have to do anything
 	if mappedTypes == nil || len(mappedTypes) == 0{
 		return errors.New("must have types to map")
@@ -167,15 +187,17 @@ func verifyAllIndexesAndConstraints() error{
 
 		fields := []string{}
 
-		for fieldName, config := range structConfig.Fields{
+		for _, config := range structConfig.Fields{
 
 			if config.PrimaryKey || config.Unique{
 				for _, label := range structConfig.Labels{
 					t := fmt.Sprintf("CONSTRAINT ON (%s:%s) ASSERT %s.%s IS UNIQUE", node, label, node, config.Name)
 					constraints = append(constraints, t)
+
+					indexes = append(indexes, fmt.Sprintf("INDEX ON :%s(%s)", label, config.Name))
 				}
 			} else if config.Index{
-				fields = append(fields, fieldName)
+				fields = append(fields, config.Name)
 			}
 		}
 
@@ -187,7 +209,7 @@ func verifyAllIndexesAndConstraints() error{
 		f += ")"
 
 		for _, label := range structConfig.Labels{
-			indexes = append(indexes, fmt.Sprintf("INDEX ON :%s (%s)", label, f))
+			indexes = append(indexes, fmt.Sprintf("INDEX ON :%s%s", label, f))
 		}
 	}
 
@@ -209,29 +231,35 @@ func verifyAllIndexesAndConstraints() error{
 		return err
 	}
 
-	findexes, err := dsl.RowsTo2dStringArray(indexRows)
+	findexes, err := dsl.RowsTo2DInterfaceArray(indexRows)
 	if err != nil{
 		return err
 	}
 
-	for _, index := range findexes{
-		if len(index) == 0{
-			return errors.New("invalid index config")
-		}
+	if len(findexes) != 0{
+		for _, index := range findexes{
+			if len(index) == 0{
+				return errors.New("invalid index config")
+			}
 
-		foundIndexes = append(foundIndexes, index[0])
+			foundIndexes = append(foundIndexes, index[0].(string))
+		}
 	}
 
 	//verify from there
-	_, found := util.Difference(foundIndexes, indexes)
-	if found{
-		return errors.New("found differences in remote vs ogm for found indexes")
+	delta, found := util.Difference(foundIndexes, indexes)
+	if !found{
+		return fmt.Errorf("found differences in remote vs ogm for found indexes, %v", delta)
 	}
 
-	_, found = util.Difference(foundConstraints, constraints)
-	if found{
-		return errors.New("found differences in remote vs ogm for found indexes")
+	log.Debug(delta)
+
+	delta, found = util.Difference(foundConstraints, constraints)
+	if !found{
+		return fmt.Errorf("found differences in remote vs ogm for found constraints, %v", delta)
 	}
+
+	log.Debug(delta)
 
 	return nil
 }

@@ -99,20 +99,20 @@ func Init(conf *Config, mapTypes ...interface{}) error{
 		}
 
 		log.Debug("creating all mapped indexes")
-		err = createAllIndexesAndConstraints()
+		err = createAllIndexesAndConstraints(mappedTypes)
 		if err != nil{
 			return err
 		}
 
 		log.Debug("verifying all indexes")
-		err = verifyAllIndexesAndConstraints()
+		err = verifyAllIndexesAndConstraints(mappedTypes)
 		if err != nil {
 			return err
 		}
 	} else if conf.IndexStrategy == VALIDATE_INDEX{
 		log.Debug("chose VALIDATE_INDEX strategy")
 		log.Debug("verifying all indexes")
-		err = verifyAllIndexesAndConstraints()
+		err = verifyAllIndexesAndConstraints(mappedTypes)
 		if err != nil {
 			return err
 		}
