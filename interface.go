@@ -1,5 +1,6 @@
 package gogm
 
+import dsl "github.com/mindstand/go-cypherdsl"
 
 type IVertex interface {
 	GetLabels() []string
@@ -25,10 +26,13 @@ type ISession interface {
 	Load(respObj interface{}, id string) error
 
 	//load object with depth
-	LoadDepth(respObj interface{}, id string, depth int)
+	LoadDepth(respObj interface{}, id string, depth int) error
 
 	//load with depth and filter
-	LoadDepthFilter(respObj interface{}, id string, depth int, filter Filter)
+	LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder) error
+
+	//load with depth, filter and pagination
+	LoadDepthFilterPagination(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, pagination *Pagination) error
 
 	//load slice of something
 	LoadAll(respObj interface{}) error
@@ -37,7 +41,10 @@ type ISession interface {
 	LoadAllDepth(respObj interface{}, depth int) error
 
 	//load all of type with depth and filter
-	LoadAllDepthFilter(respObj interface{}, depth int, filter Filter) error
+	LoadAllDepthFilter(respObj interface{}, depth int, filter *dsl.ConditionBuilder) error
+
+	//load all with depth, filter and pagination
+	LoadAllDepthFilterPagination(respObj interface{}, depth int, filter *dsl.ConditionBuilder, pagination *Pagination) error
 
 	//save object
 	Save(saveObj interface{}) error
