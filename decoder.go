@@ -16,7 +16,21 @@ func DecodeNeoRows(rows neo.Rows, respObj interface{}) error{
 	if err != nil{
 		return err
 	}
-	//should be a similar query to MATCH (n:OrganizationNode) WITH n MATCH p=(n)-[e*0..1]-(m) RETURN DISTINCT collect(DISTINCT e), collect(DISTINCT m), collect(DISTINCT n)
+
+	return decode(arr)
+}
+
+func decode(arr [][]interface{}) error{
+	/*
+		MATCH (n:OrganizationNode)
+		WITH n
+		MATCH (n)-[e*0..1]-(m)
+		RETURN DISTINCT
+			collect(extract(n in e | {StartNodeId: ID(startnode(n)), StartNodeType: labels(startnode(n)), EndNodeId: ID(endnode(n)), EndNode: labels(endnode(n)), Obj: n, Type: type(n)})) as Edges,
+			collect(DISTINCT m) as Ends,
+			collect(DISTINCT n) as Starts
+	*/
+
 	//                                        0               1          2
 	//signature of returned array should be list of edges, list of ends, list of starts
 	// length of 3
@@ -45,8 +59,8 @@ func DecodeNeoRows(rows neo.Rows, respObj interface{}) error{
 	wg.Add(3)
 
 	go convertAndMapNodes(nodes, nodeLookup, nErr, &wg)
-	go getPks(pks, pErr, &wg)
-	go convertAndMapEdges(rels, eErr, &wg)
+	go getPks(arr[2], pks, pErr, &wg)
+	go convertAndMapEdges(arr[0], rels, eErr, &wg)
 
 	//wait for mapping to commence
 	wg.Wait()
@@ -54,12 +68,48 @@ func DecodeNeoRows(rows neo.Rows, respObj interface{}) error{
 	return nil
 }
 
-func getPks(pks []int64, err error, wg *sync.WaitGroup) {
+func getPks(nodes []interface{}, pks []int64, err error, wg *sync.WaitGroup) {
+	if nodes == nil || len(nodes) == 0{
+		err = fmt.Errorf("nodes can not be nil or empty")
+	}
 
+	for i, node := range nodes{
+		nodeConv, ok := node.(graph.Node)
+		if !ok{
+			err = fmt.Errorf("unable to cast node to type graph.Node")
+			wg.Done()
+			return
+		}
+
+		pks[i] = nodeConv.NodeIdentity
+	}
+
+	err = nil
+	wg.Done()
 }
 
-func convertAndMapEdges(rels []EdgeConfig, err error, wg *sync.WaitGroup){
+func convertAndMapEdges(nodes []interface{}, rels []EdgeConfig, err error, wg *sync.WaitGroup){
+	if nodes == nil{
+		err = errors.New("edges can not be nil or empty")
+		wg.Done()
+		return
+	}
 
+	if len(nodes) == 0{
+		wg.Done()
+		return
+	}
+
+	for i, n := range nodes{
+		if node, ok := n.(EdgeConfig); ok{
+			rels[i] = node
+		} else {
+			err = fmt.Errorf("unknown type %s", reflect.TypeOf(n).Name())
+		}
+	}
+
+	err = nil
+	wg.Done()
 }
 
 func convertAndMapNodes(nodes []interface{}, lookup map[int64]*reflect.Value, err error, wg *sync.WaitGroup) {
@@ -93,9 +143,10 @@ func convertAndMapNodes(nodes []interface{}, lookup map[int64]*reflect.Value, er
 
 		lookup[boltNode.NodeIdentity] = val
 	}
-}
 
-//panic risk!!!!!!!!!!!!!!!!!!!!!1
+	err = nil
+	wg.Done()
+}
 
 func convertNodeToValue(boltNode graph.Node) (*reflect.Value, error){
 	var err error
