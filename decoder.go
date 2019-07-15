@@ -98,6 +98,9 @@ func convertAndMapNodes(nodes []interface{}, lookup map[int64]*reflect.Value, er
 //panic risk!!!!!!!!!!!!!!!!!!!!!1
 
 func convertNodeToValue(boltNode graph.Node) (*reflect.Value, error){
+	var err error
+	defer catchPanic(err)
+
 	if boltNode.Labels == nil || len(boltNode.Labels) == 0{
 		return nil, errors.New("boltNode has no labels")
 	}
@@ -123,14 +126,14 @@ func convertNodeToValue(boltNode graph.Node) (*reflect.Value, error){
 		if fieldConfig.Name == "id"{
 			continue //id is handled above
 		}
+
 		raw, ok := boltNode.Properties[fieldConfig.Name]
 		if !ok{
 			return nil, fmt.Errorf("unrecognized field [%s]", fieldConfig.Name)
 		}
 
-
 		if raw == nil{
-			reflect.Indirect(val).FieldByName(field).Set(reflect.Zero(fieldConfig.Type))
+			continue //its already initialized to 0 value, no need to do anything
 		} else {
 			reflect.Indirect(val).FieldByName(field).Set(reflect.ValueOf(raw))
 		}
@@ -142,7 +145,13 @@ func convertNodeToValue(boltNode graph.Node) (*reflect.Value, error){
 		return &retV, nil
 	}
 
-	return &val, nil
+	return &val, err
+}
+
+func catchPanic(err error){
+	if r := recover(); r != nil{
+		err = fmt.Errorf("%v", r)
+	}
 }
 
 

@@ -57,4 +57,21 @@ func TestConvertNodeToValue(t *testing.T){
 		UUID: "dadfasdfasdf",
 		OtherField: "dafsdfasd",
 	}, val.Interface().(TestStruct))
+
+	bn = graph.Node{
+		NodeIdentity: 10,
+		Properties: map[string]interface{}{
+			"uuid": "dadfasdfasdf",
+			"other_field": "dafsdfasd",
+			"t": "dadfasdf",
+		},
+		Labels: []string{"TestStruct"},
+	}
+	mappedTypes["TestStruct"].Fields["tt"] = decoratorConfig{
+		Type: reflect.TypeOf(""),
+		Name: "test",
+	}
+	val, err = convertNodeToValue(bn)
+	req.NotNil(err)
+	req.Nil(val)
 }
