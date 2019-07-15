@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/mindstand/gogm/neo_encoder"
 	"reflect"
 )
 
@@ -13,6 +12,7 @@ const defaultDepth = 2
 type Session struct{
 	conn *dsl.Session
 	DefaultDepth int
+	LoadStrategy LoadStrategy
 }
 
 func NewSession() *Session{
@@ -87,43 +87,22 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 
 	//will need to keep track of these variables
 	varName := "n"
-	edgeName := "e"
 
-	//build match path
-	path := dsl.Path().
-		P().
-		V(dsl.V{
-			Name: varName,
-			Type: structConfig.Labels[0], //should have 0, would have failed by now
+	var query dsl.Cypher
+	var err error
 
-		}).
-		E(dsl.E{
-			Name: edgeName,
-			MaxJumps: depth,
-		}).
-		V(dsl.V{}).
-		Build()
-
-	//start query
-	query := s.conn.QueryReadOnly().Match(path)
-
-	//id condition
-	idCondition := &dsl.ConditionConfig{
-		Name: varName,
-		Field: "uuid",
-		ConditionOperator: dsl.EqualToOperator,
-		Check: id,
+	//make the query based off of the load strategy
+	switch s.LoadStrategy {
+	case PATH_LOAD_STRATEGY:
+		query, err = PathLoadStrategyOne(s.conn, varName, structConfig.Label, depth, id, filter)
+		if err != nil{
+			return err
+		}
+	case SCHEMA_LOAD_STRATEGY:
+		return errors.New("schema load strategy not supported yet")
+	default:
+		return errors.New("unknown load strategy")
 	}
-
-	//check filter, if not created initialize it with id condition
-	if filter == nil{
-		filter = dsl.C(idCondition)
-	} else {
-		filter = filter.And(idCondition)
-	}
-
-	//add where clause to the query
-	query = query.Where(filter)
 
 	//if the query requires pagination, set that up
 	if pagination != nil{
@@ -147,7 +126,7 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 		return err
 	}
 
-	return neo_encoder.DecodeNeoRows(rows, respObj)
+	return DecodeNeoRows(rows, respObj)
 }
 
 func (s *Session) LoadAll(respObj interface{}) error {
@@ -183,32 +162,22 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 
 	//will need to keep track of these variables
 	varName := "n"
-	edgeName := "e"
 
-	//build match path
-	path := dsl.Path().
-		P().
-		V(dsl.V{
-			Name: varName,
-			Type: structConfig.Labels[0], //should have 0, would have failed by now
+	var query dsl.Cypher
+	var err error
 
-		}).
-		E(dsl.E{
-			Name: edgeName,
-			MaxJumps: depth,
-		}).
-		V(dsl.V{}).
-		Build()
-
-	//start query
-	query := s.conn.QueryReadOnly().Match(path)
-
-	//check filter, if its there, add the where clause
-	if filter != nil{
-		query = query.Where(filter)
+	//make the query based off of the load strategy
+	switch s.LoadStrategy {
+	case PATH_LOAD_STRATEGY:
+		query, err = PathLoadStrategyMany(s.conn, varName, structConfig.Label, depth, filter)
+		if err != nil{
+			return err
+		}
+	case SCHEMA_LOAD_STRATEGY:
+		return errors.New("schema load strategy not supported yet")
+	default:
+		return errors.New("unknown load strategy")
 	}
-
-	//add where clause to the query
 
 
 	//if the query requires pagination, set that up
@@ -233,7 +202,7 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 		return err
 	}
 
-	return neo_encoder.DecodeNeoRows(rows, respObj)
+	return DecodeNeoRows(rows, respObj)
 }
 
 func (s *Session) Save(saveObj interface{}) error {
@@ -244,6 +213,8 @@ func (s *Session) SaveDepth(saveObj interface{}, depth int) error {
 	if s.conn == nil{
 		return errors.New("neo4j connection not initialized")
 	}
+
+	return nil
 }
 
 func (s *Session) Delete(deleteObj interface{}) error {
@@ -256,18 +227,24 @@ func (s *Session) Delete(deleteObj interface{}) error {
 	//if its an edge delete it
 
 	//if its a vertex detach delete  it
+
+	return nil
 }
 
 func (s *Session) Query(query string, properties map[string]interface{}, respObj interface{}) error {
 	if s.conn == nil{
 		return errors.New("neo4j connection not initialized")
 	}
+
+	return nil
 }
 
 func (s *Session) QuerySlice(query string, properties map[string]interface{}, respObj interface{}) error {
 	if s.conn == nil{
 		return errors.New("neo4j connection not initialized")
 	}
+
+	return nil
 }
 
 func (s *Session) PurgeDatabase() error {

@@ -118,38 +118,13 @@ func createAllIndexesAndConstraints(mappedTypes map[string]structDecoratorConfig
 		for _, config := range structConfig.Fields{
 			//pk is a special unique key
 			if config.PrimaryKey || config.Unique{
-				for _, label := range structConfig.Labels{
-					numIndexCreated++
-
-					_, err := sess.Query().Create(dsl.NewConstraint(&dsl.ConstraintConfig{
-						Unique: true,
-						Name: node,
-						Type: label,
-						Field: config.Name,
-					})).Exec(nil)
-					if err != nil{
-						oerr := err
-						err = sess.Rollback()
-						if err != nil{
-							return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
-						}
-
-						return oerr
-					}
-				}
-
-			} else if config.Index{
-				indexFields = append(indexFields, config.Name)
-			}
-		}
-
-		//create composite index
-		if len(indexFields) > 0{
-			for _, label := range structConfig.Labels{
 				numIndexCreated++
-				_, err := sess.Query().Create(dsl.NewIndex(&dsl.IndexConfig{
-					Type: label,
-					Fields: indexFields,
+
+				_, err := sess.Query().Create(dsl.NewConstraint(&dsl.ConstraintConfig{
+					Unique: true,
+					Name: node,
+					Type: structConfig.Label,
+					Field: config.Name,
 				})).Exec(nil)
 				if err != nil{
 					oerr := err
@@ -160,6 +135,26 @@ func createAllIndexesAndConstraints(mappedTypes map[string]structDecoratorConfig
 
 					return oerr
 				}
+			} else if config.Index{
+				indexFields = append(indexFields, config.Name)
+			}
+		}
+
+		//create composite index
+		if len(indexFields) > 0{
+			numIndexCreated++
+			_, err := sess.Query().Create(dsl.NewIndex(&dsl.IndexConfig{
+				Type: structConfig.Label,
+				Fields: indexFields,
+			})).Exec(nil)
+			if err != nil{
+				oerr := err
+				err = sess.Rollback()
+				if err != nil{
+					return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
+				}
+
+				return oerr
 			}
 		}
 	}
@@ -190,12 +185,11 @@ func verifyAllIndexesAndConstraints(mappedTypes map[string]structDecoratorConfig
 		for _, config := range structConfig.Fields{
 
 			if config.PrimaryKey || config.Unique{
-				for _, label := range structConfig.Labels{
-					t := fmt.Sprintf("CONSTRAINT ON (%s:%s) ASSERT %s.%s IS UNIQUE", node, label, node, config.Name)
-					constraints = append(constraints, t)
+				t := fmt.Sprintf("CONSTRAINT ON (%s:%s) ASSERT %s.%s IS UNIQUE", node, structConfig.Label, node, config.Name)
+				constraints = append(constraints, t)
 
-					indexes = append(indexes, fmt.Sprintf("INDEX ON :%s(%s)", label, config.Name))
-				}
+				indexes = append(indexes, fmt.Sprintf("INDEX ON :%s(%s)", structConfig.Label, config.Name))
+
 			} else if config.Index{
 				fields = append(fields, config.Name)
 			}
@@ -208,9 +202,8 @@ func verifyAllIndexesAndConstraints(mappedTypes map[string]structDecoratorConfig
 
 		f += ")"
 
-		for _, label := range structConfig.Labels{
-			indexes = append(indexes, fmt.Sprintf("INDEX ON :%s%s", label, f))
-		}
+		indexes = append(indexes, fmt.Sprintf("INDEX ON :%s%s", structConfig.Label, f))
+
 	}
 
 	//get whats there now

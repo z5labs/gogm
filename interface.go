@@ -2,17 +2,12 @@ package gogm
 
 import dsl "github.com/mindstand/go-cypherdsl"
 
-type IVertex interface {
-	GetLabels() []string
-}
-
 type IEdge interface {
-	GetLabels() []string
-	GetStartNode() IVertex
-	SetStartNode(v IVertex) error
+	GetStartNode() interface{}
+	SetStartNode(v interface{}) error
 
-	GetEndNode() IVertex
-	SetEndNode(v IVertex) error
+	GetEndNode() interface{}
+	SetEndNode(v interface{}) error
 }
 
 //inspiration from -- https://github.com/neo4j/neo4j-ogm/blob/master/core/src/main/java/org/neo4j/ogm/session/Session.java

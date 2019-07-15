@@ -10,6 +10,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:a0cefd27d12712af4b5018dc7046f245e1e3b5760e2e848c30b171b570708f9b"
+  name = "github.com/imdario/mergo"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "7c29201646fa3de8506f701213473dd407f19646"
+  version = "v0.3.7"
+
+[[projects]]
   digest = "1:256ad89d8fbed3af4af38796c864e5b6fa7f629430076240677503f80bfa7a59"
   name = "github.com/johnnadratowski/golang-neo4j-bolt-driver"
   packages = [
@@ -32,6 +40,14 @@
   pruneopts = "UT"
   revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
   version = "v1.0.2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:a84987ab46e6a271f867f9209ae538360c4c133a7fd0f04f357d01517b968919"
+  name = "github.com/mindstand/go-cypherdsl"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "7fa32f82c9e150736cf4e3b3505353e57ee67524"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
@@ -72,6 +88,8 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/imdario/mergo",
+    "github.com/johnnadratowski/golang-neo4j-bolt-driver",
     "github.com/mindstand/go-cypherdsl",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/require",

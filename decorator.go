@@ -228,8 +228,9 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 type structDecoratorConfig struct{
 	// field name : decorator configuration
 	Fields   map[string]decoratorConfig
-	Labels []string
+	Label string
 	IsVertex bool
+	Type reflect.Type
 }
 
 //validates struct configuration
@@ -280,28 +281,17 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, error){
 	t = t.Elem()
 
 	isEdge := false
-	isVertex := false
 
 	//check if its an edge
-	if e, ok := i.(IEdge); ok{
+	if _, ok := i.(IEdge); ok{
 		isEdge = true
-	} else {
-		toReturn.Labels = e.GetLabels()
-	}
-
-	if v, ok := i.(IVertex); ok{
-		isVertex = true
-	} else {
-		toReturn.Labels = v.GetLabels()
-	}
-
-	if isEdge == isVertex{
-		if !isVertex{
-			return nil, errors.New("has to implement either IEdge or IVertex")
-		}
 	}
 
 	toReturn.IsVertex = !isEdge
+
+	toReturn.Label = t.Name()
+
+	toReturn.Type = t
 
 	if t.NumField() == 0{
 		return nil, errors.New("struct has no fields") //todo make error more thorough

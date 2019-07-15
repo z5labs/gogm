@@ -302,6 +302,22 @@ type validStruct struct{
 	IgnoreMe int `gogm:"-"`
 }
 
+func (v *validStruct) GetId() int64 {
+	panic("implement me")
+}
+
+func (v *validStruct) SetId(i int64) {
+	panic("implement me")
+}
+
+func (v *validStruct) GetUUID() string {
+	panic("implement me")
+}
+
+func (v *validStruct) SetUUID(u string) {
+	panic("implement me")
+}
+
 func (v *validStruct) GetLabels() []string {
 	return []string{"validStruct"}
 }
@@ -355,22 +371,6 @@ func (i *invalidEdge) GetLabels() []string {
 	return []string{"invalidEdge"}
 }
 
-func (i *invalidEdge) GetStartNode() IVertex {
-	return nil
-}
-
-func (i *invalidEdge) SetStartNode(v IVertex) error {
-	return nil
-}
-
-func (i *invalidEdge) GetEndNode() IVertex {
-	return nil
-}
-
-func (i *invalidEdge) SetEndNode(v IVertex) error {
-	return nil
-}
-
 func TestGetStructDecoratorConfig(t *testing.T){
 	req := require.New(t)
 
@@ -379,7 +379,7 @@ func TestGetStructDecoratorConfig(t *testing.T){
 	req.NotNil(conf)
 	checkObj := structDecoratorConfig{
 		IsVertex: true,
-		Labels: []string{"validStruct"},
+		Label: "validStruct",
 		Fields: map[string]decoratorConfig{
 			"Id": {
 				Name: "id",

@@ -68,7 +68,7 @@ func TestIndexManagement(t *testing.T){
 	//setup structure
 	mapp := map[string]structDecoratorConfig{
 		"TEST1": {
-			Labels: []string{"Test1"},
+			Label:"Test1",
 			IsVertex: true,
 			Fields: map[string]decoratorConfig{
 				"UUID": {
@@ -89,7 +89,7 @@ func TestIndexManagement(t *testing.T){
 			},
 		},
 		"TEST2": {
-			Labels: []string{"Test2"},
+			Label: "Test2",
 			IsVertex: true,
 			Fields: map[string]decoratorConfig{
 				"UUID": {

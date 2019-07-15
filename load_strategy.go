@@ -17,7 +17,7 @@ example
 MATCH (n:`OrganizationNode`) WHERE n.`uuid` = { id } WITH n MATCH p=(n)-[e*0..2]-(m) RETURN ID(n) as N_ID, n, ID(m) AS M_ID, m, LABELS(m), {type: type(e[0]), sn: ID(startnode(e[0])), en: ID(endNode(e[0]))}
 */
 
-func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int) (dsl.Cypher, error){
+func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error){
 	if sess == nil{
 		return nil, errors.New("session can not be nil")
 	}
@@ -37,7 +37,7 @@ func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int) 
 	e := "e"
 	m := "m"
 
-	return sess.Query().
+	query := sess.Query().
 		Match(dsl.Path().V(dsl.V{Name: variable}).Build()).
 		With(&dsl.WithConfig{
 			Parts: []dsl.WithPart{
@@ -45,7 +45,14 @@ func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int) 
 					Name: variable,
 				},
 			},
-		}).
+		})
+
+	//add conditional if needed
+	if additionalConstraints != nil{
+		query = query.Where(additionalConstraints)
+	}
+
+	return query.
 		Match(dsl.Path().
 			P().
 			V(dsl.V{Name: variable}).
@@ -98,7 +105,7 @@ func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int) 
 		), nil
 }
 
-func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, uuid string) (dsl.Cypher, error) {
+func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, uuid string, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
 	if sess == nil{
 		return nil, errors.New("session can not be nil")
 	}
@@ -122,6 +129,22 @@ func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, u
 	e := "e"
 	m := "m"
 
+	if additionalConstraints == nil{
+		additionalConstraints = dsl.C(&dsl.ConditionConfig{
+			Name: variable,
+			Field: "uuid",
+			ConditionOperator: dsl.EqualToOperator,
+			Check: dsl.ParamString(uuid),
+		})
+	} else {
+		additionalConstraints = additionalConstraints.And(&dsl.ConditionConfig{
+			Name: variable,
+			Field: "uuid",
+			ConditionOperator: dsl.EqualToOperator,
+			Check: dsl.ParamString("{uuid}"),
+		})
+	}
+
 	return sess.Query().
 		Match(dsl.Path().V(dsl.V{Name: variable}).Build()).
 		With(&dsl.WithConfig{
@@ -131,12 +154,7 @@ func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, u
 				},
 			},
 		}).
-		Where(dsl.C(&dsl.ConditionConfig{
-			Name: variable,
-			Field: "uuid",
-			ConditionOperator: dsl.EqualToOperator,
-			Check: dsl.ParamString(uuid),
-		})).
+		Where(additionalConstraints).
 		Match(dsl.Path().
 			P().
 			V(dsl.V{Name: variable}).
