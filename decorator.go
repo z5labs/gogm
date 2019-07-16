@@ -26,10 +26,13 @@ const (
 type decoratorConfig struct{
 	Type reflect.Type
 	Name string
+	FieldName string
 	Relationship string
 	Direction string
 	Unique bool
 	Index bool
+	ManyRelationship bool
+	UsesEdgeNode bool
 	PrimaryKey bool
 	Properties bool
 	Ignore bool
@@ -141,6 +144,8 @@ func isValidDirection(d string) bool{
 	return lowerD == "incoming" || lowerD == "outgoing" || lowerD == "any"
 }
 
+var edgeType = reflect.TypeOf(new(IEdge)).Elem()
+
 func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decoratorConfig, error){
 	fields := strings.Split(decorator, deliminator)
 
@@ -153,6 +158,8 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		Unique: false,
 		PrimaryKey: false,
 		Ignore: false,
+		Type: varType,
+		FieldName: name,
 	}
 
 	for _, field := range fields{
@@ -173,6 +180,8 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 				continue
 			case relationshipNameField:
 				toReturn.Relationship = val
+				toReturn.ManyRelationship = varType.Kind() == reflect.Slice
+				toReturn.UsesEdgeNode = varType.Implements(edgeType)
 				continue
 			case directionField:
 				if !isValidDirection(val){
@@ -211,9 +220,6 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 	if toReturn.Name == ""{
 		toReturn.Name = name
 	}
-
-	//map the type
-	toReturn.Type = varType
 
 	//ensure config complies with constraints
 	err := toReturn.Validate()
@@ -269,13 +275,15 @@ func (s *structDecoratorConfig) Validate() error{
 	return nil
 }
 
-func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, error){
+func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string]decoratorConfig, error){
 	toReturn := &structDecoratorConfig{}
+
+	rels := map[string]decoratorConfig{}
 
 	t := reflect.TypeOf(i)
 
 	if t.Kind() != reflect.Ptr{
-		return nil, errors.New("must pass pointer to struct")
+		return nil, nil, errors.New("must pass pointer to struct")
 	}
 
 	t = t.Elem()
@@ -294,7 +302,7 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, error){
 	toReturn.Type = t
 
 	if t.NumField() == 0{
-		return nil, errors.New("struct has no fields") //todo make error more thorough
+		return nil, nil, errors.New("struct has no fields") //todo make error more thorough
 	}
 
 	toReturn.Fields = map[string]decoratorConfig{}
@@ -308,11 +316,15 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, error){
 		if tag != ""{
 			config, err := newDecoratorConfig(tag, field.Name, field.Type)
 			if err != nil{
-				return nil, err
+				return nil, nil, err
 			}
 
 			if config == nil{
-				return nil, errors.New("config is nil") //todo better error
+				return nil, nil, errors.New("config is nil") //todo better error
+			}
+
+			if config.Relationship != ""{
+				rels[makeRelMapKey(toReturn.Label, config.Relationship)] = *config
 			}
 
 			toReturn.Fields[field.Name] = *config
@@ -321,8 +333,8 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, error){
 
 	err := toReturn.Validate()
 	if err != nil{
-		return nil, err
+		return nil, nil, err
 	}
 
-	return toReturn, nil
+	return toReturn, rels, nil
 }

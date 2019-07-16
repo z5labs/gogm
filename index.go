@@ -3,6 +3,7 @@ package gogm
 import (
 	"errors"
 	"fmt"
+	"github.com/cornelk/hashmap"
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/mindstand/gogm/util"
 )
@@ -90,9 +91,9 @@ func dropAllIndexesAndConstraints() error{
 }
 
 //creates all indexes
-func createAllIndexesAndConstraints(mappedTypes map[string]structDecoratorConfig) error{
+func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 	//validate that we have to do anything
-	if mappedTypes == nil || len(mappedTypes) == 0{
+	if mappedTypes == nil || mappedTypes.Len() == 0{
 		return errors.New("must have types to map")
 	}
 
@@ -108,7 +109,10 @@ func createAllIndexesAndConstraints(mappedTypes map[string]structDecoratorConfig
 	}
 
 	//index and/or create unique constraints wherever necessary
-	for node, structConfig := range mappedTypes{
+	//for node, structConfig := range mappedTypes{
+	for nodes := range mappedTypes.Iter(){
+		node := nodes.Key.(string)
+		structConfig := nodes.Value.(structDecoratorConfig)
 		if structConfig.Fields == nil || len(structConfig.Fields) == 0{
 			continue
 		}
@@ -165,9 +169,9 @@ func createAllIndexesAndConstraints(mappedTypes map[string]structDecoratorConfig
 }
 
 //verifies all indexes
-func verifyAllIndexesAndConstraints(mappedTypes map[string]structDecoratorConfig) error{
+func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 	//validate that we have to do anything
-	if mappedTypes == nil || len(mappedTypes) == 0{
+	if mappedTypes == nil || mappedTypes.Len() == 0{
 		return errors.New("must have types to map")
 	}
 
@@ -175,7 +179,10 @@ func verifyAllIndexesAndConstraints(mappedTypes map[string]structDecoratorConfig
 	var indexes []string
 
 	//build constraint strings
-	for node, structConfig := range mappedTypes{
+	for nodes := range mappedTypes.Iter(){
+		node := nodes.Key.(string)
+		structConfig := nodes.Value.(structDecoratorConfig)
+
 		if structConfig.Fields == nil || len(structConfig.Fields) == 0{
 			continue
 		}

@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:90a52b2e006c21d53b90e3e2df4cdd37de3ba7bed05feb037f9a5c218d0781b9"
+  name = "github.com/cornelk/hashmap"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "b893f4923161d485d2151f427c378e09784ec1db"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -10,12 +18,12 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:a0cefd27d12712af4b5018dc7046f245e1e3b5760e2e848c30b171b570708f9b"
-  name = "github.com/imdario/mergo"
+  digest = "1:1e9a0ec4f7e852123fefad9aadd7647eed1e9fd3716118e99a4b3dc463705c82"
+  name = "github.com/dchest/siphash"
   packages = ["."]
   pruneopts = "UT"
-  revision = "7c29201646fa3de8506f701213473dd407f19646"
-  version = "v0.3.7"
+  revision = "34f201214d993633bb24f418ba11736ab8b55aa7"
+  version = "v1.2.1"
 
 [[projects]]
   digest = "1:256ad89d8fbed3af4af38796c864e5b6fa7f629430076240677503f80bfa7a59"
@@ -88,8 +96,9 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/imdario/mergo",
+    "github.com/cornelk/hashmap",
     "github.com/johnnadratowski/golang-neo4j-bolt-driver",
+    "github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/graph",
     "github.com/mindstand/go-cypherdsl",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/require",

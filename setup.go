@@ -2,6 +2,7 @@ package gogm
 
 import (
 	"errors"
+	"github.com/cornelk/hashmap"
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/sirupsen/logrus"
 	"reflect"
@@ -50,7 +51,14 @@ const (
 	IGNORE_INDEX
 )
 
-var mappedTypes = map[string]structDecoratorConfig{}
+//convert these into concurrent hashmap
+var mappedTypes = &hashmap.HashMap{}
+//relationship + label
+var mappedRelations = &hashmap.HashMap{}
+
+func makeRelMapKey(label, rel string) string{
+	return label + rel
+}
 
 var isSetup = false
 
@@ -66,14 +74,21 @@ func Init(conf *Config, mapTypes ...interface{}) error{
 	log.Debug("mapping types")
 	for _, t := range mapTypes{
 		name := reflect.TypeOf(t).Name()
-		dc, err := getStructDecoratorConfig(t)
+		dc, rels, err := getStructDecoratorConfig(t)
 		if err != nil{
 			return err
 		}
 
 		log.Debugf("mapped type '%s'", name)
 
-		mappedTypes[name] = *dc
+		if len(rels) > 0{
+			for k, v := range rels{
+				mappedRelations.Set(k, v)
+			}
+		}
+
+		//mappedTypes[name] = *dc
+		mappedTypes.Set(name, *dc)
 	}
 
 	log.Debug("opening connection to neo4j")

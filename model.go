@@ -9,7 +9,7 @@ type Edge struct{
 	Id string `json:"-" gogm:"name=id"`
 }
 
-type EdgeConfig struct {
+type neoEdgeConfig struct {
 	StartNodeId int64
 	StartNodeType string
 
@@ -19,5 +19,4 @@ type EdgeConfig struct {
 	Obj  map[string]interface{}
 
 	Type string
-
 }
