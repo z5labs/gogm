@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"sync"
 )
+
 func DecodeNeoRows(rows neo.Rows, respObj interface{}) error{
 	defer rows.Close()
 
@@ -56,30 +57,43 @@ func decode(arr [][]interface{}, respObj interface{}) error{
 
 	//setup vals
 	nodeLookup := make(map[int64]*reflect.Value, p1+ p2)
-	pks := make([]int64, 0, p2)
-	rels := make([]neoEdgeConfig, 0, p0)
+	pks := make([]int64, p2, p2)
+	rels := make([]neoEdgeConfig, p0, p0)
 
 	//validate the type provided is compatible with return
 	if p2 == 0{
 		return errors.New("no primary node to return")
 	}
 
-	var nErr error
-	var eErr error
-	var pErr error
-
-	nodes := append(arr[1], arr[2])
+	nodes := append(arr[1], arr[2]...)
 
 	var wg sync.WaitGroup
 
 	wg.Add(3)
 
-	go convertAndMapNodes(nodes, nodeLookup, nErr, &wg)
-	go getPks(arr[2], pks, pErr, &wg)
-	go convertAndMapEdges(arr[0], rels, eErr, &wg)
+	errChan := make(chan error, 3)
+
+	go convertAndMapNodes(nodes, &nodeLookup, errChan, &wg)
+	go getPks(arr[2], pks, errChan, &wg)
+	go convertAndMapEdges(arr[0], rels, errChan, &wg)
 
 	//wait for mapping to commence
 	wg.Wait()
+
+	select {
+	case err := <- errChan:
+		log.WithError(err).Error()
+		return err
+	default:
+		log.Debugf("passed setup")
+	}
+
+	close(errChan)
+
+	//sanity check
+	if len(nodeLookup) != p1 + p2{
+		return fmt.Errorf("sanity check failed, nodeLookup not correct length (%v) != (%v)", len(nodeLookup), p1 + p2)
+	}
 
 	//build relationships
 	for _, relationConfig := range rels{
@@ -93,10 +107,17 @@ func decode(arr [][]interface{}, respObj interface{}) error{
 			return err
 		}
 
+		key := makeRelMapKey(relationConfig.StartNodeType, relationConfig.Type)
+
 		var internalEdgeConf decoratorConfig
-		_, ok := mappedRelations.GetOrInsert(makeRelMapKey(relationConfig.StartNodeType, relationConfig.Type), &internalEdgeConf)
+		temp, ok := mappedRelations.Get(key)
 		if !ok {
-			return errors.New("cannot find decorator config for key")
+			return fmt.Errorf("cannot find decorator config for key %s", key)
+		}
+
+		internalEdgeConf, ok = temp.(decoratorConfig)
+		if !ok{
+			return errors.New("unable to cast into decoratorConfig")
 		}
 
 		if internalEdgeConf.UsesEdgeNode {
@@ -109,9 +130,14 @@ func decode(arr [][]interface{}, respObj interface{}) error{
 				it = it.Elem()
 			}
 
-			_, ok := mappedTypes.GetOrInsert(internalEdgeConf.Type.Name(), &typeConfig)// mappedTypes[boltNode.Labels[0]]
+			temp, ok := mappedTypes.Get(internalEdgeConf.Type.String())// mappedTypes[boltNode.Labels[0]]
 			if !ok{
-				return fmt.Errorf("can not find mapping for node with label %s", internalEdgeConf.Type.Name())
+				return fmt.Errorf("can not find mapping for node with label %s", internalEdgeConf.Type.String())
+			}
+			
+			typeConfig = temp.(structDecoratorConfig)
+			if !ok{
+				return errors.New("unable to cast to structDecoratorConfig")
 			}
 
 			//create value
@@ -139,33 +165,34 @@ func decode(arr [][]interface{}, respObj interface{}) error{
 			if reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
 				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(*start, *val))
 			} else {
-				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(*val)
+				//non slice relationships are already asserted to be pointers
+				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(val.Addr())
 			}
 
 			//relate start-start
 			if reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
 				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(*start, *val))
 			} else {
-				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(*val)
+				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(val.Addr())
 			}
 		} else {
-			if reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(*end, *start))
+			if  end.FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
+				end.FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(*end, *start))
 			} else {
-				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(*start)
+				end.FieldByName(internalEdgeConf.FieldName).Set(start.Addr())
 			}
 
 			//relate end-start
-			if reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(*start, *end))
+			if start.FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
+				start.FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(*start, *end))
 			} else {
-				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(*end)
+				start.FieldByName(internalEdgeConf.FieldName).Set(end.Addr())
 			}
 		}
 	}
 
 	//handle if its returning a slice -- validation has been done at an earlier step
-	if p2 > 1{
+	if reflect.TypeOf(respObj).Kind() == reflect.Slice{
 		//get type in slice
 		sliceType := rt.Elem()
 
@@ -180,7 +207,8 @@ func decode(arr [][]interface{}, respObj interface{}) error{
 		return nil
 	} else {
 		//handles single -- already checked to make sure p2 is at least 1
-		respObj = nodeLookup[pks[0]].Interface()
+		reflect.Indirect(reflect.ValueOf(respObj)).Set(*nodeLookup[pks[0]])
+
 		return nil
 	}
 }
@@ -193,23 +221,28 @@ func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) 
 		return nil, structDecoratorConfig{}, fmt.Errorf("value for id (%v) not found", id)
 	}
 
-	_, ok = mappedTypes.GetOrInsert(t, &conf)
+	temp, ok := mappedTypes.Get(t)
 	if !ok {
 		return nil, structDecoratorConfig{}, fmt.Errorf("no config found for type (%s)", t)
+	}
+
+	conf, ok = temp.(structDecoratorConfig)
+	if !ok{
+		return nil, structDecoratorConfig{}, errors.New("unable to cast to structDecoratorConfig")
 	}
 
 	return
 }
 
-func getPks(nodes []interface{}, pks []int64, err error, wg *sync.WaitGroup) {
+func getPks(nodes []interface{}, pks []int64, err chan error, wg *sync.WaitGroup) {
 	if nodes == nil || len(nodes) == 0{
-		err = fmt.Errorf("nodes can not be nil or empty")
+		err <- fmt.Errorf("nodes can not be nil or empty")
 	}
 
 	for i, node := range nodes{
 		nodeConv, ok := node.(graph.Node)
 		if !ok{
-			err = fmt.Errorf("unable to cast node to type graph.Node")
+			err <- fmt.Errorf("unable to cast node to type graph.Node")
 			wg.Done()
 			return
 		}
@@ -217,13 +250,12 @@ func getPks(nodes []interface{}, pks []int64, err error, wg *sync.WaitGroup) {
 		pks[i] = nodeConv.NodeIdentity
 	}
 
-	err = nil
 	wg.Done()
 }
 
-func convertAndMapEdges(nodes []interface{}, rels []neoEdgeConfig, err error, wg *sync.WaitGroup){
+func convertAndMapEdges(nodes []interface{}, rels []neoEdgeConfig, err chan error, wg *sync.WaitGroup){
 	if nodes == nil{
-		err = errors.New("edges can not be nil or empty")
+		err <- errors.New("edges can not be nil or empty")
 		wg.Done()
 		return
 	}
@@ -237,23 +269,22 @@ func convertAndMapEdges(nodes []interface{}, rels []neoEdgeConfig, err error, wg
 		if node, ok := n.(neoEdgeConfig); ok{
 			rels[i] = node
 		} else {
-			err = fmt.Errorf("unknown type %s", reflect.TypeOf(n).Name())
+			err <- fmt.Errorf("unknown type %s", reflect.TypeOf(n).String())
 		}
 	}
 
-	err = nil
 	wg.Done()
 }
 
-func convertAndMapNodes(nodes []interface{}, lookup map[int64]*reflect.Value, err error, wg *sync.WaitGroup) {
+func convertAndMapNodes(nodes []interface{}, lookup *map[int64]*reflect.Value, err chan error, wg *sync.WaitGroup) {
 	if nodes == nil || len(nodes) == 0{
-		err = errors.New("nodes can not be nil or empty")
+		err <- errors.New("nodes can not be nil or empty")
 		wg.Done()
 		return
 	}
 
 	if lookup == nil{
-		err = errors.New("lookup can not be nil")
+		err <- errors.New("lookup can not be nil")
 		wg.Done()
 		return
 	}
@@ -261,29 +292,36 @@ func convertAndMapNodes(nodes []interface{}, lookup map[int64]*reflect.Value, er
 	for _, node := range nodes{
 		boltNode, ok := node.(graph.Node)
 		if !ok{
-			err = errors.New("unable to convert bolt node to graph.Node")
+			err <- fmt.Errorf("unable to convert bolt node to graph.Node, it is type %T", node)
 			wg.Done()
 			return
 		}
 
 		var val *reflect.Value
-
-		val, err = convertNodeToValue(boltNode)
-		if err != nil{
+		var e error
+		val, e = convertNodeToValue(boltNode)
+		if e != nil{
+			err <- e
 			wg.Done()
 			return
 		}
 
-		lookup[boltNode.NodeIdentity] = val
+		(*lookup)[boltNode.NodeIdentity] = val
 	}
 
-	err = nil
 	wg.Done()
 }
 
-func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]interface{}, rtype reflect.Type) (*reflect.Value, error){
-	var err error
-	defer catchPanic(err)
+func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]interface{}, rtype reflect.Type) (valss *reflect.Value, err error){
+	defer func() {
+		if r := recover(); r != nil{
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+
+	if rtype == nil{
+		return nil, errors.New("rtype can not be nil")
+	}
 
 	isPtr := false
 	if rtype.Kind() == reflect.Ptr{
@@ -300,6 +338,11 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 	for field, fieldConfig := range conf.Fields{
 		if fieldConfig.Name == "id"{
 			continue //id is handled above
+		}
+
+		//skip if its a relation field
+		if fieldConfig.Relationship != ""{
+			continue
 		}
 
 		raw, ok := props[fieldConfig.Name]
@@ -331,19 +374,17 @@ func convertNodeToValue(boltNode graph.Node) (*reflect.Value, error){
 
 	var typeConfig structDecoratorConfig
 
-	_, ok := mappedTypes.GetOrInsert(boltNode.Labels[0], &typeConfig)// mappedTypes[boltNode.Labels[0]]
+	temp, ok := mappedTypes.Get(boltNode.Labels[0])// mappedTypes[boltNode.Labels[0]]
 	if !ok{
 		return nil, fmt.Errorf("can not find mapping for node with label %s", boltNode.Labels[0])
 	}
 
+	typeConfig, ok = temp.(structDecoratorConfig)
+	if !ok{
+		return nil, errors.New("unable to cast to struct decorator config")
+	}
+
 	return convertToValue(boltNode.NodeIdentity, typeConfig, boltNode.Properties, typeConfig.Type)
 }
-
-func catchPanic(err error){
-	if r := recover(); r != nil{
-		err = fmt.Errorf("%v", r)
-	}
-}
-
 
 

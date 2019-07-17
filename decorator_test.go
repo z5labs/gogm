@@ -374,7 +374,7 @@ func (i *invalidEdge) GetLabels() []string {
 func TestGetStructDecoratorConfig(t *testing.T){
 	req := require.New(t)
 
-	conf, err := getStructDecoratorConfig(&validStruct{})
+	conf, _, err := getStructDecoratorConfig(&validStruct{})
 	req.Nil(err)
 	req.NotNil(conf)
 	checkObj := structDecoratorConfig{
@@ -426,23 +426,23 @@ func TestGetStructDecoratorConfig(t *testing.T){
 	}
 	req.EqualValues(checkObj, *conf)
 
-	conf, err = getStructDecoratorConfig(&mostlyValidStruct{})
+	conf, _, err = getStructDecoratorConfig(&mostlyValidStruct{})
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, err = getStructDecoratorConfig(&emptyStruct{})
+	conf, _, err = getStructDecoratorConfig(&emptyStruct{})
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, err = getStructDecoratorConfig(&invalidStructDecorator{})
+	conf, _, err = getStructDecoratorConfig(&invalidStructDecorator{})
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, err = getStructDecoratorConfig(&invalidStructProperties{})
+	conf, _, err = getStructDecoratorConfig(&invalidStructProperties{})
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, err = getStructDecoratorConfig(&invalidEdge{})
+	conf, _, err = getStructDecoratorConfig(&invalidEdge{})
 	req.NotNil(err)
 	req.Nil(conf)
 }

@@ -62,18 +62,23 @@ func makeRelMapKey(label, rel string) string{
 
 var isSetup = false
 
-func Init(conf *Config, mapTypes ...interface{}) error{
+func Init(conf *Config, mapTypes ...interface{}) error {
+	return setupInit(false, conf, mapTypes)
+}
+
+func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error{
 	if isSetup{
 		return errors.New("gogm has already been initialized")
 	}
-
-	if conf == nil{
-		return errors.New("config can not be nil")
+	if !isTest{
+		if conf == nil{
+			return errors.New("config can not be nil")
+		}
 	}
 
 	log.Debug("mapping types")
 	for _, t := range mapTypes{
-		name := reflect.TypeOf(t).Name()
+		name := reflect.TypeOf(t).Elem().Name()
 		dc, rels, err := getStructDecoratorConfig(t)
 		if err != nil{
 			return err
@@ -87,55 +92,61 @@ func Init(conf *Config, mapTypes ...interface{}) error{
 			}
 		}
 
-		//mappedTypes[name] = *dc
+		log.Infof("mapped type %s", name)
 		mappedTypes.Set(name, *dc)
 	}
 
-	log.Debug("opening connection to neo4j")
-	err := dsl.Init(&dsl.ConnectionConfig{
-		PoolSize: conf.PoolSize,
-		Port: conf.Port,
-		Host: conf.Host,
-		Password: conf.Password,
-		Username: conf.Username,
-	})
-	if err != nil{
-		return err
+	if !isTest{
+		log.Debug("opening connection to neo4j")
+		err := dsl.Init(&dsl.ConnectionConfig{
+			PoolSize: conf.PoolSize,
+			Port: conf.Port,
+			Host: conf.Host,
+			Password: conf.Password,
+			Username: conf.Username,
+		})
+		if err != nil{
+			return err
+		}
 	}
+
 
 	log.Debug("starting index verification step")
+	if !isTest{
+		var err error
+		if conf.IndexStrategy == ASSERT_INDEX{
+			log.Debug("chose ASSERT_INDEX strategy")
+			log.Debug("dropping all known indexes")
+			err = dropAllIndexesAndConstraints()
+			if err != nil{
+				return err
+			}
 
-	if conf.IndexStrategy == ASSERT_INDEX{
-		log.Debug("chose ASSERT_INDEX strategy")
-		log.Debug("dropping all known indexes")
-		err = dropAllIndexesAndConstraints()
-		if err != nil{
-			return err
-		}
+			log.Debug("creating all mapped indexes")
+			err = createAllIndexesAndConstraints(mappedTypes)
+			if err != nil{
+				return err
+			}
 
-		log.Debug("creating all mapped indexes")
-		err = createAllIndexesAndConstraints(mappedTypes)
-		if err != nil{
-			return err
+			log.Debug("verifying all indexes")
+			err = verifyAllIndexesAndConstraints(mappedTypes)
+			if err != nil {
+				return err
+			}
+		} else if conf.IndexStrategy == VALIDATE_INDEX{
+			log.Debug("chose VALIDATE_INDEX strategy")
+			log.Debug("verifying all indexes")
+			err = verifyAllIndexesAndConstraints(mappedTypes)
+			if err != nil {
+				return err
+			}
+		} else if conf.IndexStrategy == IGNORE_INDEX{
+			log.Debug("ignoring indexes")
+		} else {
+			return errors.New("unknown index strategy")
 		}
-
-		log.Debug("verifying all indexes")
-		err = verifyAllIndexesAndConstraints(mappedTypes)
-		if err != nil {
-			return err
-		}
-	} else if conf.IndexStrategy == VALIDATE_INDEX{
-		log.Debug("chose VALIDATE_INDEX strategy")
-		log.Debug("verifying all indexes")
-		err = verifyAllIndexesAndConstraints(mappedTypes)
-		if err != nil {
-			return err
-		}
-	} else if conf.IndexStrategy == IGNORE_INDEX{
-		log.Debug("ignoring indexes")
-	} else {
-		return errors.New("unknown index strategy")
 	}
+
 
 	log.Debug("setup complete")
 

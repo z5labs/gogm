@@ -77,10 +77,12 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	//"deref" reflect interface type
 	respType = respType.Elem()
 
-	respObjName := respType.Name()
+	respObjName := respType.String()
+
+	var structConfig structDecoratorConfig
 
 	//get config
-	structConfig, ok := mappedTypes[respObjName]
+	_, ok := mappedTypes.GetOrInsert(respObjName, &structConfig)
 	if !ok{
 		return fmt.Errorf("unrecognized type '%s', ensure this is a mapped node", respObjName)
 	}
@@ -152,12 +154,19 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 	//"deref" reflect interface type
 	respType = respType.Elem()
 
-	respObjName := respType.Name()
+	respObjName := respType.String()
+
+	var structConfig structDecoratorConfig
 
 	//get config
-	structConfig, ok := mappedTypes[respObjName]
+	temp, ok := mappedTypes.Get(respObjName)
 	if !ok{
 		return fmt.Errorf("unrecognized type '%s', ensure this is a mapped node", respObjName)
+	}
+
+	structConfig, ok = temp.(structDecoratorConfig)
+	if !ok{
+		return errors.New("unable to cast to structDecoratorConfig")
 	}
 
 	//will need to keep track of these variables

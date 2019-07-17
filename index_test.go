@@ -66,7 +66,7 @@ func TestIndexManagement(t *testing.T){
 	req.Nil(dropAllIndexesAndConstraints())
 
 	//setup structure
-	mapp := map[string]structDecoratorConfig{
+	mapp := toHashmapStructdecconf(map[string]structDecoratorConfig{
 		"TEST1": {
 			Label:"Test1",
 			IsVertex: true,
@@ -109,7 +109,7 @@ func TestIndexManagement(t *testing.T){
 				},
 			},
 		},
-	}
+	})
 
 	//create stuff
 	req.Nil(createAllIndexesAndConstraints(mapp))
