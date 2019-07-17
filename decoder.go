@@ -139,9 +139,10 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 			label := ""
 
 			if internalEdgeConf.Type.Kind() == reflect.Ptr{
-				label = internalEdgeConf.Type.Elem().Name()
+				label = it.Elem().Name()
 			} else {
-				label = internalEdgeConf.Type.Name()
+				label = it.Name()
+				it = reflect.PtrTo(it)
 			}
 
 			temp, ok := mappedTypes.Get(label)// mappedTypes[boltNode.Labels[0]]
@@ -155,10 +156,11 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 			}
 
 			//create value
-			val, err := convertToValue(-1, typeConfig, relationConfig.Obj, internalEdgeConf.Type)
+			val, err := convertToValue(-1, typeConfig, relationConfig.Obj, it)
 			if err != nil{
 				return err
 			}
+
 			//can ensure that it implements proper interface if it made it this far
 			res := val.MethodByName("SetStartNode").Call([]reflect.Value{*start})
 			if res == nil || len(res) == 0 {
@@ -176,7 +178,7 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 
 			//relate end-start
 			if reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName), *val))
+				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName), reflect.Indirect(*val)))
 			} else {
 				//non slice relationships are already asserted to be pointers
 				end.FieldByName(internalEdgeConf.FieldName).Set(*val)
@@ -184,7 +186,7 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 
 			//relate start-start
 			if reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName), *val))
+				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName), reflect.Indirect(*val)))
 			} else {
 				start.FieldByName(internalEdgeConf.FieldName).Set(*val)
 			}

@@ -182,7 +182,7 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 				toReturn.Relationship = val
 				if varType.Kind() == reflect.Slice {
 					toReturn.ManyRelationship = true
-					toReturn.UsesEdgeNode = varType.Elem().Implements(edgeType)
+					toReturn.UsesEdgeNode = reflect.PtrTo(varType.Elem()).Implements(edgeType)
 				} else {
 					toReturn.ManyRelationship = false
 					toReturn.UsesEdgeNode = varType.Implements(edgeType)
