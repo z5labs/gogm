@@ -21,7 +21,13 @@ func DecodeNeoRows(rows neo.Rows, respObj interface{}) error{
 	return decode(arr, respObj)
 }
 
-func decode(arr [][]interface{}, respObj interface{}) error{
+func decode(arr [][]interface{}, respObj interface{}) (err error){
+	defer func() {
+		if r := recover(); r != nil{
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+
 	/*
 		MATCH (n:OrganizationNode)
 		WITH n
@@ -44,7 +50,7 @@ func decode(arr [][]interface{}, respObj interface{}) error{
 	rt := reflect.TypeOf(respObj)
 
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return errors.New("invalid resp type")
+		return fmt.Errorf("invalid resp type %T", respObj)
 	}
 
 	if len(arr) != 3{
@@ -176,7 +182,7 @@ func decode(arr [][]interface{}, respObj interface{}) error{
 				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(val.Addr())
 			}
 		} else {
-			if  end.FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
+			if end.FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
 				end.FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(*end, *start))
 			} else {
 				end.FieldByName(internalEdgeConf.FieldName).Set(start.Addr())
@@ -192,24 +198,35 @@ func decode(arr [][]interface{}, respObj interface{}) error{
 	}
 
 	//handle if its returning a slice -- validation has been done at an earlier step
-	if reflect.TypeOf(respObj).Kind() == reflect.Slice{
-		//get type in slice
-		sliceType := rt.Elem()
+	if rt.Elem().Kind() == reflect.Slice{
 
-		//make a new slice
-		retSlice := reflect.MakeSlice(sliceType, len(pks), cap(pks))
+		reflection := reflect.MakeSlice(rt.Elem(), 0, 0)
+
+		reflectionValue := reflect.New(reflection.Type())
+		reflectionValue.Elem().Set(reflection)
+
+		slicePtr := reflect.ValueOf(reflectionValue.Interface())
+
+		sliceValuePtr := slicePtr.Elem()
 
 		for _, id := range pks{
-			retSlice.Set(reflect.Append(retSlice, *nodeLookup[id]))
+			val, ok := nodeLookup[id]
+			if !ok{
+				return fmt.Errorf("cannot find value with id (%v)", id)
+			}
+
+			log.Info(val.Interface())
+			sliceValuePtr.Set(reflect.Append(sliceValuePtr, *val))
 		}
 
-		respObj = retSlice.Interface()
-		return nil
+		rv.Set(sliceValuePtr)
+
+		return err
 	} else {
 		//handles single -- already checked to make sure p2 is at least 1
-		reflect.Indirect(reflect.ValueOf(respObj)).Set(*nodeLookup[pks[0]])
+		reflect.Indirect(rv).Set(*nodeLookup[pks[0]])
 
-		return nil
+		return err
 	}
 }
 

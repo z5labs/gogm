@@ -220,4 +220,14 @@ func TestDecoder(t *testing.T){
 	req.EqualValues(comp.Single.Id, readin.Single.Id)
 	req.EqualValues(comp.Single.UUID, readin.Single.UUID)
 	req.EqualValues(comp.Single.TestField, readin.Single.TestField)
+
+	var readinSlice []a
+
+	req.Nil(decode(vars, &readinSlice))
+	req.EqualValues(comp.TestField, readinSlice[0].TestField)
+	req.EqualValues(comp.UUID, readinSlice[0].UUID)
+	req.EqualValues(comp.Id, readinSlice[0].Id)
+	req.EqualValues(comp.Single.Id, readinSlice[0].Single.Id)
+	req.EqualValues(comp.Single.UUID, readinSlice[0].Single.UUID)
+	req.EqualValues(comp.Single.TestField, readinSlice[0].Single.TestField)
 }
