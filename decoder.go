@@ -136,9 +136,17 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 				it = it.Elem()
 			}
 
-			temp, ok := mappedTypes.Get(internalEdgeConf.Type.String())// mappedTypes[boltNode.Labels[0]]
+			label := ""
+
+			if internalEdgeConf.Type.Kind() == reflect.Ptr{
+				label = internalEdgeConf.Type.Elem().Name()
+			} else {
+				label = internalEdgeConf.Type.Name()
+			}
+
+			temp, ok := mappedTypes.Get(label)// mappedTypes[boltNode.Labels[0]]
 			if !ok{
-				return fmt.Errorf("can not find mapping for node with label %s", internalEdgeConf.Type.String())
+				return fmt.Errorf("can not find mapping for node with label %s", label)
 			}
 			
 			typeConfig = temp.(structDecoratorConfig)
@@ -151,7 +159,6 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 			if err != nil{
 				return err
 			}
-
 			//can ensure that it implements proper interface if it made it this far
 			res := val.MethodByName("SetStartNode").Call([]reflect.Value{*start})
 			if res == nil || len(res) == 0 {
@@ -160,7 +167,7 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 				return res[0].Interface().(error)
 			}
 
-			res = val.MethodByName("SetEndNode").Call([]reflect.Value{*start})
+			res = val.MethodByName("SetEndNode").Call([]reflect.Value{*end})
 			if res == nil || len(res) == 0 {
 				return errors.New("invalid response")
 			} else if !res[0].IsNil(){
@@ -169,28 +176,28 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 
 			//relate end-start
 			if reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(*start, *val))
+				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName), *val))
 			} else {
 				//non slice relationships are already asserted to be pointers
-				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(val.Addr())
+				end.FieldByName(internalEdgeConf.FieldName).Set(*val)
 			}
 
 			//relate start-start
 			if reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(*start, *val))
+				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName), *val))
 			} else {
-				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(val.Addr())
+				start.FieldByName(internalEdgeConf.FieldName).Set(*val)
 			}
 		} else {
 			if end.FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				end.FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(*end, *start))
+				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName), *start))
 			} else {
 				end.FieldByName(internalEdgeConf.FieldName).Set(start.Addr())
 			}
 
 			//relate end-start
 			if start.FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				start.FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(*start, *end))
+				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName), *end))
 			} else {
 				start.FieldByName(internalEdgeConf.FieldName).Set(end.Addr())
 			}
@@ -200,7 +207,7 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 	//handle if its returning a slice -- validation has been done at an earlier step
 	if rt.Elem().Kind() == reflect.Slice{
 
-		reflection := reflect.MakeSlice(rt.Elem(), 0, 0)
+		reflection := reflect.MakeSlice(rt.Elem(), 0, cap(pks))
 
 		reflectionValue := reflect.New(reflection.Type())
 		reflectionValue.Elem().Set(reflection)
@@ -215,11 +222,10 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 				return fmt.Errorf("cannot find value with id (%v)", id)
 			}
 
-			log.Info(val.Interface())
 			sliceValuePtr.Set(reflect.Append(sliceValuePtr, *val))
 		}
 
-		rv.Set(sliceValuePtr)
+		reflect.Indirect(rv).Set(sliceValuePtr)
 
 		return err
 	} else {

@@ -144,7 +144,7 @@ func isValidDirection(d string) bool{
 	return lowerD == "incoming" || lowerD == "outgoing" || lowerD == "any"
 }
 
-var edgeType = reflect.TypeOf(new(IEdge)).Elem()
+var edgeType = reflect.TypeOf(new(IEdge)) .Elem()
 
 func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decoratorConfig, error){
 	fields := strings.Split(decorator, deliminator)
@@ -180,8 +180,14 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 				continue
 			case relationshipNameField:
 				toReturn.Relationship = val
-				toReturn.ManyRelationship = varType.Kind() == reflect.Slice
-				toReturn.UsesEdgeNode = varType.Implements(edgeType)
+				if varType.Kind() == reflect.Slice {
+					toReturn.ManyRelationship = true
+					toReturn.UsesEdgeNode = varType.Elem().Implements(edgeType)
+				} else {
+					toReturn.ManyRelationship = false
+					toReturn.UsesEdgeNode = varType.Implements(edgeType)
+				}
+
 				continue
 			case directionField:
 				if !isValidDirection(val){
