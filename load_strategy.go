@@ -2,6 +2,7 @@ package gogm
 
 import (
 	"errors"
+	"fmt"
 	dsl "github.com/mindstand/go-cypherdsl"
 )
 
@@ -12,10 +13,17 @@ const (
 	SCHEMA_LOAD_STRATEGY
 )
 
+var edgesPart = `collect(extract(n in e | {StartNodeId: ID(startnode(n)), StartNodeType: labels(startnode(n)), EndNodeId: ID(endnode(n)), EndNode: labels(endnode(n)), Obj: n, Type: type(n)})) as Edges,`
+
 /*
 example
-MATCH (n:`OrganizationNode`) WHERE n.`uuid` = { id } WITH n MATCH p=(n)-[e*0..2]-(m) RETURN ID(n) as N_ID, n, ID(m) AS M_ID, m, LABELS(m), {type: type(e[0]), sn: ID(startnode(e[0])), en: ID(endNode(e[0]))}
-*/
+MATCH (n:OrganizationNode)
+		WITH n
+		MATCH (n)-[e*0..1]-(m)
+		RETURN DISTINCT
+			collect(extract(n in e | {StartNodeId: ID(startnode(n)), StartNodeType: labels(startnode(n)), EndNodeId: ID(endnode(n)), EndNode: labels(endnode(n)), Obj: n, Type: type(n)})) as Edges,
+			collect(DISTINCT m) as Ends,
+			collect(DISTINCT n) as Starts*/
 
 func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error){
 	if sess == nil{
@@ -34,11 +42,8 @@ func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int, 
 		return nil, errors.New("depth can not be less than 0")
 	}
 
-	e := "e"
-	m := "m"
-
-	query := sess.Query().
-		Match(dsl.Path().V(dsl.V{Name: variable}).Build()).
+	builder := sess.QueryReadOnly().
+		Match(dsl.Path().V(dsl.V{Name: variable, Type: label}).Build()).
 		With(&dsl.WithConfig{
 			Parts: []dsl.WithPart{
 				{
@@ -47,65 +52,25 @@ func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int, 
 			},
 		})
 
-	//add conditional if needed
 	if additionalConstraints != nil{
-		query = query.Where(additionalConstraints)
+		builder = builder.Where(additionalConstraints)
 	}
 
-	return query.
+	builder.
 		Match(dsl.Path().
-			P().
 			V(dsl.V{Name: variable}).
-			E(dsl.E{
-				Name: e,
-				MinJumps: 0,
-				MaxJumps: depth,
-			}).
-			V(dsl.V{
-				Name: m,
-			}).
-			Build()).
+			E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
+			V(dsl.V{Name: "m"}).Build()).
 		Return(true,
-			dsl.ReturnPart{
-				Function: &dsl.FunctionConfig{
-					Name: "ID",
-					Params: []interface{}{
-						variable,
-					},
-				},
-				Alias: "N_ID",
-			},
-			dsl.ReturnPart{
-				Name: variable,
-			},
-			dsl.ReturnPart{
-				Function: &dsl.FunctionConfig{
-					Name: "ID",
-					Params: []interface{}{
-						m,
-					},
-				},
-				Alias: "M_ID",
-			},
-			dsl.ReturnPart{
-				Name: m,
-			},
-			dsl.ReturnPart{
-				Function: &dsl.FunctionConfig{
-					Name: "LABELS",
-					Params: []interface{}{
-						m,
-					},
-				},
-			},
-			dsl.ReturnPart{
-				Name: "{Type: type(e[0]), StartNode: ID(startnode(e[0])), EndNode: ID(endnode(e[0]))}",
-				Alias: "edge_config",
-			},
-		), nil
+			dsl.ReturnPart{Name: edgesPart},
+			dsl.ReturnPart{Name: "collect(DISTINCT m) as Ends"},
+			dsl.ReturnPart{Name: fmt.Sprintf("collect(DISTINCT %s) as Starts", variable)},
+		)
+
+	return builder, nil
 }
 
-func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, uuid string, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
+func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
 	if sess == nil{
 		return nil, errors.New("session can not be nil")
 	}
@@ -122,87 +87,38 @@ func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, u
 		return nil, errors.New("depth can not be less than 0")
 	}
 
-	if uuid == ""{
-		return nil, errors.New("uuid can not be empty")
-	}
-
-	e := "e"
-	m := "m"
-
-	if additionalConstraints == nil{
-		additionalConstraints = dsl.C(&dsl.ConditionConfig{
-			Name: variable,
-			Field: "uuid",
-			ConditionOperator: dsl.EqualToOperator,
-			Check: dsl.ParamString(uuid),
-		})
-	} else {
-		additionalConstraints = additionalConstraints.And(&dsl.ConditionConfig{
-			Name: variable,
-			Field: "uuid",
-			ConditionOperator: dsl.EqualToOperator,
-			Check: dsl.ParamString("{uuid}"),
-		})
-	}
-
-	return sess.Query().
-		Match(dsl.Path().V(dsl.V{Name: variable}).Build()).
+	builder := sess.QueryReadOnly().
+		Match(dsl.Path().V(dsl.V{Name: variable, Type: label}).Build()).
 		With(&dsl.WithConfig{
 			Parts: []dsl.WithPart{
 				{
 					Name: variable,
 				},
 			},
-		}).
-		Where(additionalConstraints).
+		})
+
+	if additionalConstraints != nil{
+		builder = builder.Where(additionalConstraints.And(&dsl.ConditionConfig{
+			Name: variable,
+			Check: dsl.ParamString("{uuid}"),
+		}))
+	} else {
+		builder = builder.Where(dsl.C(&dsl.ConditionConfig{
+			Name: variable,
+			Check: dsl.ParamString("{uuid}"),
+		}))
+	}
+
+	builder.
 		Match(dsl.Path().
-			P().
 			V(dsl.V{Name: variable}).
-			E(dsl.E{
-				Name: e,
-				MinJumps: 0,
-				MaxJumps: depth,
-			}).
-			V(dsl.V{
-				Name: m,
-			}).
-			Build()).
+			E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
+			V(dsl.V{Name: "m"}).Build()).
 		Return(true,
-			dsl.ReturnPart{
-				Function: &dsl.FunctionConfig{
-					Name: "ID",
-					Params: []interface{}{
-						variable,
-					},
-				},
-				Alias: "N_ID",
-			},
-			dsl.ReturnPart{
-				Name: variable,
-			},
-			dsl.ReturnPart{
-				Function: &dsl.FunctionConfig{
-					Name: "ID",
-					Params: []interface{}{
-						m,
-					},
-				},
-				Alias: "M_ID",
-			},
-			dsl.ReturnPart{
-				Name: m,
-			},
-			dsl.ReturnPart{
-				Function: &dsl.FunctionConfig{
-					Name: "LABELS",
-					Params: []interface{}{
-						m,
-					},
-				},
-			},
-			dsl.ReturnPart{
-				Name: "{Type: type(e[0]), StartNode: ID(startnode(e[0])), EndNode: ID(endnode(e[0]))}",
-				Alias: "edge_config",
-			},
-		), nil
+			dsl.ReturnPart{Name: edgesPart},
+			dsl.ReturnPart{Name: "collect(DISTINCT m) as Ends"},
+			dsl.ReturnPart{Name: fmt.Sprintf("collect(DISTINCT %s) as Starts", variable)},
+		)
+
+	return builder, nil
 }

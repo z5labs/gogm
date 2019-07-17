@@ -11,6 +11,11 @@ import (
 )
 
 func TestDecode(t *testing.T){
+	if testing.Short(){
+		t.Skip()
+		return
+	}
+
 	req := require.New(t)
 
 	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
@@ -44,7 +49,11 @@ func TestDecode(t *testing.T){
 
 	var stuff a
 	require.Nil(t, DecodeNeoRows(rows, &stuff))
-	t.Log(stuff)
+	t.Log(stuff.Id)
+	t.Log(stuff.UUID)
+	t.Log(stuff.MultiSpec[0].End.Id)
+	req.NotEqual(0, stuff.Id)
+	req.True(len(stuff.MultiSpec) > 0)
 }
 
 type TestStruct struct {

@@ -22,7 +22,7 @@ func DecodeNeoRows(rows neo.Rows, respObj interface{}) error{
 	return decode(arr, respObj)
 }
 
-func decode(rawarr [][]interface{}, respObj interface{}) (err error){
+func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	defer func() {
 		if r := recover(); r != nil{
 			err = fmt.Errorf("%v", r)
@@ -54,11 +54,11 @@ func decode(rawarr [][]interface{}, respObj interface{}) (err error){
 		return fmt.Errorf("invalid resp type %T", respObj)
 	}
 
-	if rawarr == nil || len(rawarr) != 1{
-		return fmt.Errorf("invalid rawarr size, %v", len(rawarr))
+	if rawArr == nil || len(rawArr) != 1{
+		return fmt.Errorf("invalid rawArr size, %v", len(rawArr))
 	}
 
-	arr1 := rawarr[0]
+	arr1 := rawArr[0]
 
 	if len(arr1) != 3{
 		return  fmt.Errorf("malformed response, invalid number of rows (%v != 3)", len(arr1))
