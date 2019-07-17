@@ -48,7 +48,7 @@ func TestDecode(t *testing.T){
 	require.NotNil(t, rows)
 
 	var stuff a
-	require.Nil(t, DecodeNeoRows(rows, &stuff))
+	require.Nil(t, decodeNeoRows(rows, &stuff))
 	t.Log(stuff.Id)
 	t.Log(stuff.UUID)
 	t.Log(stuff.MultiSpec[0].End.Id)

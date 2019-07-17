@@ -13,7 +13,7 @@ const (
 	SCHEMA_LOAD_STRATEGY
 )
 
-var edgesPart = `collect(extract(n in e | {StartNodeId: ID(startnode(n)), StartNodeType: labels(startnode(n)), EndNodeId: ID(endnode(n)), EndNode: labels(endnode(n)), Obj: n, Type: type(n)})) as Edges,`
+var edgesPart = `collect(extract(n in e | {StartNodeId: ID(startnode(n)), StartNodeType: labels(startnode(n))[0], EndNodeId: ID(endnode(n)), EndNodeType: labels(endnode(n))[0], Obj: n, Type: type(n)})) as Edges`
 
 /*
 example
@@ -53,7 +53,7 @@ func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int, 
 		})
 
 	if additionalConstraints != nil{
-		builder = builder.Where(additionalConstraints)
+		builder.Where(additionalConstraints)
 	}
 
 	builder.

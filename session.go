@@ -7,7 +7,7 @@ import (
 	"reflect"
 )
 
-const defaultDepth = 2
+const defaultDepth = 1
 
 type Session struct{
 	conn *dsl.Session
@@ -51,22 +51,18 @@ func (s *Session) Commit() error {
 }
 
 func (s *Session) Load(respObj interface{}, id string) error {
-	return s.LoadDepthFilterPagination(respObj, id, s.DefaultDepth, nil, nil)
+	return s.LoadDepthFilterPagination(respObj, id, s.DefaultDepth, nil, nil,nil)
 }
 
 func (s *Session) LoadDepth(respObj interface{}, id string, depth int) error{
-	return s.LoadDepthFilterPagination(respObj, id, depth, nil, nil)
+	return s.LoadDepthFilterPagination(respObj, id, depth, nil, nil,nil)
 }
 
-func (s *Session) LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder) error{
-		return s.LoadDepthFilterPagination(respObj, id, depth, filter, nil)
+func (s *Session) LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error{
+		return s.LoadDepthFilterPagination(respObj, id, depth, filter, params,nil)
 }
 
-func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, pagination *Pagination) error {
-	if s.conn == nil{
-		return errors.New("neo4j connection not initialized")
-	}
-
+func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
 	respType := reflect.TypeOf(respObj)
 
 	//validate type is ptr
@@ -77,15 +73,8 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	//"deref" reflect interface type
 	respType = respType.Elem()
 
-	respObjName := respType.String()
-
-	var structConfig structDecoratorConfig
-
-	//get config
-	_, ok := mappedTypes.GetOrInsert(respObjName, &structConfig)
-	if !ok{
-		return fmt.Errorf("unrecognized type '%s', ensure this is a mapped node", respObjName)
-	}
+	//get the type name -- this maps directly to the label
+	respObjName := respType.Name()
 
 	//will need to keep track of these variables
 	varName := "n"
@@ -96,7 +85,7 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	//make the query based off of the load strategy
 	switch s.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
-		query, err = PathLoadStrategyOne(s.conn, varName, structConfig.Label, depth, id, filter)
+		query, err = PathLoadStrategyOne(s.conn, varName, respObjName, depth, filter)
 		if err != nil{
 			return err
 		}
@@ -105,6 +94,7 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	default:
 		return errors.New("unknown load strategy")
 	}
+
 
 	//if the query requires pagination, set that up
 	if pagination != nil{
@@ -123,51 +113,54 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 			Limit(pagination.LimitPerPage )
 	}
 
-	rows, err := query.Query(nil)
+	if params == nil{
+		params = map[string]interface{}{
+			"uuid": id,
+		}
+	} else {
+		params["uuid"] = id
+	}
+
+	rows, err := query.Query(params)
 	if err != nil{
 		return err
 	}
 
-	return DecodeNeoRows(rows, respObj)
+	return decodeNeoRows(rows, respObj)
 }
 
 func (s *Session) LoadAll(respObj interface{}) error {
-	return s.LoadAllDepthFilterPagination(respObj, s.DefaultDepth, nil, nil)
+	return s.LoadAllDepthFilterPagination(respObj, s.DefaultDepth, nil, nil, nil)
 }
 
 func (s *Session) LoadAllDepth(respObj interface{}, depth int) error {
-	return s.LoadAllDepthFilterPagination(respObj, depth, nil, nil)
+	return s.LoadAllDepthFilterPagination(respObj, depth, nil, nil, nil)
 }
 
-func (s *Session) LoadAllDepthFilter(respObj interface{}, depth int, filter *dsl.ConditionBuilder) error {
-	return s.LoadAllDepthFilterPagination(respObj, depth, filter, nil)
+func (s *Session) LoadAllDepthFilter(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error {
+	return s.LoadAllDepthFilterPagination(respObj, depth, filter, params, nil)
 }
 
-func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, filter *dsl.ConditionBuilder, pagination *Pagination) error {
-	respType := reflect.TypeOf(respObj)
+func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
+	rawRespType := reflect.TypeOf(respObj)
+
+	if rawRespType.Kind() != reflect.Ptr{
+		return fmt.Errorf("respObj must be a pointer to a slice, instead it is %T", respObj)
+	}
+
+	//deref to a slice
+	respType := rawRespType.Elem()
 
 	//validate type is ptr
-	if respType.Kind() != reflect.Ptr{
-		return errors.New("respObj must be type ptr")
+	if respType.Kind() != reflect.Slice{
+		return fmt.Errorf("respObj must be type slice, instead it is %T", respObj)
 	}
 
 	//"deref" reflect interface type
 	respType = respType.Elem()
 
-	respObjName := respType.String()
-
-	var structConfig structDecoratorConfig
-
-	//get config
-	temp, ok := mappedTypes.Get(respObjName)
-	if !ok{
-		return fmt.Errorf("unrecognized type '%s', ensure this is a mapped node", respObjName)
-	}
-
-	structConfig, ok = temp.(structDecoratorConfig)
-	if !ok{
-		return errors.New("unable to cast to structDecoratorConfig")
-	}
+	//get the type name -- this maps directly to the label
+	respObjName := respType.Name()
 
 	//will need to keep track of these variables
 	varName := "n"
@@ -178,7 +171,7 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 	//make the query based off of the load strategy
 	switch s.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
-		query, err = PathLoadStrategyMany(s.conn, varName, structConfig.Label, depth, filter)
+		query, err = PathLoadStrategyMany(s.conn, varName, respObjName, depth, filter)
 		if err != nil{
 			return err
 		}
@@ -206,12 +199,12 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 			Limit(pagination.LimitPerPage )
 	}
 
-	rows, err := query.Query(nil)
+	rows, err := query.Query(params)
 	if err != nil{
 		return err
 	}
 
-	return DecodeNeoRows(rows, respObj)
+	return decodeNeoRows(rows, respObj)
 }
 
 func (s *Session) Save(saveObj interface{}) error {
@@ -241,14 +234,6 @@ func (s *Session) Delete(deleteObj interface{}) error {
 }
 
 func (s *Session) Query(query string, properties map[string]interface{}, respObj interface{}) error {
-	if s.conn == nil{
-		return errors.New("neo4j connection not initialized")
-	}
-
-	return nil
-}
-
-func (s *Session) QuerySlice(query string, properties map[string]interface{}, respObj interface{}) error {
 	if s.conn == nil{
 		return errors.New("neo4j connection not initialized")
 	}

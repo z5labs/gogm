@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-func DecodeNeoRows(rows neo.Rows, respObj interface{}) error{
+func decodeNeoRows(rows neo.Rows, respObj interface{}) error{
 	defer rows.Close()
 
 	arr, err := dsl.RowsTo2DInterfaceArray(rows)

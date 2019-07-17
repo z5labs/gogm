@@ -24,10 +24,10 @@ type ISession interface {
 	LoadDepth(respObj interface{}, id string, depth int) error
 
 	//load with depth and filter
-	LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder) error
+	LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error
 
 	//load with depth, filter and pagination
-	LoadDepthFilterPagination(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, pagination *Pagination) error
+	LoadDepthFilterPagination(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error
 
 	//load slice of something
 	LoadAll(respObj interface{}) error
@@ -36,10 +36,10 @@ type ISession interface {
 	LoadAllDepth(respObj interface{}, depth int) error
 
 	//load all of type with depth and filter
-	LoadAllDepthFilter(respObj interface{}, depth int, filter *dsl.ConditionBuilder) error
+	LoadAllDepthFilter(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error
 
 	//load all with depth, filter and pagination
-	LoadAllDepthFilterPagination(respObj interface{}, depth int, filter *dsl.ConditionBuilder, pagination *Pagination) error
+	LoadAllDepthFilterPagination(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error
 
 	//save object
 	Save(saveObj interface{}) error
@@ -52,9 +52,6 @@ type ISession interface {
 
 	//specific query, only respond with single object
 	Query(query string, properties map[string]interface{}, respObj interface{}) error
-
-	//specify query, return slice of info
-	QuerySlice(query string, properties map[string]interface{}, respObj interface{}) error
 
 	//delete everything, this will literally delete everything
 	PurgeDatabase() error
