@@ -4,10 +4,48 @@ import (
 	"errors"
 	"github.com/cornelk/hashmap"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/graph"
+	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 )
+
+func TestDecode(t *testing.T){
+	req := require.New(t)
+
+	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
+
+	req.EqualValues(3, mappedTypes.Len())
+
+	query := `
+		MATCH (n:a)
+		WITH n
+		MATCH (n)-[e*0..2]-(m)
+		RETURN DISTINCT
+			collect(extract(n in e | {StartNodeId: ID(startnode(n)), StartNodeType: labels(startnode(n))[0], EndNodeId: ID(endnode(n)), EndNodeType: labels(endnode(n))[0], Obj: n, Type: type(n)})) as Edges,
+			collect(DISTINCT m) as Ends,
+			collect(DISTINCT n) as Starts
+	`
+
+	err := dsl.Init(&dsl.ConnectionConfig{
+		Username: "neo4j",
+		Password: "password",
+		Host: "0.0.0.0",
+		Port: 7687,
+		PoolSize: 15,
+	})
+	require.Nil(t, err)
+
+	sess := dsl.NewSession()
+
+	rows, err := sess.QueryReadOnly().Cypher(query).Query(nil)
+	require.Nil(t, err)
+	require.NotNil(t, rows)
+
+	var stuff a
+	require.Nil(t, DecodeNeoRows(rows, &stuff))
+	t.Log(stuff)
+}
 
 type TestStruct struct {
 	Id int64
@@ -168,34 +206,54 @@ func TestDecoder(t *testing.T){
 
 	req.EqualValues(3, mappedTypes.Len())
 
+	Type := "Type"
+	StartNodeType := "StartNodeType"
+	StartNodeId := "StartNodeId"
+	EndNodeType := "EndNodeType"
+	EndNodeId := "EndNodeId"
+	Obj := "Obj"
+
 	vars := [][]interface{}{
 		{
-			neoEdgeConfig{
-				Type: "test_rel",
-				StartNodeType: "a",
-				StartNodeId: 1,
-				EndNodeType: "b",
-				EndNodeId: 2,
-			},
-		},
-		{
-			graph.Node{
-				Labels: []string{"b"},
-				Properties: map[string]interface{}{
-					"test_field": "test",
-					"uuid": "dasdfas",
+			[]interface{}{
+				[]interface{}{neoEdgeConfig{}},
+				[]interface{}{
+					map[string]interface{}{
+						Type: "test_rel",
+						StartNodeType: "a",
+						StartNodeId: int64(1),
+						EndNodeType: "b",
+						EndNodeId: int64(2),
+					},
 				},
-				NodeIdentity: 2,
 			},
-		},
-		{
-			graph.Node{
-				Labels: []string{"a"},
-				Properties: map[string]interface{}{
-					"test_field": "test",
-					"uuid": "dasdfasd",
+			[]interface{}{
+				graph.Node{
+					Labels: []string{"b"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfas",
+					},
+					NodeIdentity: 2,
 				},
-				NodeIdentity: 1,
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
+				},
+			},
+			[]interface{}{
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
+				},
 			},
 		},
 	}
@@ -231,37 +289,52 @@ func TestDecoder(t *testing.T){
 	req.EqualValues(comp.Single.UUID, readinSlice[0].Single.UUID)
 	req.EqualValues(comp.Single.TestField, readinSlice[0].Single.TestField)
 
+
+
 	vars2 := [][]interface{}{
 		{
-			neoEdgeConfig{
-				Type: "special_single",
-				StartNodeType: "a",
-				StartNodeId: 1,
-				EndNodeType: "b",
-				EndNodeId: 2,
-				Obj: map[string]interface{}{
-					"Test": "testing",
+			[]interface{}{
+				[]interface{}{neoEdgeConfig{}},
+				[]interface{}{
+					map[string]interface{}{
+						Type: "special_single",
+						StartNodeType: "a",
+						StartNodeId: int64(1),
+						EndNodeType: "b",
+						EndNodeId: int64(2),
+						Obj: map[string]interface{}{
+							"Test": "testing",
+						},
+					},
 				},
 			},
-		},
-		{
-			graph.Node{
-				Labels: []string{"b"},
-				Properties: map[string]interface{}{
-					"test_field": "test",
-					"uuid": "dasdfas",
+			[]interface{}{
+				graph.Node{
+					Labels: []string{"b"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfas",
+					},
+					NodeIdentity: 2,
 				},
-				NodeIdentity: 2,
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
+				},
 			},
-		},
-		{
-			graph.Node{
-				Labels: []string{"a"},
-				Properties: map[string]interface{}{
-					"test_field": "test",
-					"uuid": "dasdfasd",
+			[]interface{}{
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
 				},
-				NodeIdentity: 1,
 			},
 		},
 	}
@@ -299,32 +372,45 @@ func TestDecoder(t *testing.T){
 
 	vars3 := [][]interface{}{
 		{
-			neoEdgeConfig{
-				Type: "multib",
-				StartNodeType: "a",
-				StartNodeId: 1,
-				EndNodeType: "b",
-				EndNodeId: 2,
-			},
-		},
-		{
-			graph.Node{
-				Labels: []string{"b"},
-				Properties: map[string]interface{}{
-					"test_field": "test",
-					"uuid": "dasdfas",
+			[]interface{}{
+				[]interface{}{neoEdgeConfig{}},
+				[]interface{}{
+					map[string]interface{}{
+						Type: "multib",
+						StartNodeType: "a",
+						StartNodeId: int64(1),
+						EndNodeType: "b",
+						EndNodeId: int64(2),
+					},
 				},
-				NodeIdentity: 2,
 			},
-		},
-		{
-			graph.Node{
-				Labels: []string{"a"},
-				Properties: map[string]interface{}{
-					"test_field": "test",
-					"uuid": "dasdfasd",
+			[]interface{}{
+				graph.Node{
+					Labels: []string{"b"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfas",
+					},
+					NodeIdentity: 2,
 				},
-				NodeIdentity: 1,
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
+				},
+			},
+			[]interface{}{
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
+				},
 			},
 		},
 	}
@@ -356,35 +442,48 @@ func TestDecoder(t *testing.T){
 
 	vars4 := [][]interface{}{
 		{
-			neoEdgeConfig{
-				Type: "special_multi",
-				StartNodeType: "a",
-				StartNodeId: 1,
-				Obj: map[string]interface{}{
-					"Test": "testing",
+			[]interface{}{
+				[]interface{}{neoEdgeConfig{}},
+				[]interface{}{
+					map[string]interface{}{
+						Type: "special_multi",
+						Obj: map[string]interface{}{
+							"Test": "testing",
+						},
+						StartNodeType: "a",
+						StartNodeId: int64(1),
+						EndNodeType: "b",
+						EndNodeId: int64(2),
+					},
 				},
-				EndNodeType: "b",
-				EndNodeId: 2,
 			},
-		},
-		{
-			graph.Node{
-				Labels: []string{"b"},
-				Properties: map[string]interface{}{
-					"test_field": "test",
-					"uuid": "dasdfas",
+			[]interface{}{
+				graph.Node{
+					Labels: []string{"b"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfas",
+					},
+					NodeIdentity: 2,
 				},
-				NodeIdentity: 2,
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
+				},
 			},
-		},
-		{
-			graph.Node{
-				Labels: []string{"a"},
-				Properties: map[string]interface{}{
-					"test_field": "test",
-					"uuid": "dasdfasd",
+			[]interface{}{
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
 				},
-				NodeIdentity: 1,
 			},
 		},
 	}

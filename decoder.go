@@ -6,6 +6,7 @@ import (
 	neo "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/graph"
 	dsl "github.com/mindstand/go-cypherdsl"
+	"github.com/mitchellh/mapstructure"
 	"reflect"
 	"sync"
 )
@@ -21,7 +22,7 @@ func DecodeNeoRows(rows neo.Rows, respObj interface{}) error{
 	return decode(arr, respObj)
 }
 
-func decode(arr [][]interface{}, respObj interface{}) (err error){
+func decode(rawarr [][]interface{}, respObj interface{}) (err error){
 	defer func() {
 		if r := recover(); r != nil{
 			err = fmt.Errorf("%v", r)
@@ -53,9 +54,21 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 		return fmt.Errorf("invalid resp type %T", respObj)
 	}
 
-	if len(arr) != 3{
-		return  fmt.Errorf("malformed response, invalid number of rows (%v != 3)", len(arr[0]))
+	if rawarr == nil || len(rawarr) != 1{
+		return fmt.Errorf("invalid rawarr size, %v", len(rawarr))
 	}
+
+	arr1 := rawarr[0]
+
+	if len(arr1) != 3{
+		return  fmt.Errorf("malformed response, invalid number of rows (%v != 3)", len(arr1))
+	}
+
+	var arr [][]interface{}
+
+	arr = append(arr, arr1[0].([]interface{}))
+	arr = append(arr, arr1[1].([]interface{}))
+	arr = append(arr, arr1[2].([]interface{}))
 
 	p0 := len(arr[0])
 	p1 := len(arr[1])
@@ -71,7 +84,7 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 		return errors.New("no primary node to return")
 	}
 
-	nodes := append(arr[1], arr[2]...)
+	nodes := arr[1]
 
 	var wg sync.WaitGroup
 
@@ -97,12 +110,15 @@ func decode(arr [][]interface{}, respObj interface{}) (err error){
 	close(errChan)
 
 	//sanity check
-	if len(nodeLookup) != p1 + p2{
+	if len(nodeLookup) != p1{
 		return fmt.Errorf("sanity check failed, nodeLookup not correct length (%v) != (%v)", len(nodeLookup), p1 + p2)
 	}
 
 	//build relationships
-	for _, relationConfig := range rels{
+	for i, relationConfig := range rels{
+		if i == 0 {
+			continue
+		}
 		start, _, err := getValueAndConfig(relationConfig.StartNodeId, relationConfig.StartNodeType, nodeLookup)
 		if err != nil {
 			return err
@@ -262,6 +278,8 @@ func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) 
 func getPks(nodes []interface{}, pks []int64, err chan error, wg *sync.WaitGroup) {
 	if nodes == nil || len(nodes) == 0{
 		err <- fmt.Errorf("nodes can not be nil or empty")
+		wg.Done()
+		return
 	}
 
 	for i, node := range nodes{
@@ -291,10 +309,35 @@ func convertAndMapEdges(nodes []interface{}, rels []neoEdgeConfig, err chan erro
 	}
 
 	for i, n := range nodes{
-		if node, ok := n.(neoEdgeConfig); ok{
-			rels[i] = node
-		} else {
-			err <- fmt.Errorf("unknown type %s", reflect.TypeOf(n).String())
+		//the way this is returned, skip index 0
+		if i == 0{
+			continue
+		}
+
+		//this is because of how resp is structured
+		narr, ok := n.([]interface{})
+		if !ok{
+			err <- fmt.Errorf("unable to cast to []interface, type is %T", n)
+			wg.Done()
+			return
+		}
+
+		if len(narr) == 0{
+			err <- errors.New("length should not be nil")
+			wg.Done()
+			return
+		}
+
+		for _, nr := range narr{
+			var node neoEdgeConfig
+			err1 := mapstructure.Decode(nr.(map[string]interface{}), &node)
+			if err1 != nil{
+				err <- err1
+				wg.Done()
+				return
+			} else {
+				rels[i] = node
+			}
 		}
 	}
 

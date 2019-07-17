@@ -58,6 +58,14 @@
   revision = "7fa32f82c9e150736cf4e3b3505353e57ee67524"
 
 [[projects]]
+  digest = "1:53bc4cd4914cd7cd52139990d5170d6dc99067ae31c56530621b18b35fc30318"
+  name = "github.com/mitchellh/mapstructure"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "3536a929edddb9a5b34bd6861dc4a9647cb459fe"
+  version = "v1.1.2"
+
+[[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -100,6 +108,7 @@
     "github.com/johnnadratowski/golang-neo4j-bolt-driver",
     "github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/graph",
     "github.com/mindstand/go-cypherdsl",
+    "github.com/mitchellh/mapstructure",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/require",
   ]
