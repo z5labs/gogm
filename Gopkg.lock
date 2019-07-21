@@ -26,6 +26,14 @@
   version = "v1.2.1"
 
 [[projects]]
+  digest = "1:582b704bebaa06b48c29b0cec224a6058a09c86883aaddabde889cd1a5f73e1b"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "0cd6bf5da1e1c83f8b45653022c74f71af0538a4"
+  version = "v1.1.1"
+
+[[projects]]
   digest = "1:256ad89d8fbed3af4af38796c864e5b6fa7f629430076240677503f80bfa7a59"
   name = "github.com/johnnadratowski/golang-neo4j-bolt-driver"
   packages = [
@@ -105,6 +113,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/cornelk/hashmap",
+    "github.com/google/uuid",
     "github.com/johnnadratowski/golang-neo4j-bolt-driver",
     "github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/graph",
     "github.com/mindstand/go-cypherdsl",

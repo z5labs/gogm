@@ -63,7 +63,7 @@ func makeRelMapKey(label, rel string) string{
 var isSetup = false
 
 func Init(conf *Config, mapTypes ...interface{}) error {
-	return setupInit(false, conf, mapTypes)
+	return setupInit(false, conf, mapTypes...)
 }
 
 func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error{

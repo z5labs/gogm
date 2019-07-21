@@ -291,7 +291,7 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string
 	t := reflect.TypeOf(i)
 
 	if t.Kind() != reflect.Ptr{
-		return nil, nil, errors.New("must pass pointer to struct")
+		return nil, nil, fmt.Errorf("must pass pointer to struct, instead got %T", i)
 	}
 
 	t = t.Elem()

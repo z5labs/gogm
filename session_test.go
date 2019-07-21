@@ -17,7 +17,7 @@ func TestSession(t *testing.T){
 		IndexStrategy: VALIDATE_INDEX,
 	}
 
-	req.Nil(setupInit(false, &conf, &a{}, &b{}, &c{}))
+	req.Nil(Init(&conf, &a{}, &b{}, &c{}))
 
 	req.EqualValues(3, mappedTypes.Len())
 
