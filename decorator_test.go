@@ -1,6 +1,7 @@
 package gogm
 
 import (
+	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
@@ -28,7 +29,7 @@ func TestDecoratorConfig_Validate(t *testing.T) {
 	validRelationshipWithDirection := decoratorConfig{
 		Name: "test_rel",
 		Relationship: "rel",
-		Direction: "incoming",
+		Direction: dsl.Incoming,
 		Type: reflect.TypeOf([]interface{}{}),
 	}
 
@@ -115,7 +116,7 @@ func TestDecoratorConfig_Validate(t *testing.T) {
 	req.NotNil(invalidRelationshipType.Validate())
 
 	invalidDirectionDefinedNotRel := decoratorConfig{
-		Direction: "outgoing",
+		Direction: dsl.Outgoing,
 		Name: "asdfa",
 		Type: reflect.TypeOf([]interface{}{}),
 	}
@@ -260,7 +261,7 @@ func TestNewDecoratorConfig(t *testing.T){
 	decOne2OneStruct := decoratorConfig{
 		Relationship: "one2one",
 		Name: "o2o",
-		Direction: "incoming",
+		Direction: dsl.Incoming,
 		Type: reflect.TypeOf([]interface{}{}),
 	}
 
@@ -402,13 +403,13 @@ func TestGetStructDecoratorConfig(t *testing.T){
 			},
 			"OneToOne": {
 				Relationship: "one2one",
-				Direction: "incoming",
+				Direction: dsl.Incoming,
 				Name: "o2o",
 				Type: reflect.TypeOf(&validStruct{}),
 			},
 			"ManyToOne": {
 				Relationship: "many2one",
-				Direction: "outgoing",
+				Direction: dsl.Outgoing,
 				Name: "m2o",
 				Type: reflect.TypeOf([]interface{}{}),
 			},

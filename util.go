@@ -8,6 +8,14 @@ import (
 )
 
 func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error){
+	var err error
+
+	defer func() {
+		if r := recover(); r != nil{
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+
 	if val == nil{
 		return false, "", errors.New("value can not be nil")
 	}
@@ -23,8 +31,8 @@ func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error)
 
 	newUuid := uuid.New().String()
 
-	reflect.Indirect(*val).FieldByName(fieldName).Set(reflect.ValueOf(newUuid))
-	return true, newUuid, nil
+	val.Addr().FieldByName(fieldName).Addr().Set(reflect.ValueOf(newUuid))
+	return true, newUuid, err
 }
 
 func getTypeName(val reflect.Type) (string, error){

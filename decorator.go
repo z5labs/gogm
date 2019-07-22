@@ -3,6 +3,7 @@ package gogm
 import (
 	"errors"
 	"fmt"
+	dsl "github.com/mindstand/go-cypherdsl"
 	"reflect"
 	"strings"
 )
@@ -28,7 +29,7 @@ type decoratorConfig struct{
 	Name string
 	FieldName string
 	Relationship string
-	Direction string
+	Direction dsl.Direction
 	Unique bool
 	Index bool
 	ManyRelationship bool
@@ -61,7 +62,7 @@ func (d *decoratorConfig) Validate() error{
 			return NewInvalidDecoratorConfigError("properties must be a map with signature map[string]interface{}", d.Name)
 		}
 
-		if d.PrimaryKey || d.Relationship != "" || d.Direction != "" || d.Index || d.Unique{
+		if d.PrimaryKey || d.Relationship != "" || d.Direction != -1 || d.Index || d.Unique{
 			return NewInvalidDecoratorConfigError("field marked as properties can only have name defined", d.Name)
 		}
 
@@ -76,18 +77,14 @@ func (d *decoratorConfig) Validate() error{
 	}
 
 	//check valid relationship
-	if d.Direction != "" || d.Relationship != "" || kind == reflect.Struct || kind == reflect.Slice{
+	if d.Direction != 0 || d.Relationship != "" || kind == reflect.Struct || kind == reflect.Slice{
 		if d.Relationship == ""{
-			return NewInvalidDecoratorConfigError("relationship has to be defined when creating a relationship", d.Name)
+			return NewInvalidDecoratorConfigError("relationship has to be defined when creating a relationship", d.FieldName)
 		}
 
 		//check empty/undefined direction
-		if d.Direction == ""{
-			d.Direction = "outgoing" //default direction is outgoing
-		} else {
-			if !isValidDirection(d.Direction){
-				return NewInvalidDecoratorConfigError(fmt.Sprintf("invalid direction '%s'", d.Direction), d.Name)
-			}
+		if d.Direction == 0{
+			d.Direction = dsl.Outgoing //default direction is outgoing
 		}
 
 		if kind != reflect.Struct && kind != reflect.Slice{
@@ -139,11 +136,6 @@ func (d *decoratorConfig) Validate() error{
 	return nil
 }
 
-func isValidDirection(d string) bool{
-	lowerD := strings.ToLower(d)
-	return lowerD == "incoming" || lowerD == "outgoing" || lowerD == "any"
-}
-
 var edgeType = reflect.TypeOf(new(IEdge)) .Elem()
 
 func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decoratorConfig, error){
@@ -190,11 +182,16 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 
 				continue
 			case directionField:
-				if !isValidDirection(val){
-					return nil, fmt.Errorf("%s is not a valid direction", val)
+				dir := strings.ToLower(val)
+				switch strings.ToLower(dir) {
+				case "incoming":
+					toReturn.Direction = dsl.Incoming
+					continue
+				case "outgoing":
+					toReturn.Direction = dsl.Outgoing
+				default:
+					toReturn.Direction = dsl.Any
 				}
-				toReturn.Direction = strings.ToLower(val)
-				continue
 			default:
 				return nil, errors.New("unknown field") //todo replace with better errors
 			}

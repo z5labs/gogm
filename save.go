@@ -21,6 +21,7 @@ type relCreateConf struct {
 	EndNodeUUID string
 	Params map[string]interface{}
 	Type reflect.Type
+	Direction dsl.Direction
 }
 
 func save(sess *dsl.Session, obj interface{}) error{
@@ -66,7 +67,7 @@ func saveDepth(sess *dsl.Session, obj interface{}, depth int) error {
 
 	rootVal := reflect.ValueOf(obj)
 
-	err := parseStruct(nil, nil, &rootVal, 0, depth, &nodes, &relations)
+	err := parseStruct(nil, "", "", "", -1, &rootVal, 0, depth, &nodes, &relations)
 	if err != nil{
 		return err
 	}
@@ -74,7 +75,7 @@ func saveDepth(sess *dsl.Session, obj interface{}, depth int) error {
 	return nil
 }
 
-func parseStruct(parent *reflect.Value, parentConf *structDecoratorConfig, current *reflect.Value, curDepth, maxDepth int, nodesPtr *map[string]map[string]nodeCreateConf, relationsPtr *map[string][]relCreateConf) error{
+func parseStruct(parent *reflect.Value, parentId, fieldToCurrent, edgeName string, direction dsl.Direction, current *reflect.Value, curDepth, maxDepth int, nodesPtr *map[string]map[string]nodeCreateConf, relationsPtr *map[string][]relCreateConf) error{
 	if curDepth > maxDepth{
 		return nil
 	}
@@ -82,13 +83,6 @@ func parseStruct(parent *reflect.Value, parentConf *structDecoratorConfig, curre
 	if current == nil{
 		return errors.New("current should never be nil")
 	}
-
-	var err error
-	defer func() {
-		if r := recover(); r != nil{
-			err = fmt.Errorf("%v", r)
-		}
-	}()
 
 	tString, err := getTypeName(current.Type())
 	if err != nil{
@@ -129,6 +123,72 @@ func parseStruct(parent *reflect.Value, parentConf *structDecoratorConfig, curre
 
 	(*nodesPtr)[currentConf.Label][id] = nc
 
+	//handle relationship
+	if parent != nil && !parent.IsNil(){
+		if _, ok := (*relationsPtr)[edgeName]; !ok{
+			(*relationsPtr)[edgeName] = []relCreateConf{}
+		}
+
+		tsferField := parent.FieldByName(fieldToCurrent)
+		typeName, err := getTypeName(tsferField.Type())
+		if err != nil{
+			return err
+		}
+
+		if tsferField.Type().Implements(edgeType){
+			snode := tsferField.MethodByName("GetStartNode").Call(nil)
+			enode := tsferField.MethodByName("GetEndNode").Call(nil)
+
+			if len(snode) != 1 || len(enode) != 1{
+				return errors.New("invalid edge node")
+			}
+
+			temp, ok := mappedTypes.Get(typeName)
+			if !ok{
+				return fmt.Errorf("can not find type config for %s", typeName)
+			}
+
+			params, err := toCypherParamsMap(tsferField, temp.(structDecoratorConfig))
+			if err != nil{
+				return err
+			}
+
+			relConf := relCreateConf{
+				Type: tsferField.Type(),
+				Params: params,
+				StartNodeUUID: snode[0].FieldByName("UUID").Interface().(string),
+				EndNodeUUID: enode[0].FieldByName("UUID").Interface().(string),
+				Direction: direction,
+			}
+
+			(*relationsPtr)[edgeName] = append((*relationsPtr)[edgeName], relConf)
+		} else {
+			start := ""
+			end := ""
+
+			if direction == dsl.Outgoing{
+				start = parentId
+				end = id
+			} else if direction == dsl.Incoming{
+				start = id
+				end = parentId
+			} else {
+				start = parentId
+				end = id
+			}
+
+			relConf := relCreateConf{
+				Direction: direction,
+				Type: tsferField.Type(),
+				EndNodeUUID: end,
+				StartNodeUUID: start,
+				Params: map[string]interface{}{},
+			}
+
+			(*relationsPtr)[edgeName] = append((*relationsPtr)[edgeName], relConf)
+		}
+	}
+
 	for _, conf := range currentConf.Fields{
 		if conf.Relationship == ""{
 			continue
@@ -155,16 +215,48 @@ func parseStruct(parent *reflect.Value, parentConf *structDecoratorConfig, curre
 								continue //skip if its the parent node
 							}
 						}
+					} else {
+						if parent != nil && !parent.IsNil(){
+							parentId := parent.FieldByName("UUID").Interface()
+							startNode := newCurrent.MethodByName("GetStartNode").Call(nil)
+							endNode := newCurrent.MethodByName("GetEndNode").Call(nil)
+
+							//check if the start node is the
+							if len(startNode) > 0 && !startNode[0].IsNil() && startNode[0].FieldByName("UUID").Interface() == parentId &&
+								len(endNode) > 0 && !endNode[0].IsNil() && endNode[0].FieldByName("UUID").Interface() == parentId{
+								continue
+							}
+						}
 					}
 
-					err := parseStruct(current, &currentConf, &newCurrent, curDepth + 1, maxDepth, nodesPtr, relationsPtr)
+					err := parseStruct(current, id, conf.FieldName, currentConf.Fields[conf.FieldName].Relationship, conf.Direction, &newCurrent, curDepth + 1, maxDepth, nodesPtr, relationsPtr)
 					if err != nil{
 						return err
 					}
 				}
 			}
 		} else {
-			err := parseStruct(current, &currentConf, &relField, curDepth + 1, maxDepth, nodesPtr, relationsPtr)
+			//check that we're not using an edge
+			if !relField.Type().Implements(edgeType){
+				if parent != nil && !parent.IsNil(){
+					if parent.FieldByName("UUID").Interface() == relField.FieldByName("UUID").Interface(){
+						continue //skip if its the parent node
+					}
+				}
+			} else {
+				if parent != nil && !parent.IsNil(){
+					parentId := parent.FieldByName("UUID").Interface()
+					startNode := relField.MethodByName("GetStartNode").Call(nil)
+					endNode := relField.MethodByName("GetEndNode").Call(nil)
+
+					//check if the start node is the
+					if len(startNode) > 0 && !startNode[0].IsNil() && startNode[0].FieldByName("UUID").Interface() == parentId &&
+						len(endNode) > 0 && !endNode[0].IsNil() && endNode[0].FieldByName("UUID").Interface() == parentId{
+						continue
+					}
+				}
+			}
+			err := parseStruct(current, id, conf.FieldName, currentConf.Fields[conf.FieldName].Relationship, conf.Direction, &relField, curDepth + 1, maxDepth, nodesPtr, relationsPtr)
 			if err != nil{
 				return err
 			}
