@@ -175,9 +175,9 @@ type b struct{
 }
 
 type c struct{
-	Start a
-	End b
-	Test string
+	Start *a
+	End *b
+	Test string `gogm:"name=test"`
 }
 
 func (c *c) GetStartNode() interface{} {
@@ -186,7 +186,7 @@ func (c *c) GetStartNode() interface{} {
 
 func (c *c) SetStartNode(v interface{}) error {
 	var ok bool
-	c.Start, ok = v.(a)
+	c.Start, ok = v.(*a)
 	if !ok{
 		return errors.New("unable to cast to a")
 	}
@@ -200,7 +200,7 @@ func (c *c) GetEndNode() interface{} {
 
 func (c *c) SetEndNode(v interface{}) error {
 	var ok bool
-	c.End, ok = v.(b)
+	c.End, ok = v.(*b)
 	if !ok{
 		return errors.New("unable to cast to b")
 	}
@@ -363,8 +363,8 @@ func TestDecoder(t *testing.T){
 	}
 
 	c1 := &c{
-		Start: comp2,
-		End: b2,
+		Start: &comp2,
+		End: &b2,
 		Test: "testing",
 	}
 
@@ -512,8 +512,8 @@ func TestDecoder(t *testing.T){
 	}
 
 	c4 := c{
-		Start: comp4,
-		End: b3,
+		Start: &comp4,
+		End: &b3,
 		Test: "testing",
 	}
 

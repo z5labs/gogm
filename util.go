@@ -8,14 +8,6 @@ import (
 )
 
 func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error){
-	var err error
-
-	defer func() {
-		if r := recover(); r != nil{
-			err = fmt.Errorf("%v", r)
-		}
-	}()
-
 	if val == nil{
 		return false, "", errors.New("value can not be nil")
 	}
@@ -31,8 +23,8 @@ func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error)
 
 	newUuid := uuid.New().String()
 
-	val.Addr().FieldByName(fieldName).Addr().Set(reflect.ValueOf(newUuid))
-	return true, newUuid, err
+	reflect.Indirect(*val).FieldByName(fieldName).Set(reflect.ValueOf(newUuid))
+	return true, newUuid, nil
 }
 
 func getTypeName(val reflect.Type) (string, error){
@@ -61,6 +53,10 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 			err = fmt.Errorf("%v", r)
 		}
 	}()
+
+	if val.Type().Kind() == reflect.Interface || val.Type().Kind() == reflect.Ptr{
+		val = val.Elem()
+	}
 
 	ret := map[string]interface{}{}
 

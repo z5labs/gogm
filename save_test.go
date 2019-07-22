@@ -11,12 +11,12 @@ func TestParseStruct(t *testing.T){
 
 	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
 
-	comp2 := a{
+	comp2 := &a{
 		TestField: "test",
 		Id:        1,
 	}
 
-	b2 := b{
+	b2 := &b{
 		TestField: "test",
 		Id: 2,
 	}
@@ -35,8 +35,10 @@ func TestParseStruct(t *testing.T){
 
 	val := reflect.ValueOf(comp2)
 
-	err := parseStruct(nil, "", "", "", -1, &val, 0, 5, &nodes, &relations)
+	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations)
 	req.Nil(err)
-
-	log.Info(nodes, relations)
+	req.Equal(2, len(nodes))
+	req.Equal(1, len(nodes["a"]))
+	req.Equal(1, len(nodes["b"]))
+	req.Equal(1, len(relations))
 }
