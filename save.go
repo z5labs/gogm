@@ -71,7 +71,83 @@ func saveDepth(sess *dsl.Session, obj interface{}, depth int) error {
 		return err
 	}
 
+	ids, err := createNodes(sess, nodes)
+	if err != nil{
+		return err
+	}
+
 	return nil
+}
+
+func createNodes(sess *dsl.Session, crNodes map[string]map[string]nodeCreateConf) (map[string]int64, error){
+	idMap := map[string]int64{}
+
+	for label, nodes := range crNodes{
+		var rows []map[string]interface{}
+		for _, config := range nodes{
+			rows = append(rows, config.Params)
+		}
+
+		params, err := dsl.ParamsFromMap(
+			map[string]interface{}{
+				"uuid": dsl.ParamString("row.uuid"),
+			})
+		if err != nil{
+			return nil, err
+		}
+
+		path, err := dsl.Path().V(dsl.V{
+			Name: "n",
+			Type: label,
+			Params: params,
+		}).ToCypher()
+		if err != nil{
+			return nil, err
+		}
+
+		//todo replace once unwind is fixed and path
+		res, err := sess.Query().
+			Cypher("UNWIND {rows} as row").
+			Merge(&dsl.MergeConfig{
+				Path: path,
+			}).
+			Set(dsl.SetConfig{
+				Name: "n",
+				Operation: dsl.SetMutate,
+				Target: dsl.ParamString("row"),
+			}).
+			Return(false, dsl.ReturnPart{
+				Name: "row.uuid",
+				Alias: "uuid",
+			}, dsl.ReturnPart{
+				Function: &dsl.FunctionConfig{
+					Name: "ID",
+					Params: []interface{}{"n"},
+				},
+				Alias: "id",
+			}).
+			Query(map[string]interface{}{
+				"rows": rows,
+		})
+		if err != nil{
+			return nil, err
+		}
+
+		resRows, _, err := res.All()
+		if err != nil{
+			return nil, err
+		}
+
+		for _, row := range resRows{
+			if len(row) != 2{
+				continue
+			}
+
+			idMap[row[0].(string)] = row[1].(int64)
+		}
+	}
+
+	return idMap, nil
 }
 
 func parseValidate(currentDepth, maxDepth int, current *reflect.Value, nodesPtr *map[string]map[string]nodeCreateConf, relationsPtr *map[string][]relCreateConf) error{
