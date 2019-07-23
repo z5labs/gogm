@@ -23,10 +23,6 @@ type relCreateConf struct {
 	Direction dsl.Direction
 }
 
-func save(sess *dsl.Session, obj interface{}) error{
-	return saveDepth(sess, obj, defaultSaveDepth)
-}
-
 func saveDepth(sess *dsl.Session, obj interface{}, depth int) error {
 	if sess == nil {
 		return errors.New("session can not be nil")

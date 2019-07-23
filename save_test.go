@@ -45,6 +45,10 @@ func TestParseStruct(t *testing.T){
 }
 
 func TestSave(t *testing.T){
+	if testing.Short(){
+		t.Skip()
+		return
+	}
 	req := require.New(t)
 
 	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
@@ -79,5 +83,5 @@ func TestSave(t *testing.T){
 
 	sess := dsl.NewSession()
 
-	req.Nil(save(sess, comp2))
+	req.Nil(saveDepth(sess, comp2, defaultSaveDepth))
 }

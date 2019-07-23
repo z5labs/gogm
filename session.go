@@ -216,7 +216,7 @@ func (s *Session) SaveDepth(saveObj interface{}, depth int) error {
 		return errors.New("neo4j connection not initialized")
 	}
 
-	return nil
+	return saveDepth(s.conn, saveObj, depth)
 }
 
 func (s *Session) Delete(deleteObj interface{}) error {
@@ -224,13 +224,11 @@ func (s *Session) Delete(deleteObj interface{}) error {
 		return errors.New("neo4j connection not initialized")
 	}
 
-	//check if its an edge or a vertex
+	if deleteObj == nil{
+		return errors.New("deleteObj can not be nil")
+	}
 
-	//if its an edge delete it
-
-	//if its a vertex detach delete  it
-
-	return nil
+	return deleteNode(s.conn, deleteObj)
 }
 
 func (s *Session) Query(query string, properties map[string]interface{}, respObj interface{}) error {
@@ -238,7 +236,12 @@ func (s *Session) Query(query string, properties map[string]interface{}, respObj
 		return errors.New("neo4j connection not initialized")
 	}
 
-	return nil
+	rows, err := s.conn.Query().Cypher(query).Query(properties)
+	if err != nil{
+		return err
+	}
+
+	return decodeNeoRows(rows, respObj)
 }
 
 func (s *Session) PurgeDatabase() error {
