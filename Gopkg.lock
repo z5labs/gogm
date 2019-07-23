@@ -59,11 +59,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4bed51f49d0473ab36f6db473954ec8f8a48c315ae799a4383860c5063d67909"
+  digest = "1:bb2763dca8c7a69256ee68c21b864b24f7f5c81f6cd20fc77b2ca11f860f6742"
   name = "github.com/mindstand/go-cypherdsl"
   packages = ["."]
   pruneopts = "UT"
-  revision = "bd91ea7b596164f9549bfa4331c8ad3607b68625"
+  revision = "a804b5ae44ba096a61314ab969ee200e99d4f38e"
 
 [[projects]]
   digest = "1:53bc4cd4914cd7cd52139990d5170d6dc99067ae31c56530621b18b35fc30318"

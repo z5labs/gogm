@@ -76,14 +76,14 @@ func saveDepth(sess *dsl.Session, obj interface{}, depth int) error {
 		return err
 	}
 
-	return nil
+	return relateNodes(sess, relations, ids)
 }
 
 func createNodes(sess *dsl.Session, crNodes map[string]map[string]nodeCreateConf) (map[string]int64, error){
 	idMap := map[string]int64{}
 
 	for label, nodes := range crNodes{
-		var rows []map[string]interface{}
+		var rows []interface{}
 		for _, config := range nodes{
 			rows = append(rows, config.Params)
 		}
@@ -98,7 +98,7 @@ func createNodes(sess *dsl.Session, crNodes map[string]map[string]nodeCreateConf
 
 		path, err := dsl.Path().V(dsl.V{
 			Name: "n",
-			Type: label,
+			Type: "`" + label + "`",
 			Params: params,
 		}).ToCypher()
 		if err != nil{
@@ -111,26 +111,26 @@ func createNodes(sess *dsl.Session, crNodes map[string]map[string]nodeCreateConf
 			Merge(&dsl.MergeConfig{
 				Path: path,
 			}).
-			Set(dsl.SetConfig{
-				Name: "n",
-				Operation: dsl.SetMutate,
-				Target: dsl.ParamString("row"),
-			}).
+			Cypher("SET n += row").
 			Return(false, dsl.ReturnPart{
 				Name: "row.uuid",
 				Alias: "uuid",
 			}, dsl.ReturnPart{
 				Function: &dsl.FunctionConfig{
 					Name: "ID",
-					Params: []interface{}{"n"},
+					Params: []interface{}{dsl.ParamString("n")},
 				},
 				Alias: "id",
 			}).
 			Query(map[string]interface{}{
 				"rows": rows,
-		})
+			})
 		if err != nil{
 			return nil, err
+		}
+
+		if res == nil{
+			return nil, errors.New("res should not be nil")
 		}
 
 		resRows, _, err := res.All()
@@ -148,6 +148,105 @@ func createNodes(sess *dsl.Session, crNodes map[string]map[string]nodeCreateConf
 	}
 
 	return idMap, nil
+}
+
+func relateNodes(sess *dsl.Session, relations map[string][]relCreateConf, ids map[string]int64) error{
+	if relations == nil || len(relations) == 0{
+		return errors.New("relations can not be nil or empty")
+	}
+
+	if ids == nil || len(ids) == 0{
+		return errors.New("ids can not be nil or empty")
+	}
+
+	for label, rels := range relations{
+		var params []interface{}
+
+		if len(rels) == 0{
+			continue
+		}
+
+		for _, rel := range rels{
+			startId, ok := ids[rel.StartNodeUUID]
+			if !ok{
+				return fmt.Errorf("can not find nodeId for uuid %s", rel.StartNodeUUID)
+			}
+
+			endId, ok := ids[rel.EndNodeUUID]
+			if !ok {
+				return fmt.Errorf("can not find nodeId for %s", rel.EndNodeUUID)
+			}
+
+			//set map if its empty
+			if rel.Params == nil{
+				rel.Params = map[string]interface{}{}
+			}
+
+			params = append(params, map[string]interface{}{
+				"startNodeId": startId,
+				"endNodeId": endId,
+				"props": rel.Params,
+			})
+		}
+
+		mergePath, err := dsl.Path().
+			V(dsl.V{
+				Name: "startNode",
+			}).
+			E(dsl.E{
+				Name: "rel",
+				Types: []string{
+					label,
+				},
+				Direction: dsl.DirectionPtr(dsl.Outgoing),
+			}).
+			V(dsl.V{
+				Name: "endNode",
+			}).
+			ToCypher()
+		if err != nil{
+			return err
+		}
+
+		_, err = sess.Query().
+			Cypher("UNWIND {rows} as row").
+			Match(dsl.Path().V(dsl.V{Name: "startNode"}).Build()).
+			Where(dsl.C(&dsl.ConditionConfig{
+				FieldManipulationFunction: "ID",
+				Name: "startNode",
+				ConditionOperator: dsl.EqualToOperator,
+				Check: dsl.ParamString("row.startNodeId"),
+			})).
+			With(&dsl.WithConfig{
+				Parts: []dsl.WithPart{
+					{
+						Name: "row",
+					},
+					{
+						Name: "startNode",
+					},
+				},
+			}).
+			Match(dsl.Path().V(dsl.V{Name: "endNode"}).Build()).
+			Where(dsl.C(&dsl.ConditionConfig{
+				FieldManipulationFunction: "ID",
+				Name: "endNode",
+				ConditionOperator: dsl.EqualToOperator,
+				Check: dsl.ParamString("row.endNodeId"),
+			})).
+			Merge(&dsl.MergeConfig{
+				Path: mergePath,
+			}).
+			Cypher("SET rel += row.props").
+			Exec(map[string]interface{}{
+				"rows": params,
+			})
+		if err != nil{
+			return err
+		}
+	}
+
+	return nil
 }
 
 func parseValidate(currentDepth, maxDepth int, current *reflect.Value, nodesPtr *map[string]map[string]nodeCreateConf, relationsPtr *map[string][]relCreateConf) error{

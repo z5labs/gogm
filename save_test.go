@@ -1,6 +1,7 @@
 package gogm
 
 import (
+	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
@@ -41,4 +42,42 @@ func TestParseStruct(t *testing.T){
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
 	req.Equal(1, len(relations))
+}
+
+func TestSave(t *testing.T){
+	req := require.New(t)
+
+	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
+
+	comp2 := &a{
+		TestField: "test",
+		Id:        1,
+	}
+
+	b2 := &b{
+		TestField: "test",
+		Id: 2,
+	}
+
+	c1 := &c{
+		Start: comp2,
+		End: b2,
+		Test: "testing",
+	}
+
+	comp2.SingleSpec = c1
+	b2.SingleSpec = c1
+
+	err := dsl.Init(&dsl.ConnectionConfig{
+		Username: "neo4j",
+		Password: "password",
+		Host: "0.0.0.0",
+		Port: 7687,
+		PoolSize: 15,
+	})
+	require.Nil(t, err)
+
+	sess := dsl.NewSession()
+
+	req.Nil(save(sess, comp2))
 }
