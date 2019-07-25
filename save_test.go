@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestParseStruct(t *testing.T){
@@ -45,10 +46,10 @@ func TestParseStruct(t *testing.T){
 }
 
 func TestSave(t *testing.T){
-	if testing.Short(){
-		t.Skip()
-		return
-	}
+	//if testing.Short(){
+	//	t.Skip()
+	//	return
+	//}
 	req := require.New(t)
 
 	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
@@ -60,6 +61,7 @@ func TestSave(t *testing.T){
 
 	b2 := &b{
 		TestField: "test",
+		TestTime: time.Now().UTC(),
 		Id: 2,
 	}
 

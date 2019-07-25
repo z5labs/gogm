@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestDecode(t *testing.T){
@@ -168,6 +169,7 @@ type b struct{
 	Id int64 `gogm:"name=id"`
 	UUID string `gogm:"pk;name=uuid"`
 	TestField string `gogm:"name=test_field"`
+	TestTime time.Time `gogm:"time;name=test_time"`
 	Single *a `gogm:"relationship=test_rel"`
 	Multi []a `gogm:"relationship=multib"`
 	SingleSpec *c `gogm:"relationship=special_single"`
@@ -222,6 +224,8 @@ func TestDecoder(t *testing.T){
 	EndNodeId := "EndNodeId"
 	Obj := "Obj"
 
+	fTime := time.Now().UTC()
+
 	vars := [][]interface{}{
 		{
 			[]interface{}{
@@ -242,6 +246,7 @@ func TestDecoder(t *testing.T){
 					Properties: map[string]interface{}{
 						"test_field": "test",
 						"uuid": "dasdfas",
+						"test_time": fTime.Format(time.RFC3339),
 					},
 					NodeIdentity: 2,
 				},
@@ -276,6 +281,7 @@ func TestDecoder(t *testing.T){
 		Single: &b{
 			TestField: "test",
 			UUID: "dasdfas",
+			TestTime: fTime,
 			Id: 2,
 		},
 	}
@@ -312,7 +318,7 @@ func TestDecoder(t *testing.T){
 						EndNodeType: "b",
 						EndNodeId: int64(2),
 						Obj: map[string]interface{}{
-							"Test": "testing",
+							"test": "testing",
 						},
 					},
 				},
@@ -323,6 +329,7 @@ func TestDecoder(t *testing.T){
 					Properties: map[string]interface{}{
 						"test_field": "test",
 						"uuid": "dasdfas",
+						"test_time": fTime.Format(time.RFC3339),
 					},
 					NodeIdentity: 2,
 				},
@@ -350,21 +357,22 @@ func TestDecoder(t *testing.T){
 
 	var readin2 a
 
-	comp2 := a{
+	comp2 := &a{
 		TestField: "test",
 		Id:        1,
 		UUID:      "dasdfasd",
 	}
 
-	b2 := b{
+	b2 := &b{
 		TestField: "test",
 		UUID: "dasdfas",
+		TestTime: fTime,
 		Id: 2,
 	}
 
 	c1 := &c{
-		Start: &comp2,
-		End: &b2,
+		Start: comp2,
+		End: b2,
 		Test: "testing",
 	}
 
@@ -399,6 +407,7 @@ func TestDecoder(t *testing.T){
 					Properties: map[string]interface{}{
 						"test_field": "test",
 						"uuid": "dasdfas",
+						"test_time": fTime.Format(time.RFC3339),
 					},
 					NodeIdentity: 2,
 				},
@@ -435,6 +444,7 @@ func TestDecoder(t *testing.T){
 				TestField: "test",
 				UUID: "dasdfas",
 				Id: 2,
+				TestTime: fTime,
 			},
 		},
 	}
@@ -457,7 +467,7 @@ func TestDecoder(t *testing.T){
 					map[string]interface{}{
 						Type: "special_multi",
 						Obj: map[string]interface{}{
-							"Test": "testing",
+							"test": "testing",
 						},
 						StartNodeType: "a",
 						StartNodeId: int64(1),
@@ -472,6 +482,7 @@ func TestDecoder(t *testing.T){
 					Properties: map[string]interface{}{
 						"test_field": "test",
 						"uuid": "dasdfas",
+						"test_time": fTime.Format(time.RFC3339),
 					},
 					NodeIdentity: 2,
 				},
@@ -499,21 +510,22 @@ func TestDecoder(t *testing.T){
 
 	var readin4 a
 
-	comp4 := a{
+	comp4 := &a{
 		TestField: "test",
 		Id:        1,
 		UUID:      "dasdfasd",
 	}
 
-	b3 := b{
+	b3 := &b{
 		TestField: "test",
 		UUID: "dasdfas",
+		TestTime: fTime,
 		Id: 2,
 	}
 
 	c4 := c{
-		Start: &comp4,
-		End: &b3,
+		Start: comp4,
+		End: b3,
 		Test: "testing",
 	}
 

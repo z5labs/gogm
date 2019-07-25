@@ -9,6 +9,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"reflect"
 	"sync"
+	"time"
 )
 
 func decodeNeoRows(rows neo.Rows, respObj interface{}) error{
@@ -177,15 +178,30 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 				return err
 			}
 
+			var startCall reflect.Value
+			var endCall reflect.Value
+
+			if start.Kind() != reflect.Ptr {
+				startCall = start.Addr()
+			} else {
+				startCall = *start
+			}
+
+			if end.Kind() != reflect.Ptr{
+				endCall = end.Addr()
+			} else {
+				endCall = *end
+			}
+
 			//can ensure that it implements proper interface if it made it this far
-			res := val.MethodByName("SetStartNode").Call([]reflect.Value{*start})
+			res := val.MethodByName("SetStartNode").Call([]reflect.Value{startCall})
 			if res == nil || len(res) == 0 {
 				return errors.New("invalid response")
 			} else if !res[0].IsNil(){
 				return res[0].Interface().(error)
 			}
 
-			res = val.MethodByName("SetEndNode").Call([]reflect.Value{*end})
+			res = val.MethodByName("SetEndNode").Call([]reflect.Value{endCall})
 			if res == nil || len(res) == 0 {
 				return errors.New("invalid response")
 			} else if !res[0].IsNil(){
@@ -421,7 +437,29 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 		if raw == nil{
 			continue //its already initialized to 0 value, no need to do anything
 		} else {
-			reflect.Indirect(val).FieldByName(field).Set(reflect.ValueOf(raw))
+			if fieldConfig.IsTime {
+				timeStr, ok := raw.(string)
+				if !ok {
+					return nil, errors.New("can not convert interface{} time to string")
+				}
+
+				convTime, err := time.Parse(time.RFC3339, timeStr)
+				if err != nil{
+					return nil, err
+				}
+
+				var writeVal reflect.Value
+
+				if fieldConfig.Type.Kind() == reflect.Ptr{
+					writeVal = reflect.ValueOf(convTime).Addr()
+				} else {
+					writeVal = reflect.ValueOf(convTime)
+				}
+
+				reflect.Indirect(val).FieldByName(field).Set(writeVal)
+			} else {
+				reflect.Indirect(val).FieldByName(field).Set(reflect.ValueOf(raw))
+			}
 		}
 	}
 

@@ -6,22 +6,26 @@ import (
 	dsl "github.com/mindstand/go-cypherdsl"
 	"reflect"
 	"strings"
+	"time"
 )
 
 const decoratorName = "gogm"
 
+var timeType = reflect.TypeOf(time.Time{})
+
 //sub fields of the decorator
 const (
-	paramNameField = "name" //requires assignment
+	paramNameField        = "name" //requires assignment
 	relationshipNameField = "relationship" //requires assignment
-	directionField = "direction" //requires assignment
-	indexField = "index"
-	uniqueField = "unique"
-	primaryKeyField = "pk"
-	propertiesField = "properties"
-	ignoreField = "-"
-	deliminator = ";"
-	assignmentOperator = "="
+	directionField        = "direction" //requires assignment
+	timeField             = "time"
+	indexField            = "index"
+	uniqueField           = "unique"
+	primaryKeyField       = "pk"
+	propertiesField       = "properties"
+	ignoreField           = "-"
+	deliminator           = ";"
+	assignmentOperator    = "="
 )
 
 type decoratorConfig struct{
@@ -36,6 +40,7 @@ type decoratorConfig struct{
 	UsesEdgeNode bool
 	PrimaryKey bool
 	Properties bool
+	IsTime bool
 	Ignore bool
 }
 
@@ -77,7 +82,7 @@ func (d *decoratorConfig) Validate() error{
 	}
 
 	//check valid relationship
-	if d.Direction != 0 || d.Relationship != "" || kind == reflect.Struct || kind == reflect.Slice{
+	if d.Direction != 0 || d.Relationship != "" || (kind == reflect.Struct && d.Type != timeType) || kind == reflect.Slice{
 		if d.Relationship == ""{
 			return NewInvalidDecoratorConfigError("relationship has to be defined when creating a relationship", d.FieldName)
 		}
@@ -97,6 +102,16 @@ func (d *decoratorConfig) Validate() error{
 		}
 
 		//relationship is valid now
+		return nil
+	}
+
+	//validate timeField
+	if d.IsTime{
+		if kind != reflect.Int64 && d.Type != timeType{
+			return errors.New("can not be a time value and not be either an int64 or time.Time")
+		}
+
+		//time is valid
 		return nil
 	}
 
@@ -136,7 +151,7 @@ func (d *decoratorConfig) Validate() error{
 	return nil
 }
 
-var edgeType = reflect.TypeOf(new(IEdge)) .Elem()
+var edgeType = reflect.TypeOf(new(IEdge)).Elem()
 
 func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decoratorConfig, error){
 	fields := strings.Split(decorator, deliminator)
@@ -150,6 +165,7 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		Unique: false,
 		PrimaryKey: false,
 		Ignore: false,
+		IsTime: false,
 		Type: varType,
 		FieldName: name,
 	}
@@ -214,6 +230,8 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		case indexField:
 			toReturn.Index = true
 			continue
+		case timeField:
+			toReturn.IsTime = true
 		default:
 			return nil, errors.New("unknown field") //todo replace with better error
 		}

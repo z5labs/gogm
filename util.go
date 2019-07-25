@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"reflect"
+	"time"
 )
 
 func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error){
@@ -61,7 +62,24 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 	ret := map[string]interface{}{}
 
 	for _, conf := range config.Fields{
-		if conf.Relationship == "" && conf.Name != "id"{
+		if conf.Relationship != "" || conf.Name == "id"{
+			continue
+		}
+
+		if conf.IsTime {
+			if conf.Type.Kind() == reflect.Int64{
+				ret[conf.Name] = val.FieldByName(conf.FieldName).Interface()
+			} else {
+				dateInterface := val.FieldByName(conf.FieldName).Interface()
+
+				dateObj, ok := dateInterface.(time.Time)
+				if !ok {
+					return nil, errors.New("cant convert date to time.Time")
+				}
+
+				ret[conf.Name] = dateObj.Format(time.RFC3339)
+			}
+		} else {
 			ret[conf.Name] = val.FieldByName(conf.FieldName).Interface()
 		}
 	}
