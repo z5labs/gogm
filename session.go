@@ -270,3 +270,11 @@ func (s *Session) PurgeDatabase() error {
 	return err
 }
 
+func (s *Session) Close() error {
+	if s.conn == nil{
+		return errors.New("neo4j connection not initialized")
+	}
+
+	return s.conn.Close()
+}
+

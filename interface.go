@@ -58,6 +58,8 @@ type ISession interface {
 
 	//delete everything, this will literally delete everything
 	PurgeDatabase() error
+
+	Close() error
 }
 
 type ITransaction interface {
