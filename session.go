@@ -42,6 +42,15 @@ func (s *Session) Rollback() error {
 	return s.conn.Rollback()
 }
 
+func (s *Session) RollbackWithError(originalError error) error{
+	err := s.Rollback()
+	if err != nil {
+		return fmt.Errorf("original error: `%s`, rollback error: `%s`", originalError.Error(), err.Error())
+	}
+
+	return originalError
+}
+
 func (s *Session) Commit() error {
 	if s.conn == nil{
 		return errors.New("neo4j connection not initialized")
@@ -229,6 +238,14 @@ func (s *Session) Delete(deleteObj interface{}) error {
 	}
 
 	return deleteNode(s.conn, deleteObj)
+}
+
+func (s *Session) DeleteUUID(uuid string) error{
+	if s.conn == nil{
+		return errors.New("neo4j connection not initialized")
+	}
+
+	return deleteByUuids(s.conn, uuid)
 }
 
 func (s *Session) Query(query string, properties map[string]interface{}, respObj interface{}) error {

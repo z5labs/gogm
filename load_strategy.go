@@ -13,7 +13,7 @@ const (
 	SCHEMA_LOAD_STRATEGY
 )
 
-var edgesPart = `collect(extract(n in e | {StartNodeId: ID(startnode(n)), StartNodeType: labels(startnode(n))[0], EndNodeId: ID(endnode(n)), EndNodeType: labels(endnode(n))[0], Obj: n, Type: type(n)})) as Edges`
+var edgesPart = `collect(extract(n in %s | {StartNodeId: ID(startnode(n)), StartNodeType: labels(startnode(n))[0], EndNodeId: ID(endnode(n)), EndNodeType: labels(endnode(n))[0], Obj: n, Type: type(n)})) as Edges`
 
 /*
 example
@@ -60,14 +60,19 @@ func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int, 
 		Match(dsl.Path().
 			V(dsl.V{Name: variable}).
 			E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
-			V(dsl.V{Name: "m"}).Build()).
-		Return(true,
-			dsl.ReturnPart{Name: edgesPart},
-			dsl.ReturnPart{Name: "collect(DISTINCT m) as Ends"},
-			dsl.ReturnPart{Name: fmt.Sprintf("collect(DISTINCT %s) as Starts", variable)},
-		)
+			V(dsl.V{Name: "m"}).Build())
+
+	BuildReturnQuery(builder, "n", "m", "e")
 
 	return builder, nil
+}
+
+func BuildReturnQuery(builder dsl.Cypher, startSide, endSide, edge string){
+	builder.Return(true,
+		dsl.ReturnPart{Name: fmt.Sprintf(edgesPart, edge)},
+		dsl.ReturnPart{Name: fmt.Sprintf("collect(DISTINCT %s) as Ends", endSide)},
+		dsl.ReturnPart{Name: fmt.Sprintf("collect(DISTINCT %s) as Starts", startSide)},
+	)
 }
 
 func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
@@ -113,12 +118,9 @@ func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, a
 		Match(dsl.Path().
 			V(dsl.V{Name: variable}).
 			E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
-			V(dsl.V{Name: "m"}).Build()).
-		Return(true,
-			dsl.ReturnPart{Name: edgesPart},
-			dsl.ReturnPart{Name: "collect(DISTINCT m) as Ends"},
-			dsl.ReturnPart{Name: fmt.Sprintf("collect(DISTINCT %s) as Starts", variable)},
-		)
+			V(dsl.V{Name: "m"}).Build())
+
+	BuildReturnQuery(builder, "n", "m", "e")
 
 	return builder, nil
 }

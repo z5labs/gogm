@@ -50,6 +50,9 @@ type ISession interface {
 	//delete
 	Delete(deleteObj interface{}) error
 
+	//delete uuid
+	DeleteUUID(uuid string) error
+
 	//specific query, only respond with single object
 	Query(query string, properties map[string]interface{}, respObj interface{}) error
 
@@ -60,5 +63,6 @@ type ISession interface {
 type ITransaction interface {
 	Begin() error
 	Rollback() error
+	RollbackWithError(err error) error
 	Commit() error
 }

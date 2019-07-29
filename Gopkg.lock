@@ -59,11 +59,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bb2763dca8c7a69256ee68c21b864b24f7f5c81f6cd20fc77b2ca11f860f6742"
+  digest = "1:477c1258f0d46725d958e3c6e46e934e25e524a15a7a57f78acfca2bd8d6ffa7"
   name = "github.com/mindstand/go-cypherdsl"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a804b5ae44ba096a61314ab969ee200e99d4f38e"
+  revision = "fdb0c16abc1a98df8e6ee9c8fa8e3d491f9851df"
 
 [[projects]]
   digest = "1:53bc4cd4914cd7cd52139990d5170d6dc99067ae31c56530621b18b35fc30318"
@@ -102,11 +102,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5632b0c4d972da51b5914f09fc5c1a8535e9d8d5d937e95ef83c423a0dd67f13"
+  digest = "1:ec99dad7924bf972656818f5d62216fb987b7e077d401deb86b3c1e5e1b1d4d6"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "fae7ac547cb717d141c433a2a173315e216b64c4"
+  revision = "fc99dfbffb4e5ed5758a37e31dd861afe285406b"
 
 [solve-meta]
   analyzer-name = "dep"
