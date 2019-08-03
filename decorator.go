@@ -165,6 +165,7 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		Unique: false,
 		PrimaryKey: false,
 		Ignore: false,
+		Direction: 0,
 		IsTime: false,
 		Type: varType,
 		FieldName: name,
@@ -206,7 +207,7 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 				case "outgoing":
 					toReturn.Direction = dsl.Outgoing
 				default:
-					toReturn.Direction = dsl.Any
+					toReturn.Direction = 0
 				}
 			default:
 				return nil, errors.New("unknown field") //todo replace with better errors
