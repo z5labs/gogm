@@ -41,6 +41,9 @@ type ISession interface {
 	//load all with depth, filter and pagination
 	LoadAllDepthFilterPagination(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error
 
+	//load all edge query
+	LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNodeField string, edgeConstraint interface{}, minJumps, maxJumps, depth int, filter dsl.ConditionOperator) error
+
 	//save object
 	Save(saveObj interface{}) error
 
@@ -53,8 +56,11 @@ type ISession interface {
 	//delete uuid
 	DeleteUUID(uuid string) error
 
-	//specific query, only respond with single object
+	//specific query, responds to slice and single objects
 	Query(query string, properties map[string]interface{}, respObj interface{}) error
+
+	//similar to query, but returns raw rows/cols
+	QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error)
 
 	//delete everything, this will literally delete everything
 	PurgeDatabase() error

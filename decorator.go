@@ -67,7 +67,7 @@ func (d *decoratorConfig) Validate() error{
 			return NewInvalidDecoratorConfigError("properties must be a map with signature map[string]interface{}", d.Name)
 		}
 
-		if d.PrimaryKey || d.Relationship != "" || d.Direction != -1 || d.Index || d.Unique{
+		if d.PrimaryKey || d.Relationship != "" || d.Direction != 0 || d.Index || d.Unique{
 			return NewInvalidDecoratorConfigError("field marked as properties can only have name defined", d.Name)
 		}
 
@@ -206,11 +206,16 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 					continue
 				case "outgoing":
 					toReturn.Direction = dsl.Outgoing
+					continue
+				case "any":
+					toReturn.Direction = dsl.Any
+					continue
 				default:
-					toReturn.Direction = 0
+					toReturn.Direction = dsl.Any
+					continue
 				}
 			default:
-				return nil, errors.New("unknown field") //todo replace with better errors
+				return nil, fmt.Errorf("key '%s' is not recognized", key) //todo replace with better errors
 			}
 		}
 
@@ -234,7 +239,7 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		case timeField:
 			toReturn.IsTime = true
 		default:
-			return nil, errors.New("unknown field") //todo replace with better error
+			return nil, fmt.Errorf("key '%s' is not recognized", field)//todo replace with better error
 		}
 	}
 
@@ -282,7 +287,7 @@ func (s *structDecoratorConfig) Validate() error{
 
 	if pkCount == 0{
 		if s.IsVertex{
-			return NewInvalidStructConfigError("primary key required")
+			return NewInvalidStructConfigError("primary key required on node " + s.Label)
 		}
 	} else if pkCount > 1{
 		return NewInvalidStructConfigError("too many primary keys defined")

@@ -124,3 +124,56 @@ func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, a
 
 	return builder, nil
 }
+
+func PathLoadStrategyEdgeConstraint(sess *dsl.Session, startVariable, startLabel, endLabel, endTargetField string, minJumps, maxJumps, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
+	if sess == nil{
+		return nil, errors.New("session can not be nil")
+	}
+
+	if startVariable == ""{
+		return nil, errors.New("variable name cannot be empty")
+	}
+
+	if startLabel == ""{
+		return nil, errors.New("label can not be empty")
+	}
+
+	if endLabel == ""{
+		return nil, errors.New("label can not be empty")
+	}
+
+	qp, err := dsl.ParamsFromMap(map[string]interface{}{
+		endTargetField: "{targetField}",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	builder := sess.QueryReadOnly().
+		Match(dsl.Path().
+			V(dsl.V{Name: startVariable, Type: startLabel}).
+			E(dsl.E{MinJumps: minJumps, MaxJumps: maxJumps}).
+			V(dsl.V{Type: endLabel, Params: qp}).
+			Build()).
+
+		With(&dsl.WithConfig{
+			Parts: []dsl.WithPart{
+				{
+					Name: startVariable,
+				},
+			},
+		})
+	if additionalConstraints != nil{
+		builder.Where(additionalConstraints)
+	}
+
+	builder.
+		Match(dsl.Path().
+			V(dsl.V{Name: startVariable}).
+			E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
+			V(dsl.V{Name: "m"}).Build())
+
+	BuildReturnQuery(builder, "n", "m", "e")
+
+	return builder, nil
+}

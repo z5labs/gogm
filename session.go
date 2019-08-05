@@ -216,6 +216,56 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 	return decodeNeoRows(rows, respObj)
 }
 
+func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNodeField string, edgeConstraint interface{}, minJumps, maxJumps, depth int, filter dsl.ConditionOperator) error {
+	rawRespType := reflect.TypeOf(respObj)
+
+	if rawRespType.Kind() != reflect.Ptr{
+		return fmt.Errorf("respObj must be a pointer to a slice, instead it is %T", respObj)
+	}
+
+	//deref to a slice
+	respType := rawRespType.Elem()
+
+	//validate type is ptr
+	if respType.Kind() != reflect.Slice{
+		return fmt.Errorf("respObj must be type slice, instead it is %T", respObj)
+	}
+
+	//"deref" reflect interface type
+	respType = respType.Elem()
+
+	//get the type name -- this maps directly to the label
+	respObjName := respType.Name()
+
+	//will need to keep track of these variables
+	varName := "n"
+
+	var query dsl.Cypher
+	var err error
+
+	//make the query based off of the load strategy
+	switch s.LoadStrategy {
+	case PATH_LOAD_STRATEGY:
+		query, err = PathLoadStrategyEdgeConstraint(s.conn, varName, respObjName, endNodeType, endNodeField, minJumps, maxJumps, depth, filter)
+		if err != nil{
+			return err
+		}
+	case SCHEMA_LOAD_STRATEGY:
+		return errors.New("schema load strategy not supported yet")
+	default:
+		return errors.New("unknown load strategy")
+	}
+
+	rows, err := query.Query(map[string]interface{}{
+		endNodeField: edgeConstraint,
+	})
+	if err != nil{
+		return err
+	}
+
+	return decodeNeoRows(rows, respObj)
+}
+
 func (s *Session) Save(saveObj interface{}) error {
 	return s.SaveDepth(saveObj, s.DefaultDepth)
 }
@@ -260,6 +310,30 @@ func (s *Session) Query(query string, properties map[string]interface{}, respObj
 
 	return decodeNeoRows(rows, respObj)
 }
+
+func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error) {
+	if s.conn == nil{
+		return nil, errors.New("neo4j connection not initialized")
+	}
+
+	rows, err := s.conn.Query().Cypher(query).Query(properties)
+	if err != nil{
+		return nil, err
+	}
+
+	data, _, err := rows.All()
+	if err != nil {
+		return nil, err
+	}
+
+	err = rows.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
 
 func (s *Session) PurgeDatabase() error {
 	if s.conn == nil{
