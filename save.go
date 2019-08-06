@@ -72,6 +72,11 @@ func saveDepth(sess *dsl.Session, obj interface{}, depth int) error {
 		return err
 	}
 
+	//no relations to make
+	if len(ids) == 1 {
+		return nil
+	}
+
 	return relateNodes(sess, relations, ids)
 }
 
@@ -141,6 +146,11 @@ func createNodes(sess *dsl.Session, crNodes map[string]map[string]nodeCreateConf
 
 			idMap[row[0].(string)] = row[1].(int64)
 		}
+
+		err = res.Close()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return idMap, nil
@@ -170,7 +180,7 @@ func relateNodes(sess *dsl.Session, relations map[string][]relCreateConf, ids ma
 
 			endId, ok := ids[rel.EndNodeUUID]
 			if !ok {
-				return fmt.Errorf("can not find nodeId for %s", rel.EndNodeUUID)
+				return fmt.Errorf("can not find nodeId for %T", rel)
 			}
 
 			//set map if its empty
@@ -335,7 +345,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 			end = id
 		} else {
 			start = id
-			start = parentId
+			end = parentId
 		}
 
 		if edgeParams == nil{
@@ -469,6 +479,9 @@ func processStruct(fieldConf decoratorConfig, relVal *reflect.Value, id, oldPare
 		}
 	} else {
 		if oldParentId != ""{
+			if relVal.Kind() == reflect.Ptr{
+				*relVal = relVal.Elem()
+			}
 			if relVal.FieldByName("UUID").String() == oldParentId{
 				return "", "", false, 0, nil, &reflect.Value{}, true, nil
 			}

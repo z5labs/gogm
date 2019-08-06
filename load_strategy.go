@@ -56,11 +56,29 @@ func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int, 
 		builder.Where(additionalConstraints)
 	}
 
-	builder.
-		Match(dsl.Path().
-			V(dsl.V{Name: variable}).
-			E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
-			V(dsl.V{Name: "m"}).Build())
+	if depth == 0 {
+		builder.With(&dsl.WithConfig{
+			Parts: []dsl.WithPart{
+				{
+					Name: "n",
+				},
+				{
+					Name: "[]",
+					As: "e",
+				},
+				{
+					Name: "[]",
+					As: "m",
+				},
+			},
+		})
+	} else {
+		builder.
+			OptionalMatch(dsl.Path().
+				V(dsl.V{Name: variable}).
+				E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
+				V(dsl.V{Name: "m"}).Build())
+	}
 
 	BuildReturnQuery(builder, "n", "m", "e")
 
@@ -105,20 +123,43 @@ func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, a
 	if additionalConstraints != nil{
 		builder = builder.Where(additionalConstraints.And(&dsl.ConditionConfig{
 			Name: variable,
+			Field: "uuid",
+			ConditionOperator: dsl.EqualToOperator,
 			Check: dsl.ParamString("{uuid}"),
 		}))
 	} else {
 		builder = builder.Where(dsl.C(&dsl.ConditionConfig{
 			Name: variable,
+			Field: "uuid",
+			ConditionOperator: dsl.EqualToOperator,
 			Check: dsl.ParamString("{uuid}"),
 		}))
 	}
 
-	builder.
-		Match(dsl.Path().
-			V(dsl.V{Name: variable}).
-			E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
-			V(dsl.V{Name: "m"}).Build())
+	if depth == 0 {
+		builder.With(&dsl.WithConfig{
+			Parts: []dsl.WithPart{
+				{
+					Name: variable,
+				},
+				{
+					Name: "[]",
+					As: "e",
+				},
+				{
+					Name: "[]",
+					As: "m",
+				},
+			},
+		})
+	} else {
+		builder.
+			OptionalMatch(dsl.Path().
+				V(dsl.V{Name: variable}).
+				E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
+				V(dsl.V{Name: "m"}).Build())
+	}
+
 
 	BuildReturnQuery(builder, "n", "m", "e")
 
@@ -167,11 +208,30 @@ func PathLoadStrategyEdgeConstraint(sess *dsl.Session, startVariable, startLabel
 		builder.Where(additionalConstraints)
 	}
 
-	builder.
-		Match(dsl.Path().
-			V(dsl.V{Name: startVariable}).
-			E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
-			V(dsl.V{Name: "m"}).Build())
+	if depth == 0 {
+		builder.With(&dsl.WithConfig{
+			Parts: []dsl.WithPart{
+				{
+					Name: startVariable,
+				},
+				{
+					Name: "[]",
+					As: "e",
+				},
+				{
+					Name: "[]",
+					As: "m",
+				},
+			},
+		})
+	} else {
+		builder.
+			OptionalMatch(dsl.Path().
+				V(dsl.V{Name: startVariable}).
+				E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
+				V(dsl.V{Name: "m"}).Build())
+	}
+
 
 	BuildReturnQuery(builder, "n", "m", "e")
 

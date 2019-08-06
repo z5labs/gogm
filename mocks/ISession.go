@@ -151,6 +151,20 @@ func (_m *ISession) LoadAllDepthFilterPagination(respObj interface{}, depth int,
 	return r0
 }
 
+// LoadAllEdgeConstraint provides a mock function with given fields: respObj, endNodeType, endNodeField, edgeConstraint, minJumps, maxJumps, depth, filter
+func (_m *ISession) LoadAllEdgeConstraint(respObj interface{}, endNodeType string, endNodeField string, edgeConstraint interface{}, minJumps int, maxJumps int, depth int, filter go_cypherdsl.ConditionOperator) error {
+	ret := _m.Called(respObj, endNodeType, endNodeField, edgeConstraint, minJumps, maxJumps, depth, filter)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(interface{}, string, string, interface{}, int, int, int, go_cypherdsl.ConditionOperator) error); ok {
+		r0 = rf(respObj, endNodeType, endNodeField, edgeConstraint, minJumps, maxJumps, depth, filter)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // LoadDepth provides a mock function with given fields: respObj, id, depth
 func (_m *ISession) LoadDepth(respObj interface{}, id string, depth int) error {
 	ret := _m.Called(respObj, id, depth)
@@ -219,6 +233,29 @@ func (_m *ISession) Query(query string, properties map[string]interface{}, respO
 	}
 
 	return r0
+}
+
+// QueryRaw provides a mock function with given fields: query, properties
+func (_m *ISession) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error) {
+	ret := _m.Called(query, properties)
+
+	var r0 [][]interface{}
+	if rf, ok := ret.Get(0).(func(string, map[string]interface{}) [][]interface{}); ok {
+		r0 = rf(query, properties)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([][]interface{})
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, map[string]interface{}) error); ok {
+		r1 = rf(query, properties)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Rollback provides a mock function with given fields:

@@ -71,6 +71,20 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	arr = append(arr, arr1[1].([]interface{}))
 	arr = append(arr, arr1[2].([]interface{}))
 
+	//check for empty stuff
+	for i := 0; i < 3; i++ {
+		if len(arr[i]) == 0 {
+			continue
+		}
+		if aCheck, ok := arr[i][0].([]interface{}); ok {
+			if len(aCheck) == 0 {
+				//set it to just be empty
+				arr[i] = []interface{}{}
+			}
+		}
+	}
+
+
 	p0 := len(arr[0])
 	p1 := len(arr[1])
 	p2 := len(arr[2])
@@ -85,7 +99,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 		return errors.New("no primary node to return")
 	}
 
-	nodes := arr[1]
+	nodes := append(arr[1], arr[2]...)
 
 	var wg sync.WaitGroup
 
@@ -111,7 +125,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	close(errChan)
 
 	//sanity check
-	if len(nodeLookup) != p1{
+	if len(nodeLookup) != p1 + p2{
 		return fmt.Errorf("sanity check failed, nodeLookup not correct length (%v) != (%v)", len(nodeLookup), p1 + p2)
 	}
 
