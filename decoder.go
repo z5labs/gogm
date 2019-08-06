@@ -8,6 +8,7 @@ import (
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/mitchellh/mapstructure"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
@@ -410,6 +411,9 @@ func convertAndMapNodes(nodes []interface{}, lookup *map[int64]*reflect.Value, e
 	wg.Done()
 }
 
+var sliceOfEmptyInterface []interface{}
+var emptyInterfaceType = reflect.TypeOf(sliceOfEmptyInterface).Elem()
+
 func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]interface{}, rtype reflect.Type) (valss *reflect.Value, err error){
 	defer func() {
 		if r := recover(); r != nil{
@@ -441,6 +445,29 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 		//skip if its a relation field
 		if fieldConfig.Relationship != ""{
 			continue
+		}
+
+		if fieldConfig.Properties {
+			mapType := reflect.MapOf(reflect.TypeOf(""), emptyInterfaceType)
+			mapVal := reflect.MakeMap(mapType)
+
+			for k, v := range props {
+				if !strings.Contains(fieldConfig.FieldName, k) {
+					//not one of our map fields
+					continue
+				}
+
+				parts := strings.Split(k, ".")
+				if len(parts) != 2 {
+					return nil, fmt.Errorf("invalid key [%s]", k)
+				}
+
+				mapKey := parts[1]
+
+				mapVal.SetMapIndex(reflect.ValueOf(mapKey), reflect.ValueOf(v))
+			}
+
+			reflect.Indirect(val).FieldByName(field).Set(mapVal)
 		}
 
 		raw, ok := props[fieldConfig.Name]

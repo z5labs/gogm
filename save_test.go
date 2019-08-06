@@ -46,7 +46,7 @@ func TestParseStruct(t *testing.T){
 }
 
 func TestSave(t *testing.T){
-	//if testing.Short(){
+	//if !testing.Short(){
 	//	t.Skip()
 	//	return
 	//}

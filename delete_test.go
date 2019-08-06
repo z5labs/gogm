@@ -7,7 +7,7 @@ import (
 )
 
 func TestDelete(t *testing.T){
-	if testing.Short(){
+	if !testing.Short(){
 		t.Skip()
 		return
 	}

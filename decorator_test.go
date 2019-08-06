@@ -262,10 +262,10 @@ func TestNewDecoratorConfig(t *testing.T){
 		Relationship: "one2one",
 		Name: "o2o",
 		Direction: dsl.Incoming,
-		Type: reflect.TypeOf([]interface{}{}),
+		Type: reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(decOne2One, "", reflect.TypeOf([]interface{}{}))
+	compare, err = newDecoratorConfig(decOne2One, "", reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decOne2OneStruct, *compare)
@@ -380,45 +380,55 @@ func TestGetStructDecoratorConfig(t *testing.T){
 	req.NotNil(conf)
 	checkObj := structDecoratorConfig{
 		IsVertex: true,
+		Type: reflect.TypeOf(validStruct{}),
 		Label: "validStruct",
 		Fields: map[string]decoratorConfig{
 			"Id": {
 				Name: "id",
+				FieldName: "Id",
 				Type: reflect.TypeOf(int64(0)),
 			},
 			"UUID": {
 				Name: "uuid",
+				FieldName: "UUID",
 				PrimaryKey: true,
 				Type: reflect.TypeOf(""),
 			},
 			"IndexField": {
+				FieldName: "IndexField",
 				Name: "index_field",
 				Index: true,
 				Type: reflect.TypeOf(""),
 			},
 			"UniqueField": {
+				FieldName: "UniqueField",
 				Unique: true,
 				Name: "unique_field",
 				Type: reflect.TypeOf(int(1)),
 			},
 			"OneToOne": {
+				FieldName: "OneToOne",
 				Relationship: "one2one",
 				Direction: dsl.Incoming,
 				Name: "o2o",
 				Type: reflect.TypeOf(&validStruct{}),
 			},
 			"ManyToOne": {
+				FieldName: "ManyToOne",
 				Relationship: "many2one",
 				Direction: dsl.Outgoing,
+				ManyRelationship: true,
 				Name: "m2o",
 				Type: reflect.TypeOf([]interface{}{}),
 			},
 			"Props": {
+				FieldName: "Props",
 				Properties: true,
 				Name: "props",
 				Type: reflect.TypeOf(map[string]interface{}{}),
 			},
 			"IgnoreMe": {
+				FieldName: "IgnoreMe",
 				Name: "IgnoreMe",
 				Ignore: true,
 				Type: reflect.TypeOf(int(1)),

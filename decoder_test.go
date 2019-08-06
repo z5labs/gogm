@@ -12,7 +12,7 @@ import (
 )
 
 func TestDecode(t *testing.T){
-	if testing.Short(){
+	if !testing.Short(){
 		t.Skip()
 		return
 	}

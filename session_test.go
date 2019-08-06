@@ -6,6 +6,11 @@ import (
 )
 
 func TestSession(t *testing.T){
+	if !testing.Short(){
+		t.Skip()
+		return
+	}
+
 	req := require.New(t)
 
 	conf := Config{

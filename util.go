@@ -79,6 +79,19 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 
 				ret[conf.Name] = dateObj.Format(time.RFC3339)
 			}
+		} else if conf.Properties {
+			if conf.Type.Kind() == reflect.Map{
+				propsMap, ok := val.Interface().(map[string]interface{})
+				if !ok {
+					for k, v := range propsMap{
+						ret[conf.Name + "." + k] = v
+					}
+				} else {
+					return nil, errors.New("unable to convert map to map[string]interface{}")
+				}
+			} else {
+				return nil, errors.New("properties type is not a map")
+			}
 		} else {
 			ret[conf.Name] = val.FieldByName(conf.FieldName).Interface()
 		}

@@ -67,7 +67,7 @@ func Init(conf *Config, mapTypes ...interface{}) error {
 }
 
 func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error{
-	if isSetup{
+	if isSetup && !isTest{
 		return errors.New("gogm has already been initialized")
 	}
 	if !isTest{

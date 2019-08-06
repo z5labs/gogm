@@ -9,7 +9,7 @@ import (
 
 func TestDropAllIndexesAndConstraints(t *testing.T){
 	//requires connection
-	if testing.Short(){
+	if !testing.Short(){
 		t.SkipNow()
 		return
 	}
@@ -45,7 +45,7 @@ func TestDropAllIndexesAndConstraints(t *testing.T){
 
 func TestIndexManagement(t *testing.T){
 	//requires connection
-	if testing.Short(){
+	if !testing.Short(){
 		t.SkipNow()
 		return
 	}
