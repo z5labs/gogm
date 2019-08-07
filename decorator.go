@@ -103,7 +103,7 @@ func (d *decoratorConfig) Validate() error {
 
 		// check that name is not defined (should be defaulted to field name)
 		if d.Name != d.FieldName {
-			return NewInvalidDecoratorConfigError("name tag can not be defined on a relationship", d.Name)
+			return NewInvalidDecoratorConfigError("name tag can not be defined on a relationship (Name and FieldName must be the same)", d.Name)
 		}
 
 		//relationship is valid now
