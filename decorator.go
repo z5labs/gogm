@@ -299,9 +299,7 @@ func (s *structDecoratorConfig) Validate() error {
 	}
 
 	if pkCount == 0 {
-		if s.IsVertex {
-			return NewInvalidStructConfigError("primary key required on node " + s.Label)
-		}
+		return NewInvalidStructConfigError("primary key required on node/edge " + s.Label)
 	} else if pkCount > 1 {
 		return NewInvalidStructConfigError("too many primary keys defined")
 	}

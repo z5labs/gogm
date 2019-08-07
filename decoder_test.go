@@ -177,6 +177,8 @@ type b struct{
 }
 
 type c struct{
+	Id int64 `gogm:"name=id"`
+	UUID string `gogm:"pk;name=uuid"`
 	Start *a
 	End *b
 	Test string `gogm:"name=test"`
@@ -331,6 +333,7 @@ func TestDecoder(t *testing.T){
 						EndNodeId: int64(2),
 						Obj: map[string]interface{}{
 							"test": "testing",
+							"uuid": "asdfasdafsd",
 						},
 					},
 				},
@@ -383,6 +386,8 @@ func TestDecoder(t *testing.T){
 	}
 
 	c1 := &c{
+		UUID: "asdfasdafsd",
+		Id: 420,
 		Start: comp2,
 		End: b2,
 		Test: "testing",
@@ -480,6 +485,7 @@ func TestDecoder(t *testing.T){
 						Type: "special_multi",
 						Obj: map[string]interface{}{
 							"test": "testing",
+							"uuid": "asdfasdafsd",
 						},
 						StartNodeType: "a",
 						StartNodeId: int64(1),
@@ -537,6 +543,7 @@ func TestDecoder(t *testing.T){
 	}
 
 	c4 := c{
+		UUID: "asdfasdafsd",
 		Start: comp4,
 		End: b3,
 		Test: "testing",
