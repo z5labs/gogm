@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"reflect"
+	"sync"
 	"time"
 )
 
@@ -98,4 +99,57 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 	}
 
 	return ret, err
+}
+
+type relationConfigs struct {
+	// [type-relationship][fieldType][]decoratorConfig
+	configs map[string]map[string][]decoratorConfig
+
+	mutex sync.Mutex
+}
+
+func (r *relationConfigs) getKey(nodeType, relationship string) string {
+	return fmt.Sprintf("%s-%s", nodeType, relationship)
+}
+
+func (r *relationConfigs) Add(nodeType, relationship, fieldType string, dec decoratorConfig) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if r.configs == nil {
+		r.configs = map[string]map[string][]decoratorConfig{}
+	}
+
+	key := r.getKey(nodeType, relationship)
+
+	if _, ok := r.configs[key]; !ok {
+		r.configs[key] = map[string][]decoratorConfig{}
+	}
+
+	if _, ok := r.configs[key][fieldType]; !ok {
+		r.configs[key][fieldType] = []decoratorConfig{}
+	}
+
+	r.configs[key][fieldType] = append(r.configs[key][fieldType], dec)
+}
+
+func (r *relationConfigs) GetConfigs(nodeType, relationship, fieldType string) ([]decoratorConfig, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if r.configs == nil {
+		return nil, errors.New("no configs provided")
+	}
+
+	key := r.getKey(nodeType, relationship)
+
+	if _, ok := r.configs[key]; !ok {
+		return nil, fmt.Errorf("no configs for key [%s]", key)
+	}
+
+	if _, ok := r.configs[key][fieldType]; !ok {
+		return nil, fmt.Errorf("no confoigs for key [%s] and field type [%s]", key, fieldType)
+	}
+
+	return r.configs[key][fieldType], nil
 }

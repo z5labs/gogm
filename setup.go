@@ -55,7 +55,7 @@ const (
 //convert these into concurrent hashmap
 var mappedTypes = &hashmap.HashMap{}
 //relationship + label
-var mappedRelations = &hashmap.HashMap{}
+var mappedRelations = &relationConfigs{}
 
 func makeRelMapKey(start, edge, direction, rel string) string{
 	return fmt.Sprintf("%s-%s-%v-%s", start, edge, direction, rel)
