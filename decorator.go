@@ -320,8 +320,6 @@ func (s *structDecoratorConfig) Validate() error {
 func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (*structDecoratorConfig, error) {
 	toReturn := &structDecoratorConfig{}
 
-	rels := map[string]decoratorConfig{}
-
 	t := reflect.TypeOf(i)
 
 	if t.Kind() != reflect.Ptr {
@@ -381,10 +379,12 @@ func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (
 				}
 
 				endTypeName := ""
-				if endType.Implements(edgeType) {
+				if reflect.PtrTo(endType).Implements(edgeType) {
 					log.Info(endType.Name())
-					endVal := reflect.New(reflect.PtrTo(endType))
+					endVal := reflect.New(endType)
 					var endTypeVal []reflect.Value
+
+					//log.Info(endVal.String())
 
 					if config.Direction == dsl.Outgoing {
 						endTypeVal = endVal.MethodByName("GetEndNodeType").Call(nil)
@@ -400,16 +400,21 @@ func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (
 						return nil, errors.New("GetEndNodeType() can not return a nil value")
 					}
 
-					if endTypeVal[0].Kind() == reflect.Ptr{
-						endTypeName = endTypeVal[0].Type().Elem().Name()
+					convertedType, ok := endTypeVal[0].Interface().(reflect.Type)
+					if !ok {
+						return nil, errors.New("cannot convert to type reflect.Type")
+					}
+
+					if convertedType.Kind() == reflect.Ptr{
+						endTypeName = convertedType.Elem().Name()
 					} else {
-						endTypeName = endTypeVal[0].Type().Name()
+						endTypeName = convertedType.Name()
 					}
 				} else {
 					endTypeName = endType.Name()
 				}
 
-				rels[makeRelMapKey(toReturn.Label, endTypeName, string(config.Direction), config.Relationship)] = *config
+				mappedRelations.Add(toReturn.Label, config.Relationship, endTypeName, *config)
 			}
 
 			toReturn.Fields[field.Name] = *config

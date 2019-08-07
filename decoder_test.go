@@ -223,7 +223,7 @@ func TestDecoder(t *testing.T){
 
 	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
 
-	req.EqualValues(3, mappedTypes.Len())
+//	req.EqualValues(3, mappedTypes.Len())
 
 	Type := "Type"
 	StartNodeType := "StartNodeType"
@@ -282,17 +282,21 @@ func TestDecoder(t *testing.T){
 
 	var readin a
 
-	comp := a{
+	comp := &a{
 		TestField: "test",
 		Id: 1,
 		UUID: "dasdfasd",
-		Single: &b{
-			TestField: "test",
-			UUID: "dasdfas",
-			TestTime: fTime,
-			Id: 2,
-		},
 	}
+
+	comp22 := &b{
+		TestField: "test",
+		UUID: "dasdfas",
+		TestTime: fTime,
+		Id: 2,
+	}
+
+	comp.Single = comp22
+	comp22.Single = comp
 
 	req.Nil(decode(vars, &readin))
 	req.EqualValues(comp.TestField, readin.TestField)
@@ -505,18 +509,19 @@ func TestDecoder(t *testing.T){
 			},
 			[]interface{}{
 				graph.Node{
-					Labels: []string{"a"},
+					Labels: []string{"b"},
 					Properties: map[string]interface{}{
 						"test_field": "test",
-						"uuid": "dasdfasd",
+						"uuid": "dasdfas",
+						"test_time": fTime.Format(time.RFC3339),
 					},
-					NodeIdentity: 1,
+					NodeIdentity: 2,
 				},
 			},
 		},
 	}
 
-	var readin4 a
+	var readin4 b
 
 	comp4 := &a{
 		TestField: "test",
@@ -541,12 +546,12 @@ func TestDecoder(t *testing.T){
 	b3.MultiSpec = append(b3.MultiSpec, c4)
 
 	req.Nil(decode(vars4, &readin4))
-	req.EqualValues(comp4.TestField, readin4.TestField)
-	req.EqualValues(comp4.UUID, readin4.UUID)
-	req.EqualValues(comp4.Id, readin4.Id)
+	req.EqualValues(b3.TestField, readin4.TestField)
+	req.EqualValues(b3.UUID, readin4.UUID)
+	req.EqualValues(b3.Id, readin4.Id)
 	req.NotNil(readin4.MultiSpec)
 	req.EqualValues(1, len(readin4.MultiSpec))
-	req.EqualValues(comp4.MultiSpec[0].End.Id, readin4.MultiSpec[0].End.Id)
-	req.EqualValues(comp4.MultiSpec[0].End.UUID, readin4.MultiSpec[0].End.UUID)
-	req.EqualValues(comp4.MultiSpec[0].End.TestField, readin4.MultiSpec[0].End.TestField)
+	req.EqualValues(b3.MultiSpec[0].End.Id, readin4.MultiSpec[0].End.Id)
+	req.EqualValues(b3.MultiSpec[0].End.UUID, readin4.MultiSpec[0].End.UUID)
+	req.EqualValues(b3.MultiSpec[0].End.TestField, readin4.MultiSpec[0].End.TestField)
 }

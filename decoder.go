@@ -126,8 +126,8 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	close(errChan)
 
 	//sanity check
-	if len(nodeLookup) != p1 + p2{
-		return fmt.Errorf("sanity check failed, nodeLookup not correct length (%v) != (%v)", len(nodeLookup), p1 + p2)
+	if len(nodeLookup) != p1{
+		return fmt.Errorf("sanity check failed, nodeLookup not correct length (%v) != (%v)", len(nodeLookup), p1)
 	}
 
 	//build relationships

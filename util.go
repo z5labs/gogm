@@ -130,6 +130,8 @@ func (r *relationConfigs) Add(nodeType, relationship, fieldType string, dec deco
 		r.configs[key][fieldType] = []decoratorConfig{}
 	}
 
+	log.Infof("mapped relations [%s][%s][%v]", key, fieldType, len(r.configs[key][fieldType]))
+
 	r.configs[key][fieldType] = append(r.configs[key][fieldType], dec)
 }
 
@@ -148,7 +150,7 @@ func (r *relationConfigs) GetConfigs(nodeType, relationship, fieldType string) (
 	}
 
 	if _, ok := r.configs[key][fieldType]; !ok {
-		return nil, fmt.Errorf("no confoigs for key [%s] and field type [%s]", key, fieldType)
+		return nil, fmt.Errorf("no configs for key [%s] and field type [%s]", key, fieldType)
 	}
 
 	return r.configs[key][fieldType], nil
