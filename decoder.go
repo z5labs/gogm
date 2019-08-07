@@ -145,7 +145,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			return err
 		}
 
-		key := makeRelMapKey(relationConfig.StartNodeType, relationConfig.Type)
+		key := makeRelMapKey(relationConfig.StartNodeType, relationConfig.EndNodeType, relationConfig.Type)
 
 		var internalEdgeConf decoratorConfig
 		temp, ok := mappedRelations.Get(key)

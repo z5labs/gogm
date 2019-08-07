@@ -5,6 +5,7 @@ import (
 	"github.com/cornelk/hashmap"
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/tools/go/ssa/interp/testdata/src/fmt"
 	"reflect"
 )
 
@@ -56,8 +57,8 @@ var mappedTypes = &hashmap.HashMap{}
 //relationship + label
 var mappedRelations = &hashmap.HashMap{}
 
-func makeRelMapKey(label, rel string) string{
-	return label + rel
+func makeRelMapKey(start, edge, direction, rel string) string{
+	return fmt.Sprintf("%s-%s-%v-%s", start, edge, direction, rel)
 }
 
 var isSetup = false

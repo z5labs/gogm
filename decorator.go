@@ -353,7 +353,21 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string
 			}
 
 			if config.Relationship != ""{
-				rels[makeRelMapKey(toReturn.Label, config.Relationship)] = *config
+				endType := ""
+				if field.Type.Implements(edgeType) {
+					endType = field.Type.Name()
+				} else if field.Type.Kind() == reflect.Ptr {
+					endType = field.Type.Elem().Name()
+				} else if field.Type.Kind() == reflect.Slice {
+					temp := field.Type.Elem()
+					if temp.Kind() == reflect.Ptr{
+						temp = temp.Elem()
+					}
+					endType = temp.Name()
+				} else {
+					endType = field.Type.Name()
+				}
+				rels[makeRelMapKey(toReturn.Label, endType, config.Direction, config.Relationship)] = *config
 			}
 
 			toReturn.Fields[field.Name] = *config

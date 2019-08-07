@@ -416,10 +416,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 }
 
 func processStruct(fieldConf decoratorConfig, relVal *reflect.Value, id, oldParentId string) (parentId, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, followVal *reflect.Value, skip bool, err error){
-	edgeLabel, err = getTypeName(relVal.Type())
-	if err != nil{
-		return "", "", false, 0, nil, nil, false, err
-	}
+	edgeLabel = fieldConf.Relationship
 
 	actual, ok := mappedTypes.Get(edgeLabel)
 	if !ok {
