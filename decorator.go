@@ -47,6 +47,12 @@ type decoratorConfig struct {
 //have struct validate itself
 func (d *decoratorConfig) Validate() error {
 	if d.Ignore {
+		if d.Relationship != "" || d.Unique || d.Index || d.ManyRelationship || d.UsesEdgeNode ||
+			d.PrimaryKey || d.Properties || d.IsTime || d.Name != d.FieldName {
+			log.Println(d)
+			return NewInvalidDecoratorConfigError("ignore tag cannot be combined with any other tag", "")
+		}
+
 		return nil
 	}
 

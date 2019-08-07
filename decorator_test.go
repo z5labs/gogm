@@ -296,6 +296,12 @@ func TestNewDecoratorConfig(t *testing.T) {
 	compare, err = newDecoratorConfig(decInvalidRelName, "TestFieldName", reflect.TypeOf(a{}))
 	req.NotNil(err)
 	req.Nil(compare)
+
+	decInvalidIgnore := "-;index"
+
+	compare, err = newDecoratorConfig(decInvalidIgnore, "", reflect.TypeOf(int64(0)))
+	req.NotNil(err)
+	req.Nil(compare)
 }
 
 //structs with decorators for testing
@@ -381,13 +387,25 @@ func (i *invalidEdge) GetLabels() []string {
 }
 
 type invalidNameStruct struct {
-	Id         int64              `gogm:"name=id"`
-	UUID       string             `gogm:"pk;name=uuid"`
+	Id   int64  `gogm:"name=id"`
+	UUID string `gogm:"pk;name=uuid"`
+	// relationship cannot be named
 	InvalidRel *invalidNameStruct `gogm:"relationship=ONE_TO_ONE;direction=incoming;name=AAAAAA"`
 }
 
 func (i *invalidNameStruct) GetLabels() []string {
 	return []string{"invalidNameStruct"}
+}
+
+type invalidIgnoreStruct struct {
+	Id   int64  `gogm:"name=id"`
+	UUID string `gogm:"pk;name=uuid"`
+	// should fail because ignore struct has additional tags
+	IgnoreMe int64 `gogm:"-;unique"`
+}
+
+func (i *invalidIgnoreStruct) GetLabels() []string {
+	return []string{"invalidIgnoreStruct"}
 }
 
 func TestGetStructDecoratorConfig(t *testing.T) {
@@ -476,6 +494,10 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 	req.Nil(conf)
 
 	conf, _, err = getStructDecoratorConfig(&invalidNameStruct{})
+	req.NotNil(err)
+	req.Nil(conf)
+
+	conf, _, err = getStructDecoratorConfig(&invalidIgnoreStruct{})
 	req.NotNil(err)
 	req.Nil(conf)
 }
