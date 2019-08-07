@@ -290,6 +290,12 @@ func TestNewDecoratorConfig(t *testing.T) {
 	req.Nil(err)
 	req.NotNil(compare)
 	req.True(compare.Ignore)
+
+	decInvalidRelName := "relationship=A_REL;direction=incoming;name=ISHOULDNTBEHERE"
+
+	compare, err = newDecoratorConfig(decInvalidRelName, "TestFieldName", reflect.TypeOf(a{}))
+	req.NotNil(err)
+	req.Nil(compare)
 }
 
 //structs with decorators for testing
@@ -374,6 +380,16 @@ func (i *invalidEdge) GetLabels() []string {
 	return []string{"invalidEdge"}
 }
 
+type invalidNameStruct struct {
+	Id         int64              `gogm:"name=id"`
+	UUID       string             `gogm:"pk;name=uuid"`
+	InvalidRel *invalidNameStruct `gogm:"relationship=ONE_TO_ONE;direction=incoming;name=AAAAAA"`
+}
+
+func (i *invalidNameStruct) GetLabels() []string {
+	return []string{"invalidNameStruct"}
+}
+
 func TestGetStructDecoratorConfig(t *testing.T) {
 	req := require.New(t)
 
@@ -456,6 +472,10 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 	req.Nil(conf)
 
 	conf, _, err = getStructDecoratorConfig(&invalidEdge{})
+	req.NotNil(err)
+	req.Nil(conf)
+
+	conf, _, err = getStructDecoratorConfig(&invalidNameStruct{})
 	req.NotNil(err)
 	req.Nil(conf)
 }
