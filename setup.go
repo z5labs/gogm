@@ -81,18 +81,12 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 	log.Debug("mapping types")
 	for _, t := range mapTypes {
 		name := reflect.TypeOf(t).Elem().Name()
-		dc, rels, err := getStructDecoratorConfig(t)
+		dc, err := getStructDecoratorConfig(t, mappedRelations)
 		if err != nil {
 			return err
 		}
 
 		log.Debugf("mapped type '%s'", name)
-
-		if len(rels) > 0 {
-			for k, v := range rels {
-				mappedRelations.Set(k, v)
-			}
-		}
 
 		log.Infof("mapped type %s", name)
 		mappedTypes.Set(name, *dc)

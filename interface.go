@@ -1,12 +1,17 @@
 package gogm
 
-import dsl "github.com/mindstand/go-cypherdsl"
+import (
+	dsl "github.com/mindstand/go-cypherdsl"
+	"reflect"
+)
 
 type IEdge interface {
 	GetStartNode() interface{}
+	GetStartNodeType() reflect.Type
 	SetStartNode(v interface{}) error
 
 	GetEndNode() interface{}
+	GetEndNodeType() reflect.Type
 	SetEndNode(v interface{}) error
 }
 

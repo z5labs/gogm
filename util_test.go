@@ -46,7 +46,7 @@ func TestToCypherParamsMap(t *testing.T){
 		TestField: "testvalue",
 	}
 
-	config, _, err := getStructDecoratorConfig(&val)
+	config, err := getStructDecoratorConfig(&val, mappedRelations)
 	require.Nil(t, err)
 
 	params, err := toCypherParamsMap(reflect.ValueOf(val), *config)

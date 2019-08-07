@@ -186,6 +186,10 @@ func (c *c) GetStartNode() interface{} {
 	return c.Start
 }
 
+func (c *c) GetStartNodeType() reflect.Type {
+	return reflect.TypeOf(&a{})
+}
+
 func (c *c) SetStartNode(v interface{}) error {
 	var ok bool
 	c.Start, ok = v.(*a)
@@ -198,6 +202,10 @@ func (c *c) SetStartNode(v interface{}) error {
 
 func (c *c) GetEndNode() interface{} {
 	return c.End
+}
+
+func (c *c) GetEndNodeType() reflect.Type {
+	return reflect.TypeOf(&b{})
 }
 
 func (c *c) SetEndNode(v interface{}) error {

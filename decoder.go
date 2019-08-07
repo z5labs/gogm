@@ -145,17 +145,25 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			return err
 		}
 
-		key := makeRelMapKey(relationConfig.StartNodeType, relationConfig.EndNodeType, relationConfig.Type)
-
-		var internalEdgeConf decoratorConfig
-		temp, ok := mappedRelations.Get(key)
-		if !ok {
-			return fmt.Errorf("cannot find decorator config for key %s", key)
+		configs, err := mappedRelations.GetConfigs(relationConfig.StartNodeType, relationConfig.Type, relationConfig.EndNodeType)
+		if err != nil {
+			return err
 		}
 
-		internalEdgeConf, ok = temp.(decoratorConfig)
-		if !ok{
-			return errors.New("unable to cast into decoratorConfig")
+		var internalEdgeConf decoratorConfig
+
+		if len(configs) == 0 {
+			return errors.New("no config found")
+		} else if len(configs) == 1 {
+			internalEdgeConf = configs[0]
+		} else {
+			for _, config := range configs{
+				if config.Direction == dsl.Outgoing {
+					internalEdgeConf = config
+					break
+				}
+				return errors.New("cannot find outgoing edge")
+			}
 		}
 
 		if internalEdgeConf.UsesEdgeNode {

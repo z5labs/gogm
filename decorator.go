@@ -311,7 +311,7 @@ func (s *structDecoratorConfig) Validate() error {
 	return nil
 }
 
-func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string]decoratorConfig, error) {
+func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (*structDecoratorConfig, error) {
 	toReturn := &structDecoratorConfig{}
 
 	rels := map[string]decoratorConfig{}
@@ -319,7 +319,7 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string
 	t := reflect.TypeOf(i)
 
 	if t.Kind() != reflect.Ptr {
-		return nil, nil, fmt.Errorf("must pass pointer to struct, instead got %T", i)
+		return nil, fmt.Errorf("must pass pointer to struct, instead got %T", i)
 	}
 
 	t = t.Elem()
@@ -338,7 +338,7 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string
 	toReturn.Type = t
 
 	if t.NumField() == 0 {
-		return nil, nil, errors.New("struct has no fields") //todo make error more thorough
+		return nil, errors.New("struct has no fields") //todo make error more thorough
 	}
 
 	toReturn.Fields = map[string]decoratorConfig{}
@@ -352,29 +352,58 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string
 		if tag != "" {
 			config, err := newDecoratorConfig(tag, field.Name, field.Type)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 
 			if config == nil {
-				return nil, nil, errors.New("config is nil") //todo better error
+				return nil, errors.New("config is nil") //todo better error
 			}
 
 			if config.Relationship != "" {
-				endType := ""
-				if field.Type.Implements(edgeType) {
-					endType = field.Type.Name()
-				} else if field.Type.Kind() == reflect.Ptr {
-					endType = field.Type.Elem().Name()
+				var endType reflect.Type
+
+				if field.Type.Kind() == reflect.Ptr {
+					endType = field.Type.Elem()
 				} else if field.Type.Kind() == reflect.Slice {
 					temp := field.Type.Elem()
 					if temp.Kind() == reflect.Ptr {
 						temp = temp.Elem()
 					}
-					endType = temp.Name()
+					endType = temp
 				} else {
-					endType = field.Type.Name()
+					endType = field.Type
 				}
-				rels[makeRelMapKey(toReturn.Label, endType, string(config.Direction), config.Relationship)] = *config
+
+				endTypeName := ""
+				if endType.Implements(edgeType) {
+					log.Info(endType.Name())
+					endVal := reflect.New(reflect.PtrTo(endType))
+					var endTypeVal []reflect.Value
+
+					if config.Direction == dsl.Outgoing {
+						endTypeVal = endVal.MethodByName("GetEndNodeType").Call(nil)
+					} else {
+						endTypeVal = endVal.MethodByName("GetStartNodeType").Call(nil)
+					}
+
+					if len(endTypeVal) != 1 {
+						return nil, errors.New("GetEndNodeType failed")
+					}
+
+					if endTypeVal[0].IsNil() {
+						return nil, errors.New("GetEndNodeType() can not return a nil value")
+					}
+
+					if endTypeVal[0].Kind() == reflect.Ptr{
+						endTypeName = endTypeVal[0].Type().Elem().Name()
+					} else {
+						endTypeName = endTypeVal[0].Type().Name()
+					}
+				} else {
+					endTypeName = endType.Name()
+				}
+
+				rels[makeRelMapKey(toReturn.Label, endTypeName, string(config.Direction), config.Relationship)] = *config
 			}
 
 			toReturn.Fields[field.Name] = *config
@@ -383,8 +412,8 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string
 
 	err := toReturn.Validate()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return toReturn, rels, nil
+	return toReturn, nil
 }

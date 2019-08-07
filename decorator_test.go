@@ -375,7 +375,7 @@ func (i *invalidEdge) GetLabels() []string {
 func TestGetStructDecoratorConfig(t *testing.T){
 	req := require.New(t)
 
-	conf, _, err := getStructDecoratorConfig(&validStruct{})
+	conf, err := getStructDecoratorConfig(&validStruct{}, mappedRelations)
 	req.Nil(err)
 	req.NotNil(conf)
 	checkObj := structDecoratorConfig{
@@ -410,7 +410,6 @@ func TestGetStructDecoratorConfig(t *testing.T){
 				FieldName: "OneToOne",
 				Relationship: "one2one",
 				Direction: dsl.Incoming,
-				Name: "o2o",
 				Type: reflect.TypeOf(&validStruct{}),
 			},
 			"ManyToOne": {
@@ -418,7 +417,6 @@ func TestGetStructDecoratorConfig(t *testing.T){
 				Relationship: "many2one",
 				Direction: dsl.Outgoing,
 				ManyRelationship: true,
-				Name: "m2o",
 				Type: reflect.TypeOf([]interface{}{}),
 			},
 			"Props": {
@@ -437,23 +435,23 @@ func TestGetStructDecoratorConfig(t *testing.T){
 	}
 	req.EqualValues(checkObj, *conf)
 
-	conf, _, err = getStructDecoratorConfig(&mostlyValidStruct{})
+	conf, err = getStructDecoratorConfig(&mostlyValidStruct{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, _, err = getStructDecoratorConfig(&emptyStruct{})
+	conf, err = getStructDecoratorConfig(&emptyStruct{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, _, err = getStructDecoratorConfig(&invalidStructDecorator{})
+	conf, err = getStructDecoratorConfig(&invalidStructDecorator{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, _, err = getStructDecoratorConfig(&invalidStructProperties{})
+	conf, err = getStructDecoratorConfig(&invalidStructProperties{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, _, err = getStructDecoratorConfig(&invalidEdge{})
+	conf, err = getStructDecoratorConfig(&invalidEdge{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 }
