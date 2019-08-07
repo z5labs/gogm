@@ -15,9 +15,9 @@ var timeType = reflect.TypeOf(time.Time{})
 
 //sub fields of the decorator
 const (
-	paramNameField        = "name" //requires assignment
+	paramNameField        = "name"         //requires assignment
 	relationshipNameField = "relationship" //requires assignment
-	directionField        = "direction" //requires assignment
+	directionField        = "direction"    //requires assignment
 	timeField             = "time"
 	indexField            = "index"
 	uniqueField           = "unique"
@@ -28,46 +28,46 @@ const (
 	assignmentOperator    = "="
 )
 
-type decoratorConfig struct{
-	Type reflect.Type
-	Name string
-	FieldName string
-	Relationship string
-	Direction dsl.Direction
-	Unique bool
-	Index bool
+type decoratorConfig struct {
+	Type             reflect.Type
+	Name             string
+	FieldName        string
+	Relationship     string
+	Direction        dsl.Direction
+	Unique           bool
+	Index            bool
 	ManyRelationship bool
-	UsesEdgeNode bool
-	PrimaryKey bool
-	Properties bool
-	IsTime bool
-	Ignore bool
+	UsesEdgeNode     bool
+	PrimaryKey       bool
+	Properties       bool
+	IsTime           bool
+	Ignore           bool
 }
 
 //have struct validate itself
-func (d *decoratorConfig) Validate() error{
+func (d *decoratorConfig) Validate() error {
 	if d.Ignore {
 		return nil
 	}
 
 	//shouldn't happen, more of a sanity check
-	if d.Name == ""{
+	if d.Name == "" {
 		return NewInvalidDecoratorConfigError("name must be defined", "")
 	}
 
 	kind := d.Type.Kind()
 
 	//check for valid properties
-	if kind == reflect.Map || d.Properties{
-		if !d.Properties{
+	if kind == reflect.Map || d.Properties {
+		if !d.Properties {
 			return NewInvalidDecoratorConfigError("properties must be added to gogm config on field with a map", d.Name)
 		}
 
-		if kind != reflect.Map || d.Type != reflect.TypeOf(map[string]interface{}{}){
+		if kind != reflect.Map || d.Type != reflect.TypeOf(map[string]interface{}{}) {
 			return NewInvalidDecoratorConfigError("properties must be a map with signature map[string]interface{}", d.Name)
 		}
 
-		if d.PrimaryKey || d.Relationship != "" || d.Direction != 0 || d.Index || d.Unique{
+		if d.PrimaryKey || d.Relationship != "" || d.Direction != 0 || d.Index || d.Unique {
 			return NewInvalidDecoratorConfigError("field marked as properties can only have name defined", d.Name)
 		}
 
@@ -76,23 +76,23 @@ func (d *decoratorConfig) Validate() error{
 	}
 
 	//check if type is pointer
-	if kind == reflect.Ptr{
+	if kind == reflect.Ptr {
 		//if it is, get the type of the dereference
 		kind = d.Type.Elem().Kind()
 	}
 
 	//check valid relationship
-	if d.Direction != 0 || d.Relationship != "" || (kind == reflect.Struct && d.Type != timeType) || kind == reflect.Slice{
-		if d.Relationship == ""{
+	if d.Direction != 0 || d.Relationship != "" || (kind == reflect.Struct && d.Type != timeType) || kind == reflect.Slice {
+		if d.Relationship == "" {
 			return NewInvalidDecoratorConfigError("relationship has to be defined when creating a relationship", d.FieldName)
 		}
 
 		//check empty/undefined direction
-		if d.Direction == 0{
+		if d.Direction == 0 {
 			d.Direction = dsl.Outgoing //default direction is outgoing
 		}
 
-		if kind != reflect.Struct && kind != reflect.Slice{
+		if kind != reflect.Struct && kind != reflect.Slice {
 			return NewInvalidDecoratorConfigError("relationship can only be defined on a struct or a slice", d.Name)
 		}
 
@@ -101,13 +101,18 @@ func (d *decoratorConfig) Validate() error{
 			return NewInvalidDecoratorConfigError("can only define relationship, direction and name on a relationship", d.Name)
 		}
 
+		// check that name is not defined (should be defaulted to field name)
+		if d.Name != d.FieldName {
+			return NewInvalidDecoratorConfigError("name tag can not be defined on a relationship", d.Name)
+		}
+
 		//relationship is valid now
 		return nil
 	}
 
 	//validate timeField
-	if d.IsTime{
-		if kind != reflect.Int64 && d.Type != timeType{
+	if d.IsTime {
+		if kind != reflect.Int64 && d.Type != timeType {
 			return errors.New("can not be a time value and not be either an int64 or time.Time")
 		}
 
@@ -122,26 +127,26 @@ func (d *decoratorConfig) Validate() error{
 		return NewInvalidDecoratorConfigError("can not specify Index or Unique on primary key", d.Name)
 	}
 
-	if d.Index && d.Unique{
+	if d.Index && d.Unique {
 		return NewInvalidDecoratorConfigError("can not specify Index and Unique on the same field", d.Name)
 	}
 
 	//validate pk
-	if d.PrimaryKey{
+	if d.PrimaryKey {
 		rootKind := d.Type.Kind()
 
-		if rootKind != reflect.String && rootKind != reflect.Int64{
+		if rootKind != reflect.String && rootKind != reflect.Int64 {
 			return NewInvalidDecoratorConfigError(fmt.Sprintf("invalid type for primary key %s", rootKind.String()), d.Name)
 		}
 
-		if rootKind == reflect.String{
-			if d.Name != "uuid"{
+		if rootKind == reflect.String {
+			if d.Name != "uuid" {
 				return NewInvalidDecoratorConfigError("primary key with type string must be named 'uuid'", d.Name)
 			}
 		}
 
-		if rootKind == reflect.Int64{
-			if d.Name != "id"{
+		if rootKind == reflect.Int64 {
+			if d.Name != "id" {
 				return NewInvalidDecoratorConfigError("primary key with type int64 must be named 'id'", d.Name)
 			}
 		}
@@ -153,30 +158,30 @@ func (d *decoratorConfig) Validate() error{
 
 var edgeType = reflect.TypeOf(new(IEdge)).Elem()
 
-func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decoratorConfig, error){
+func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decoratorConfig, error) {
 	fields := strings.Split(decorator, deliminator)
 
-	if len(fields) == 0{
+	if len(fields) == 0 {
 		return nil, errors.New("decorator can not be empty")
 	}
 
 	//init bools to false
 	toReturn := decoratorConfig{
-		Unique: false,
+		Unique:     false,
 		PrimaryKey: false,
-		Ignore: false,
-		Direction: 0,
-		IsTime: false,
-		Type: varType,
-		FieldName: name,
+		Ignore:     false,
+		Direction:  0,
+		IsTime:     false,
+		Type:       varType,
+		FieldName:  name,
 	}
 
-	for _, field := range fields{
+	for _, field := range fields {
 
 		//if its an assignment, further parsing is needed
-		if strings.Contains(field, assignmentOperator){
+		if strings.Contains(field, assignmentOperator) {
 			assign := strings.Split(field, assignmentOperator)
-			if len(assign) != 2{
+			if len(assign) != 2 {
 				return nil, errors.New("empty assignment") //todo replace with better error
 			}
 
@@ -239,62 +244,64 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		case timeField:
 			toReturn.IsTime = true
 		default:
-			return nil, fmt.Errorf("key '%s' is not recognized", field)//todo replace with better error
+			return nil, fmt.Errorf("key '%s' is not recognized", field) //todo replace with better error
 		}
 	}
 
 	//use var name if name is not set explicitly
-	if toReturn.Name == ""{
+	if toReturn.Name == "" {
 		toReturn.Name = name
+	} else if toReturn.Relationship != "" {
+		// check that name is never defined on a relationship
+		return nil, errors.New("name tag can not be defined on a relationship")
 	}
 
 	//ensure config complies with constraints
 	err := toReturn.Validate()
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
 	return &toReturn, nil
 }
 
-
-type structDecoratorConfig struct{
+type structDecoratorConfig struct {
 	// field name : decorator configuration
 	Fields   map[string]decoratorConfig
-	Label string
+	Label    string
 	IsVertex bool
-	Type reflect.Type
+	Type     reflect.Type
 }
 
 //validates struct configuration
-func (s *structDecoratorConfig) Validate() error{
-	if s.Fields == nil{
+func (s *structDecoratorConfig) Validate() error {
+	if s.Fields == nil {
 		return errors.New("no fields defined")
 	}
 
 	pkCount := 0
 	rels := 0
 
-	for _, conf := range s.Fields{
-		if conf.PrimaryKey{
-			pkCount ++
+	for _, conf := range s.Fields {
+		if conf.PrimaryKey {
+			pkCount++
 		}
 
-		if conf.Relationship != ""{
-			rels ++
+		if conf.Relationship != "" {
+			rels++
 		}
 	}
 
-	if pkCount == 0{
-		if s.IsVertex{
+	if pkCount == 0 {
+		if s.IsVertex {
 			return NewInvalidStructConfigError("primary key required on node " + s.Label)
 		}
-	} else if pkCount > 1{
+	} else if pkCount > 1 {
 		return NewInvalidStructConfigError("too many primary keys defined")
 	}
 
 	//edge specific check
-	if !s.IsVertex{
+	if !s.IsVertex {
 		if rels > 0 {
 			return NewInvalidStructConfigError("relationships can not be defined on edges")
 		}
@@ -304,14 +311,14 @@ func (s *structDecoratorConfig) Validate() error{
 	return nil
 }
 
-func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string]decoratorConfig, error){
+func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string]decoratorConfig, error) {
 	toReturn := &structDecoratorConfig{}
 
 	rels := map[string]decoratorConfig{}
 
 	t := reflect.TypeOf(i)
 
-	if t.Kind() != reflect.Ptr{
+	if t.Kind() != reflect.Ptr {
 		return nil, nil, fmt.Errorf("must pass pointer to struct, instead got %T", i)
 	}
 
@@ -320,7 +327,7 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string
 	isEdge := false
 
 	//check if its an edge
-	if _, ok := i.(IEdge); ok{
+	if _, ok := i.(IEdge); ok {
 		isEdge = true
 	}
 
@@ -330,29 +337,29 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string
 
 	toReturn.Type = t
 
-	if t.NumField() == 0{
+	if t.NumField() == 0 {
 		return nil, nil, errors.New("struct has no fields") //todo make error more thorough
 	}
 
 	toReturn.Fields = map[string]decoratorConfig{}
 
 	//iterate through fields and get their configuration
-	for i := 0; i < t.NumField(); i++{
+	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 
 		tag := field.Tag.Get(decoratorName)
 
-		if tag != ""{
+		if tag != "" {
 			config, err := newDecoratorConfig(tag, field.Name, field.Type)
-			if err != nil{
+			if err != nil {
 				return nil, nil, err
 			}
 
-			if config == nil{
+			if config == nil {
 				return nil, nil, errors.New("config is nil") //todo better error
 			}
 
-			if config.Relationship != ""{
+			if config.Relationship != "" {
 				endType := ""
 				if field.Type.Implements(edgeType) {
 					endType = field.Type.Name()
@@ -360,14 +367,14 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string
 					endType = field.Type.Elem().Name()
 				} else if field.Type.Kind() == reflect.Slice {
 					temp := field.Type.Elem()
-					if temp.Kind() == reflect.Ptr{
+					if temp.Kind() == reflect.Ptr {
 						temp = temp.Elem()
 					}
 					endType = temp.Name()
 				} else {
 					endType = field.Type.Name()
 				}
-				rels[makeRelMapKey(toReturn.Label, endType, config.Direction, config.Relationship)] = *config
+				rels[makeRelMapKey(toReturn.Label, endType, string(config.Direction), config.Relationship)] = *config
 			}
 
 			toReturn.Fields[field.Name] = *config
@@ -375,7 +382,7 @@ func getStructDecoratorConfig(i interface{}) (*structDecoratorConfig, map[string
 	}
 
 	err := toReturn.Validate()
-	if err != nil{
+	if err != nil {
 		return nil, nil, err
 	}
 
