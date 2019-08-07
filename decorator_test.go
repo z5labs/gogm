@@ -408,6 +408,14 @@ func (i *invalidIgnoreStruct) GetLabels() []string {
 	return []string{"invalidIgnoreStruct"}
 }
 
+type uuidlessEdge struct {
+	SomeProps map[string]interface{} `gogm:"name=props;properties"`
+}
+
+func (i *uuidlessEdge) GetLabels() []string {
+	return []string{"uuidlessEdge"}
+}
+
 func TestGetStructDecoratorConfig(t *testing.T) {
 	req := require.New(t)
 
@@ -446,9 +454,8 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				FieldName:    "OneToOne",
 				Name:         "OneToOne",
 				Relationship: "one2one",
-				Direction: dsl.Incoming,
-				Type: reflect.TypeOf(&validStruct{}),
-
+				Direction:    dsl.Incoming,
+				Type:         reflect.TypeOf(&validStruct{}),
 			},
 			"ManyToOne": {
 				FieldName:        "ManyToOne",
@@ -456,7 +463,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Relationship:     "many2one",
 				Direction:        dsl.Outgoing,
 				ManyRelationship: true,
-				Type: reflect.TypeOf([]interface{}{}),
+				Type:             reflect.TypeOf([]interface{}{}),
 			},
 			"Props": {
 				FieldName:  "Props",
@@ -499,6 +506,11 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 	req.Nil(conf)
 
 	conf, err = getStructDecoratorConfig(&invalidIgnoreStruct{}, mappedRelations)
+	req.NotNil(err)
+	req.Nil(conf)
+
+	conf, err = getStructDecoratorConfig(&uuidlessEdge{}, mappedRelations)
+	log.Println("ERR::", err)
 	req.NotNil(err)
 	req.Nil(conf)
 }

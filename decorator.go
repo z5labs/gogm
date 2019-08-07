@@ -299,9 +299,7 @@ func (s *structDecoratorConfig) Validate() error {
 	}
 
 	if pkCount == 0 {
-		if s.IsVertex {
-			return NewInvalidStructConfigError("primary key required on node " + s.Label)
-		}
+		return NewInvalidStructConfigError("primary key required on node/edge " + s.Label)
 	} else if pkCount > 1 {
 		return NewInvalidStructConfigError("too many primary keys defined")
 	}
@@ -400,7 +398,7 @@ func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (
 						return nil, errors.New("GetEndNodeType() can not return a nil value")
 					}
 
-					if endTypeVal[0].Kind() == reflect.Ptr{
+					if endTypeVal[0].Kind() == reflect.Ptr {
 						endTypeName = endTypeVal[0].Type().Elem().Name()
 					} else {
 						endTypeName = endTypeVal[0].Type().Name()
