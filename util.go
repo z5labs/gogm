@@ -94,7 +94,12 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 				return nil, errors.New("properties type is not a map")
 			}
 		} else {
-			ret[conf.Name] = val.FieldByName(conf.FieldName).Interface()
+			//check if field is type aliased
+			if conf.IsTypeDef {
+				ret[conf.Name] = val.FieldByName(conf.FieldName).Convert(conf.TypedefActual).Interface()
+			} else {
+				ret[conf.Name] = val.FieldByName(conf.FieldName).Interface()
+			}
 		}
 	}
 
@@ -154,4 +159,67 @@ func (r *relationConfigs) GetConfigs(nodeType, relationship, fieldType string) (
 	}
 
 	return r.configs[key][fieldType], nil
+}
+
+//isDifferentType, differentType, error
+func getActualTypeIfAliased(iType reflect.Type) (bool, reflect.Type, error) {
+	if iType == nil {
+		return false, nil, errors.New("iType can not be nil")
+	}
+
+	if iType.Kind() == reflect.Ptr {
+		iType = iType.Elem()
+	}
+
+	//check if its a struct or an interface, we can skip that
+	if iType.Kind() == reflect.Struct || iType.Kind() == reflect.Interface || iType.Kind() == reflect.Slice || iType.Kind() == reflect.Map{
+		return false, nil, nil
+	}
+
+	//type is the same as the kind
+	if iType.Kind().String() == iType.Name() {
+		return false, nil, nil
+	}
+
+	actualType, err := getPrimitiveType(iType.Kind())
+	if err != nil{
+		return false, nil, err
+	}
+
+	return true, actualType, nil
+}
+
+func getPrimitiveType(k reflect.Kind) (reflect.Type, error) {
+	switch k {
+	case reflect.Int:
+		return reflect.TypeOf(0), nil
+	case reflect.Int64:
+		return reflect.TypeOf(int64(0)), nil
+	case reflect.Int32:
+		return reflect.TypeOf(int32(0)), nil
+	case reflect.Int16:
+		return reflect.TypeOf(int16(0)), nil
+	case reflect.Int8:
+		return reflect.TypeOf(int8(0)), nil
+	case reflect.Uint64:
+		return reflect.TypeOf(uint64(0)), nil
+	case reflect.Uint32:
+		return reflect.TypeOf(uint32(0)), nil
+	case reflect.Uint16:
+		return reflect.TypeOf(uint16(0)), nil
+	case reflect.Uint8:
+		return reflect.TypeOf(uint8(0)), nil
+	case reflect.Uint:
+		return reflect.TypeOf(uint(0)), nil
+	case reflect.Bool:
+		return reflect.TypeOf(false), nil
+	case reflect.Float64:
+		return reflect.TypeOf(float64(0)), nil
+	case reflect.Float32:
+		return reflect.TypeOf(float32(0)), nil
+	case reflect.String:
+		return reflect.TypeOf(""), nil
+	default:
+		return nil, fmt.Errorf("[%s] not supported", k.String())
+	}
 }

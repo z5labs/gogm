@@ -56,3 +56,29 @@ func TestToCypherParamsMap(t *testing.T){
 		"test_field": "testvalue",
 	}, params)
 }
+
+type TypeDefString string
+type TypeDefInt int
+type TypeDefInt64 int64
+
+func TestTypeDefStuff(t *testing.T) {
+	stringType := reflect.TypeOf("")
+	//tdStringType := reflect.TypeOf(TypeDefString(""))
+	//intType := reflect.TypeOf(0)
+	//int64Type := reflect.TypeOf(int64(0))
+
+	//t.Log(tdStringType.Kind().String() == tdStringType.Name())
+
+	td := TypeDefString("test")
+	stringTd := "test"
+
+	te := reflect.ValueOf(td).Convert(stringType).Interface()
+
+	comp, ok := te.(string)
+	if !ok {
+		t.FailNow()
+		return
+	}
+
+	t.Log(comp == stringTd)
+}

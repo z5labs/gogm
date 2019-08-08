@@ -41,6 +41,8 @@ type decoratorConfig struct {
 	PrimaryKey       bool
 	Properties       bool
 	IsTime           bool
+	IsTypeDef		bool
+	TypedefActual reflect.Type
 	Ignore           bool
 }
 
@@ -182,6 +184,8 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		FieldName:  name,
 	}
 
+
+
 	for _, field := range fields {
 
 		//if its an assignment, further parsing is needed
@@ -251,6 +255,25 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 			toReturn.IsTime = true
 		default:
 			return nil, fmt.Errorf("key '%s' is not recognized", field) //todo replace with better error
+		}
+	}
+
+	//if its not a relationship, check if the field was typedeffed
+	if toReturn.Relationship == "" {
+		//check if field is type def
+		isTypeDef, newType, err := getActualTypeIfAliased(varType)
+		if err != nil {
+			return nil, err
+		}
+
+		//handle if it is
+		if isTypeDef {
+			if newType == nil {
+				return nil, errors.New("new type can not be nil")
+			}
+
+			toReturn.IsTypeDef = true
+			toReturn.TypedefActual = newType
 		}
 	}
 
