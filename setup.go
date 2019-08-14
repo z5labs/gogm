@@ -33,23 +33,23 @@ func SetLogger(logger *logrus.Entry) error {
 }
 
 type Config struct {
-	Host string
-	Port int
+	Host string	`yaml:"host" json:"host"`
+	Port int `yaml:"port" json:"port"`
 
-	Username string
-	Password string
+	Username string `yaml:"username" json:"username"`
+	Password string `yaml:"password" json:"password"`
 
-	PoolSize int
+	PoolSize int `yaml:"pool_size" json:"pool_size"`
 
-	IndexStrategy IndexStrategy
+	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy"`
 }
 
 type IndexStrategy int
 
 const (
-	ASSERT_INDEX IndexStrategy = iota
-	VALIDATE_INDEX
-	IGNORE_INDEX
+	ASSERT_INDEX IndexStrategy = 0
+	VALIDATE_INDEX IndexStrategy = 1
+	IGNORE_INDEX IndexStrategy = 2
 )
 
 //convert these into concurrent hashmap
