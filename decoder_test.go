@@ -260,14 +260,14 @@ func TestDecoder(t *testing.T){
 					},
 					NodeIdentity: 2,
 				},
-				graph.Node{
-					Labels: []string{"a"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfasd",
-					},
-					NodeIdentity: 1,
-				},
+				//graph.Node{
+				//	Labels: []string{"a"},
+				//	Properties: map[string]interface{}{
+				//		"test_field": "test",
+				//		"uuid": "dasdfasd",
+				//	},
+				//	NodeIdentity: 1,
+				//},
 			},
 			[]interface{}{
 				graph.Node{
@@ -348,14 +348,14 @@ func TestDecoder(t *testing.T){
 					},
 					NodeIdentity: 2,
 				},
-				graph.Node{
-					Labels: []string{"a"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfasd",
-					},
-					NodeIdentity: 1,
-				},
+				//graph.Node{
+				//	Labels: []string{"a"},
+				//	Properties: map[string]interface{}{
+				//		"test_field": "test",
+				//		"uuid": "dasdfasd",
+				//	},
+				//	NodeIdentity: 1,
+				//},
 			},
 			[]interface{}{
 				graph.Node{
@@ -428,14 +428,14 @@ func TestDecoder(t *testing.T){
 					},
 					NodeIdentity: 2,
 				},
-				graph.Node{
-					Labels: []string{"a"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfasd",
-					},
-					NodeIdentity: 1,
-				},
+				//graph.Node{
+				//	Labels: []string{"a"},
+				//	Properties: map[string]interface{}{
+				//		"test_field": "test",
+				//		"uuid": "dasdfasd",
+				//	},
+				//	NodeIdentity: 1,
+				//},
 			},
 			[]interface{}{
 				graph.Node{
@@ -495,15 +495,15 @@ func TestDecoder(t *testing.T){
 				},
 			},
 			[]interface{}{
-				graph.Node{
-					Labels: []string{"b"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfas",
-						"test_time": fTime.Format(time.RFC3339),
-					},
-					NodeIdentity: 2,
-				},
+				//graph.Node{
+				//	Labels: []string{"b"},
+				//	Properties: map[string]interface{}{
+				//		"test_field": "test",
+				//		"uuid": "dasdfas",
+				//		"test_time": fTime.Format(time.RFC3339),
+				//	},
+				//	NodeIdentity: 2,
+				//},
 				graph.Node{
 					Labels: []string{"a"},
 					Properties: map[string]interface{}{

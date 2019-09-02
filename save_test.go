@@ -46,10 +46,7 @@ func TestParseStruct(t *testing.T){
 }
 
 func TestSave(t *testing.T){
-	//if !testing.Short(){
-	//	t.Skip()
-	//	return
-	//}
+	t.Skip()
 	req := require.New(t)
 
 	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
