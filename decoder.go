@@ -31,16 +31,6 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 		}
 	}()
 
-	/*
-		MATCH (n:OrganizationNode)
-		WITH n
-		MATCH (n)-[e*0..1]-(m)
-		RETURN DISTINCT
-			collect(extract(n in e | {StartNodeId: ID(startnode(n)), StartNodeType: labels(startnode(n)), EndNodeId: ID(endnode(n)), EndNode: labels(endnode(n)), Obj: n, Type: type(n)})) as Edges,
-			collect(DISTINCT m) as Ends,
-			collect(DISTINCT n) as Starts
-	*/
-
 	//                                        0               1          2
 	//signature of returned array should be list of edges, list of ends, list of starts
 	// length of 3
@@ -85,7 +75,6 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 		}
 	}
 
-
 	p0 := len(arr[0])
 	p1 := len(arr[1])
 	p2 := len(arr[2])
@@ -101,6 +90,8 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	}
 
 	nodes := append(arr[1], arr[2]...)
+
+	nodeLen := len(nodes)
 
 	var wg sync.WaitGroup
 
@@ -126,8 +117,8 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	close(errChan)
 
 	//sanity check
-	if len(nodeLookup) != p1{
-		return fmt.Errorf("sanity check failed, nodeLookup not correct length (%v) != (%v)", len(nodeLookup), p1)
+	if len(nodeLookup) != nodeLen{
+		return fmt.Errorf("sanity check failed, nodeLookup not correct length (%v) != (%v)", len(nodeLookup), nodeLen)
 	}
 
 	//build relationships
