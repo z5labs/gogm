@@ -11,6 +11,7 @@ github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+
 github.com/johnnadratowski/golang-neo4j-bolt-driver v0.0.0-20161220215215-2387cc1f0125 h1:OKAbH7wOwur+7PLWlnNfmPwI/kFb9xwMeYq56UgGbUg=
 github.com/johnnadratowski/golang-neo4j-bolt-driver v0.0.0-20161220215215-2387cc1f0125/go.mod h1:xwUw3ZE1/D9drQgpluhRs4peTMKm1tQEZ4p7DrpyqwE=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
+github.com/konsorten/go-windows-terminal-sequences v1.0.2 h1:DB17ag19krx9CFsz4o3enTrPXyIXCl+2iCXH/aMAp9s=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/mindstand/go-cypherdsl v0.0.0-20190808150928-bd1d56e46ac4 h1:G80lLFoyovuiPYuSihMvpoFftZTzpThEPKVv4v6WGIo=
 github.com/mindstand/go-cypherdsl v0.0.0-20190808150928-bd1d56e46ac4/go.mod h1:U0grffTzW/i6WfJ9qIkOaRjPVfgT/UsUWxGnbE1g/4Y=

@@ -81,9 +81,12 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 				ret[conf.Name] = dateObj.Format(time.RFC3339)
 			}
 		} else if conf.Properties {
+			//check if field is a map
 			if conf.Type.Kind() == reflect.Map{
-				propsMap, ok := val.Interface().(map[string]interface{})
-				if !ok {
+				//try to cast it
+				propsMap, ok := val.FieldByName(conf.FieldName).Interface().(map[string]interface{})
+				if ok {
+					//if it works, create the fields
 					for k, v := range propsMap{
 						ret[conf.Name + "." + k] = v
 					}

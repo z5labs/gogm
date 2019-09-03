@@ -39,6 +39,12 @@ func TestGetTypeName(t *testing.T){
 	require.EqualValues(t, "a", name)
 }
 
+type propsTest struct {
+	Id int64 `gogm:"name=id"`
+	UUID string `gogm:"pk;name=uuid"`
+	Props map[string]interface{} `gogm:"name=props;properties"`
+}
+
 func TestToCypherParamsMap(t *testing.T){
 	val := a{
 		Id: 0,
@@ -54,6 +60,24 @@ func TestToCypherParamsMap(t *testing.T){
 	require.EqualValues(t, map[string]interface{}{
 		"uuid": "testuuid",
 		"test_field": "testvalue",
+	}, params)
+
+	p := propsTest{
+		Id:    1,
+		UUID:  "testuuid",
+		Props: map[string]interface{}{
+			"test": "testvalue",
+		},
+	}
+
+	config, err = getStructDecoratorConfig(&p, mappedRelations)
+	require.Nil(t, err)
+
+	params, err  = toCypherParamsMap(reflect.ValueOf(&p), *config)
+	require.Nil(t, err)
+	require.EqualValues(t, map[string]interface{}{
+		"uuid": "testuuid",
+		"props.test": "testvalue",
 	}, params)
 }
 
