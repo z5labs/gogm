@@ -451,7 +451,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 			mapVal := reflect.MakeMap(mapType)
 
 			for k, v := range props {
-				if !strings.Contains(fieldConfig.FieldName, k) {
+				if !strings.Contains(k, fieldConfig.Name) {
 					//not one of our map fields
 					continue
 				}
@@ -467,6 +467,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 			}
 
 			reflect.Indirect(val).FieldByName(field).Set(mapVal)
+			continue
 		}
 
 		raw, ok := props[fieldConfig.Name]

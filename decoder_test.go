@@ -61,6 +61,7 @@ type TestStruct struct {
 	Id int64
 	UUID string
 	OtherField string
+
 }
 
 func toHashmap(m map[string]interface{}) *hashmap.HashMap{
@@ -220,10 +221,16 @@ func (c *c) SetEndNode(v interface{}) error {
 	return nil
 }
 
+type propsTest struct {
+	Id int64 `gogm:"name=id"`
+	UUID string `gogm:"pk;name=uuid"`
+	Props map[string]interface{} `gogm:"name=props;properties"`
+}
+
 func TestDecoder(t *testing.T){
 	req := require.New(t)
 
-	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
+	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}, &propsTest{}))
 
 //	req.EqualValues(3, mappedTypes.Len())
 
@@ -561,4 +568,44 @@ func TestDecoder(t *testing.T){
 	req.EqualValues(b3.MultiSpec[0].End.Id, readin4.MultiSpec[0].End.Id)
 	req.EqualValues(b3.MultiSpec[0].End.UUID, readin4.MultiSpec[0].End.UUID)
 	req.EqualValues(b3.MultiSpec[0].End.TestField, readin4.MultiSpec[0].End.TestField)
+
+	var5uuid := "dasdfasdf"
+
+	vars5 := [][]interface{} {
+		[]interface{}{
+			[]interface{}{},
+			[]interface{}{},
+			[]interface{}{
+				graph.Node{
+					NodeIdentity: 1,
+					Labels: []string{ "propsTest" },
+					Properties: map[string]interface{}{
+						"uuid": var5uuid,
+						"props.test": "test",
+						"props.test2": "test2",
+						"props.test3": "test3",
+					},
+				},
+			},
+		},
+	}
+
+	var readin5 propsTest
+
+	r := propsTest{
+		Id:    1,
+		UUID:  var5uuid,
+		Props: map[string]interface{}{
+			"test": "test",
+			"test2": "test2",
+			"test3": "test3",
+		},
+	}
+
+	req.Nil(decode(vars5, &readin5))
+	req.EqualValues(r.Id, readin5.Id)
+	req.EqualValues(r.UUID, readin5.UUID)
+	req.EqualValues(r.Props["test"], readin5.Props["test"])
+	req.EqualValues(r.Props["test2"], readin5.Props["test2"])
+	req.EqualValues(r.Props["test3"], readin5.Props["test3"])
 }
