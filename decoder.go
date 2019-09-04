@@ -91,8 +91,6 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 	nodes := append(arr[1], arr[2]...)
 
-	nodeLen := len(nodes)
-
 	var wg sync.WaitGroup
 
 	wg.Add(3)
@@ -115,11 +113,6 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	}
 
 	close(errChan)
-
-	//sanity check
-	if len(nodeLookup) != nodeLen{
-		return fmt.Errorf("sanity check failed, nodeLookup not correct length (%v) != (%v)", len(nodeLookup), nodeLen)
-	}
 
 	//build relationships
 	for i, relationConfig := range rels{
