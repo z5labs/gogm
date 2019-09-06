@@ -33,8 +33,10 @@ func SetLogger(logger *logrus.Entry) error {
 }
 
 type Config struct {
-	Host string	`yaml:"host" json:"host"`
-	Port int `yaml:"port" json:"port"`
+	Host string `yaml:"host" json:"host"`
+	Port int    `yaml:"port" json:"port"`
+
+	IsCluster bool `yaml:"is_cluster" json:"is_cluster"`
 
 	Username string `yaml:"username" json:"username"`
 	Password string `yaml:"password" json:"password"`
@@ -47,9 +49,9 @@ type Config struct {
 type IndexStrategy int
 
 const (
-	ASSERT_INDEX IndexStrategy = 0
+	ASSERT_INDEX   IndexStrategy = 0
 	VALIDATE_INDEX IndexStrategy = 1
-	IGNORE_INDEX IndexStrategy = 2
+	IGNORE_INDEX   IndexStrategy = 2
 )
 
 //convert these into concurrent hashmap
@@ -95,11 +97,12 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 	if !isTest {
 		log.Debug("opening connection to neo4j")
 		err := dsl.Init(&dsl.ConnectionConfig{
-			PoolSize: conf.PoolSize,
-			Port:     conf.Port,
-			Host:     conf.Host,
-			Password: conf.Password,
-			Username: conf.Username,
+			PoolSize:  conf.PoolSize,
+			Port:      conf.Port,
+			IsCluster: conf.IsCluster,
+			Host:      conf.Host,
+			Password:  conf.Password,
+			Username:  conf.Username,
 		})
 		if err != nil {
 			return err
