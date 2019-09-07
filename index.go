@@ -25,7 +25,7 @@ func dropAllIndexesAndConstraints() error{
 
 	//if there is anything, get rid of it
 	if len(constraints) != 0{
-		err = dropSess.Begin()
+		err = dropSess.Begin(false)
 		if err != nil{
 			return err
 		}
@@ -62,7 +62,7 @@ func dropAllIndexesAndConstraints() error{
 
 	//if there is anything, get rid of it
 	if len(indexes) != 0{
-		err = dropSess.Begin()
+		err = dropSess.Begin(false)
 		if err != nil{
 			return err
 		}
@@ -103,7 +103,7 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 	sess := dsl.NewSession()
 	defer sess.Close()
 
-	err := sess.Begin()
+	err := sess.Begin(false)
 	if err != nil{
 		return err
 	}

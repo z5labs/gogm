@@ -74,7 +74,7 @@ type ISession interface {
 }
 
 type ITransaction interface {
-	Begin() error
+	Begin(readonly bool) error
 	Rollback() error
 	RollbackWithError(err error) error
 	Commit() error

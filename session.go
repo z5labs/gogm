@@ -26,12 +26,12 @@ func NewSession() *Session{
 	return session
 }
 
-func (s *Session) Begin() error {
+func (s *Session) Begin(readonly bool) error {
 	if s.conn == nil{
 		return errors.New("neo4j connection not initialized")
 	}
 	
-	return s.conn.Begin()
+	return s.conn.Begin(readonly)
 }
 
 func (s *Session) Rollback() error {

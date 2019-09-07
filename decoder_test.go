@@ -3,7 +3,7 @@ package gogm
 import (
 	"errors"
 	"github.com/cornelk/hashmap"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/graph"
+	"github.com/mindstand/golang-neo4j-bolt-driver/structures/graph"
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/stretchr/testify/require"
 	"reflect"

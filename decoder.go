@@ -3,8 +3,8 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	neo "github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/graph"
+	neo "github.com/mindstand/golang-neo4j-bolt-driver"
+	"github.com/mindstand/golang-neo4j-bolt-driver/structures/graph"
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/mitchellh/mapstructure"
 	"reflect"
