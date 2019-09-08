@@ -142,7 +142,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			internalEdgeConf = configs[0]
 		} else {
 			for _, config := range configs{
-				if config.Direction == dsl.Outgoing {
+				if config.Direction == dsl.DirectionOutgoing {
 					internalEdgeConf = config
 					break
 				}

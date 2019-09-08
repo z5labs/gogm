@@ -204,7 +204,7 @@ func relateNodes(sess *dsl.Session, relations map[string][]relCreateConf, ids ma
 				Types: []string{
 					label,
 				},
-				Direction: dsl.DirectionPtr(dsl.Outgoing),
+				Direction: dsl.DirectionOutgoing,
 			}).
 			V(dsl.V{
 				Name: "endNode",
@@ -488,6 +488,6 @@ func processStruct(fieldConf decoratorConfig, relVal *reflect.Value, id, oldPare
 				return "", "", false, 0, nil, &reflect.Value{}, true, nil
 			}
 		}
-		return id, edgeLabel, fieldConf.Direction == dsl.Outgoing, fieldConf.Direction, map[string]interface{}{}, relVal, false, nil
+		return id, edgeLabel, fieldConf.Direction == dsl.DirectionOutgoing, fieldConf.Direction, map[string]interface{}{}, relVal, false, nil
 	}
 }

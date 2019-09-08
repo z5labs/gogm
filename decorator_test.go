@@ -31,7 +31,7 @@ func TestDecoratorConfig_Validate(t *testing.T) {
 		FieldName:    "test_rel",
 		Name:         "test_rel",
 		Relationship: "rel",
-		Direction:    dsl.Incoming,
+		Direction:    dsl.DirectionIncoming,
 		Type:         reflect.TypeOf([]interface{}{}),
 	}
 
@@ -118,7 +118,7 @@ func TestDecoratorConfig_Validate(t *testing.T) {
 	req.NotNil(invalidRelationshipType.Validate())
 
 	invalidDirectionDefinedNotRel := decoratorConfig{
-		Direction: dsl.Outgoing,
+		Direction: dsl.DirectionOutgoing,
 		Name:      "asdfa",
 		Type:      reflect.TypeOf([]interface{}{}),
 	}
@@ -263,7 +263,7 @@ func TestNewDecoratorConfig(t *testing.T) {
 		FieldName:    "test_name",
 		Name:         "test_name",
 		Relationship: "one2one",
-		Direction:    dsl.Incoming,
+		Direction:    dsl.DirectionIncoming,
 		Type:         reflect.TypeOf(a{}),
 	}
 
@@ -454,14 +454,14 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				FieldName:    "OneToOne",
 				Name:         "OneToOne",
 				Relationship: "one2one",
-				Direction:    dsl.Incoming,
+				Direction:    dsl.DirectionIncoming,
 				Type:         reflect.TypeOf(&validStruct{}),
 			},
 			"ManyToOne": {
 				FieldName:        "ManyToOne",
 				Name:             "ManyToOne",
 				Relationship:     "many2one",
-				Direction:        dsl.Outgoing,
+				Direction:        dsl.DirectionOutgoing,
 				ManyRelationship: true,
 				Type:             reflect.TypeOf([]interface{}{}),
 			},

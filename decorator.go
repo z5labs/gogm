@@ -97,7 +97,7 @@ func (d *decoratorConfig) Validate() error {
 
 		//check empty/undefined direction
 		if d.Direction == 0 {
-			d.Direction = dsl.Outgoing //default direction is outgoing
+			d.Direction = dsl.DirectionOutgoing //default direction is outgoing
 		}
 
 		if kind != reflect.Struct && kind != reflect.Slice {
@@ -217,16 +217,19 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 				dir := strings.ToLower(val)
 				switch strings.ToLower(dir) {
 				case "incoming":
-					toReturn.Direction = dsl.Incoming
+					toReturn.Direction = dsl.DirectionIncoming
 					continue
 				case "outgoing":
-					toReturn.Direction = dsl.Outgoing
+					toReturn.Direction = dsl.DirectionOutgoing
 					continue
-				case "any":
-					toReturn.Direction = dsl.Any
+				case "none":
+					toReturn.Direction = dsl.DirectionNone
+					continue
+				case "both":
+					toReturn.Direction = dsl.DirectionBoth
 					continue
 				default:
-					toReturn.Direction = dsl.Any
+					toReturn.Direction = dsl.DirectionNone
 					continue
 				}
 			default:
@@ -407,7 +410,7 @@ func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (
 
 					//log.Info(endVal.String())
 
-					if config.Direction == dsl.Outgoing {
+					if config.Direction == dsl.DirectionOutgoing {
 						endTypeVal = endVal.MethodByName("GetEndNodeType").Call(nil)
 					} else {
 						endTypeVal = endVal.MethodByName("GetStartNodeType").Call(nil)

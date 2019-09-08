@@ -76,7 +76,7 @@ func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int, 
 		builder.
 			OptionalMatch(dsl.Path().
 				V(dsl.V{Name: variable}).
-				E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
+				E(dsl.E{Name: "e", Direction: dsl.DirectionNone, MinJumps: 0, MaxJumps: depth}).
 				V(dsl.V{Name: "m"}).Build())
 	}
 
@@ -156,7 +156,7 @@ func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, a
 		builder.
 			OptionalMatch(dsl.Path().
 				V(dsl.V{Name: variable}).
-				E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
+				E(dsl.E{Name: "e", Direction: dsl.DirectionNone, MinJumps: 0, MaxJumps: depth}).
 				V(dsl.V{Name: "m"}).Build())
 	}
 
@@ -228,7 +228,7 @@ func PathLoadStrategyEdgeConstraint(sess *dsl.Session, startVariable, startLabel
 		builder.
 			OptionalMatch(dsl.Path().
 				V(dsl.V{Name: startVariable}).
-				E(dsl.E{Name: "e", Direction:dsl.DirectionPtr(dsl.Any), MinJumps: 0, MaxJumps: depth}).
+				E(dsl.E{Name: "e", Direction: dsl.DirectionNone, MinJumps: 0, MaxJumps: depth}).
 				V(dsl.V{Name: "m"}).Build())
 	}
 
