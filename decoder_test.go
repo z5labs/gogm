@@ -621,4 +621,58 @@ func TestDecoder(t *testing.T){
 	req.EqualValues(r.Props["test"], readin5.Props["test"])
 	req.EqualValues(r.Props["test2"], readin5.Props["test2"])
 	req.EqualValues(r.Props["test3"], readin5.Props["test3"])
+
+	//multi single
+	vars6 := [][]interface{}{
+		{
+			[]interface{}{
+				[]interface{}{
+					map[string]interface{}{},
+				},
+			},
+			[]interface{}{
+				[]interface{}{
+					map[string]interface{}{},
+				},
+			},
+			[]interface{}{
+				graph.Node{
+					Labels: []string{"b"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfas",
+						"test_time": fTime.Format(time.RFC3339),
+					},
+					NodeIdentity: 2,
+				},
+				graph.Node{
+					Labels: []string{"b"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfas",
+						"test_time": fTime.Format(time.RFC3339),
+					},
+					NodeIdentity: 3,
+				},
+			},
+		},
+	}
+
+	var readin6 []b
+
+	//b31 := &b{
+	//	TestField: "test",
+	//	UUID: "dasdfas",
+	//	TestTime: fTime,
+	//	Id: 2,
+	//}
+	//b32 := &b{
+	//	TestField: "test",
+	//	UUID: "dasdfas",
+	//	TestTime: fTime,
+	//	Id: 3,
+	//}
+
+	req.Nil(decode(vars6, &readin6))
+	req.True(len(readin6) == 2)
 }

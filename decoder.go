@@ -363,9 +363,7 @@ func convertAndMapNodes(nodes []interface{}, lookup *map[int64]*reflect.Value, e
 	for _, node := range nodes{
 		boltNode, ok := node.(graph.Node)
 		if !ok{
-			err <- fmt.Errorf("unable to convert bolt node to graph.Node, it is type %T", node)
-			wg.Done()
-			return
+			continue
 		}
 
 		if int64SliceContains(ids, boltNode.NodeIdentity) {
