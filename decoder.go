@@ -3,9 +3,9 @@ package gogm
 import (
 	"errors"
 	"fmt"
+	dsl "github.com/mindstand/go-cypherdsl"
 	neo "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/mindstand/golang-neo4j-bolt-driver/structures/graph"
-	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/mitchellh/mapstructure"
 	"reflect"
 	"strings"
@@ -63,7 +63,10 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	arr = append(arr, arr1[2].([]interface{}))
 
 	//check for empty stuff -- starts at 1 because the first index is handled separately
-	for i := 1; i < 3; i++ {
+	for i := 0; i < 3; i++ {
+		if i == 0 {
+			continue
+		}
 		if aCheck, ok := arr[i][0].([]interface{}); ok {
 			if len(aCheck) == 0 {
 				//set it to just be empty
@@ -155,7 +158,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			if !ok{
 				return fmt.Errorf("can not find mapping for node with label %s", label)
 			}
-			
+
 			typeConfig = temp.(structDecoratorConfig)
 			if !ok{
 				return errors.New("unable to cast to structDecoratorConfig")
@@ -303,7 +306,7 @@ func getPks(nodes []interface{}, pks []int64, err chan error, wg *sync.WaitGroup
 
 func convertAndMapEdges(nodes []interface{}, rels []neoEdgeConfig, err chan error, wg *sync.WaitGroup){
 	if nodes == nil{
-		err <- errors.New("edges can not be nil or empty")
+		err <- errors.New("edges can not be nil")
 		wg.Done()
 		return
 	}
@@ -314,11 +317,6 @@ func convertAndMapEdges(nodes []interface{}, rels []neoEdgeConfig, err chan erro
 	}
 
 	for i, n := range nodes{
-		//the way this is returned, skip index 0
-		if i == 0{
-			continue
-		}
-
 		//this is because of how resp is structured
 		narr, ok := n.([]interface{})
 		if !ok{
@@ -514,5 +512,3 @@ func convertNodeToValue(boltNode graph.Node) (*reflect.Value, error){
 
 	return convertToValue(boltNode.NodeIdentity, typeConfig, boltNode.Properties, typeConfig.Type)
 }
-
-

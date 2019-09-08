@@ -246,7 +246,7 @@ func TestDecoder(t *testing.T){
 	vars := [][]interface{}{
 		{
 			[]interface{}{
-				[]interface{}{neoEdgeConfig{}},
+				[]interface{}{map[string]interface{}{}},
 				[]interface{}{
 					map[string]interface{}{
 						Type: "test_rel",
@@ -330,7 +330,7 @@ func TestDecoder(t *testing.T){
 	vars2 := [][]interface{}{
 		{
 			[]interface{}{
-				[]interface{}{neoEdgeConfig{}},
+				[]interface{}{map[string]interface{}{}},
 				[]interface{}{
 					map[string]interface{}{
 						Type: "special_single",
@@ -414,7 +414,7 @@ func TestDecoder(t *testing.T){
 	vars3 := [][]interface{}{
 		{
 			[]interface{}{
-				[]interface{}{neoEdgeConfig{}},
+				[]interface{}{map[string]interface{}{}},
 				[]interface{}{
 					map[string]interface{}{
 						Type: "multib",
@@ -487,7 +487,7 @@ func TestDecoder(t *testing.T){
 		{
 			[]interface{}{
 				[]interface{}{
-					neoEdgeConfig{},
+					map[string]interface{}{},
 				},
 				[]interface{}{
 					map[string]interface{}{
