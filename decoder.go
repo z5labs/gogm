@@ -62,8 +62,8 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	arr = append(arr, arr1[1].([]interface{}))
 	arr = append(arr, arr1[2].([]interface{}))
 
-	//check for empty stuff
-	for i := 0; i < 3; i++ {
+	//check for empty stuff -- starts at 1 because the first index is handled separately
+	for i := 1; i < 3; i++ {
 		if len(arr[i]) == 0 {
 			continue
 		}
@@ -380,12 +380,20 @@ func convertAndMapNodes(nodes []interface{}, lookup *map[int64]*reflect.Value, e
 		return
 	}
 
+	var ids []int64
+
 	for _, node := range nodes{
 		boltNode, ok := node.(graph.Node)
 		if !ok{
 			err <- fmt.Errorf("unable to convert bolt node to graph.Node, it is type %T", node)
 			wg.Done()
 			return
+		}
+
+		if int64SliceContains(ids, boltNode.NodeIdentity) {
+			continue
+		} else {
+			ids = append(ids, boltNode.NodeIdentity)
 		}
 
 		var val *reflect.Value
