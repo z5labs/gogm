@@ -267,14 +267,14 @@ func TestDecoder(t *testing.T){
 					},
 					NodeIdentity: 2,
 				},
-				//graph.Node{
-				//	Labels: []string{"a"},
-				//	Properties: map[string]interface{}{
-				//		"test_field": "test",
-				//		"uuid": "dasdfasd",
-				//	},
-				//	NodeIdentity: 1,
-				//},
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
+				},
 			},
 			[]interface{}{
 				graph.Node{
@@ -355,14 +355,14 @@ func TestDecoder(t *testing.T){
 					},
 					NodeIdentity: 2,
 				},
-				//graph.Node{
-				//	Labels: []string{"a"},
-				//	Properties: map[string]interface{}{
-				//		"test_field": "test",
-				//		"uuid": "dasdfasd",
-				//	},
-				//	NodeIdentity: 1,
-				//},
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
+				},
 			},
 			[]interface{}{
 				graph.Node{
@@ -435,14 +435,14 @@ func TestDecoder(t *testing.T){
 					},
 					NodeIdentity: 2,
 				},
-				//graph.Node{
-				//	Labels: []string{"a"},
-				//	Properties: map[string]interface{}{
-				//		"test_field": "test",
-				//		"uuid": "dasdfasd",
-				//	},
-				//	NodeIdentity: 1,
-				//},
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
+				},
 			},
 			[]interface{}{
 				graph.Node{
@@ -486,7 +486,9 @@ func TestDecoder(t *testing.T){
 	vars4 := [][]interface{}{
 		{
 			[]interface{}{
-				[]interface{}{neoEdgeConfig{}},
+				[]interface{}{
+					neoEdgeConfig{},
+				},
 				[]interface{}{
 					map[string]interface{}{
 						Type: "special_multi",
@@ -502,15 +504,15 @@ func TestDecoder(t *testing.T){
 				},
 			},
 			[]interface{}{
-				//graph.Node{
-				//	Labels: []string{"b"},
-				//	Properties: map[string]interface{}{
-				//		"test_field": "test",
-				//		"uuid": "dasdfas",
-				//		"test_time": fTime.Format(time.RFC3339),
-				//	},
-				//	NodeIdentity: 2,
-				//},
+				graph.Node{
+					Labels: []string{"b"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfas",
+						"test_time": fTime.Format(time.RFC3339),
+					},
+					NodeIdentity: 2,
+				},
 				graph.Node{
 					Labels: []string{"a"},
 					Properties: map[string]interface{}{
@@ -574,7 +576,18 @@ func TestDecoder(t *testing.T){
 	vars5 := [][]interface{} {
 		[]interface{}{
 			[]interface{}{},
-			[]interface{}{},
+			[]interface{}{
+				graph.Node{
+					NodeIdentity: 1,
+					Labels: []string{ "propsTest" },
+					Properties: map[string]interface{}{
+						"uuid": var5uuid,
+						"props.test": "test",
+						"props.test2": "test2",
+						"props.test3": "test3",
+					},
+				},
+			},
 			[]interface{}{
 				graph.Node{
 					NodeIdentity: 1,
