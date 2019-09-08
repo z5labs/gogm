@@ -64,9 +64,6 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 	//check for empty stuff -- starts at 1 because the first index is handled separately
 	for i := 1; i < 3; i++ {
-		if len(arr[i]) == 0 {
-			continue
-		}
 		if aCheck, ok := arr[i][0].([]interface{}); ok {
 			if len(aCheck) == 0 {
 				//set it to just be empty
@@ -331,9 +328,7 @@ func convertAndMapEdges(nodes []interface{}, rels []neoEdgeConfig, err chan erro
 		}
 
 		if len(narr) == 0{
-			err <- errors.New("length should not be nil")
-			wg.Done()
-			return
+			continue
 		}
 
 		for _, nr := range narr{
