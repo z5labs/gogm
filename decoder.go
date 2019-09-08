@@ -129,31 +129,16 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			return err
 		}
 
-		configs, err := mappedRelations.GetConfigs(relationConfig.StartNodeType, relationConfig.Type, relationConfig.EndNodeType)
+		startConfig, endConfig, err := mappedRelations.GetConfigs(relationConfig.StartNodeType, relationConfig.EndNodeType,
+			relationConfig.EndNodeType, relationConfig.StartNodeType, relationConfig.Type)
 		if err != nil {
 			return err
 		}
 
-		var internalEdgeConf decoratorConfig
-
-		if len(configs) == 0 {
-			return errors.New("no config found")
-		} else if len(configs) == 1 {
-			internalEdgeConf = configs[0]
-		} else {
-			for _, config := range configs{
-				if config.Direction == dsl.DirectionOutgoing {
-					internalEdgeConf = config
-					break
-				}
-				return errors.New("cannot find outgoing edge")
-			}
-		}
-
-		if internalEdgeConf.UsesEdgeNode {
+		if startConfig.UsesEdgeNode {
 			var typeConfig structDecoratorConfig
 
-			it := internalEdgeConf.Type
+			it := startConfig.Type
 
 			//get the actual type if its a slice
 			if it.Kind() == reflect.Slice{
@@ -162,7 +147,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 			label := ""
 
-			if internalEdgeConf.Type.Kind() == reflect.Ptr{
+			if startConfig.Type.Kind() == reflect.Ptr{
 				label = it.Elem().Name()
 			} else {
 				label = it.Name()
@@ -216,31 +201,31 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			}
 
 			//relate end-start
-			if reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName), reflect.Indirect(*val)))
+			if reflect.Indirect(*end).FieldByName(endConfig.FieldName).Kind() == reflect.Slice{
+				reflect.Indirect(*end).FieldByName(endConfig.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(endConfig.FieldName), reflect.Indirect(*val)))
 			} else {
 				//non slice relationships are already asserted to be pointers
-				end.FieldByName(internalEdgeConf.FieldName).Set(*val)
+				end.FieldByName(endConfig.FieldName).Set(*val)
 			}
 
 			//relate start-start
-			if reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName), reflect.Indirect(*val)))
+			if reflect.Indirect(*start).FieldByName(startConfig.FieldName).Kind() == reflect.Slice{
+				reflect.Indirect(*start).FieldByName(startConfig.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(startConfig.FieldName), reflect.Indirect(*val)))
 			} else {
-				start.FieldByName(internalEdgeConf.FieldName).Set(*val)
+				start.FieldByName(startConfig.FieldName).Set(*val)
 			}
 		} else {
-			if end.FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(internalEdgeConf.FieldName), *start))
+			if end.FieldByName(endConfig.FieldName).Kind() == reflect.Slice{
+				reflect.Indirect(*end).FieldByName(endConfig.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(endConfig.FieldName), *start))
 			} else {
-				end.FieldByName(internalEdgeConf.FieldName).Set(start.Addr())
+				end.FieldByName(endConfig.FieldName).Set(start.Addr())
 			}
 
 			//relate end-start
-			if start.FieldByName(internalEdgeConf.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(internalEdgeConf.FieldName), *end))
+			if start.FieldByName(startConfig.FieldName).Kind() == reflect.Slice{
+				reflect.Indirect(*start).FieldByName(startConfig.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(startConfig.FieldName), *end))
 			} else {
-				start.FieldByName(internalEdgeConf.FieldName).Set(end.Addr())
+				start.FieldByName(startConfig.FieldName).Set(end.Addr())
 			}
 		}
 	}

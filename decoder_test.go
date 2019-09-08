@@ -52,9 +52,9 @@ func TestDecode(t *testing.T){
 	require.Nil(t, decodeNeoRows(rows, &stuff))
 	t.Log(stuff.Id)
 	t.Log(stuff.UUID)
-	t.Log(stuff.MultiSpec[0].End.Id)
+	t.Log(stuff.MultiSpecA[0].End.Id)
 	req.NotEqual(0, stuff.Id)
-	req.True(len(stuff.MultiSpec) > 0)
+	req.True(len(stuff.MultiSpecA) > 0)
 }
 
 type TestStruct struct {
@@ -157,13 +157,13 @@ func TestConvertNodeToValue(t *testing.T){
 }
 
 type a struct{
-	Id int64 `gogm:"name=id"`
-	UUID string `gogm:"pk;name=uuid"`
-	TestField string `gogm:"name=test_field"`
-	Single *b `gogm:"relationship=test_rel"`
-	Multi []b `gogm:"relationship=multib"`
-	SingleSpec *c `gogm:"relationship=special_single"`
-	MultiSpec []c `gogm:"relationship=special_multi"`
+	Id          int64  `gogm:"name=id"`
+	UUID        string `gogm:"pk;name=uuid"`
+	TestField   string `gogm:"name=test_field"`
+	SingleA     *b     `gogm:"direction=incoming;relationship=test_rel"`
+	MultiA      []b    `gogm:"direction=incoming;relationship=multib"`
+	SingleSpecA *c     `gogm:"direction=outgoing;relationship=special_single"`
+	MultiSpecA  []c    `gogm:"direction=outgoing;relationship=special_multi"`
 }
 
 type b struct{
@@ -171,10 +171,10 @@ type b struct{
 	UUID string `gogm:"pk;name=uuid"`
 	TestField string `gogm:"name=test_field"`
 	TestTime time.Time `gogm:"time;name=test_time"`
-	Single *a `gogm:"relationship=test_rel"`
-	Multi []a `gogm:"relationship=multib"`
-	SingleSpec *c `gogm:"relationship=special_single"`
-	MultiSpec []c `gogm:"relationship=special_multi"`
+	Single *a `gogm:"direction=outgoing;relationship=test_rel"`
+	Multi []a `gogm:"direction=outgoing;relationship=multib"`
+	SingleSpec *c `gogm:"direction=incoming;relationship=special_single"`
+	MultiSpec []c `gogm:"direction=incoming;relationship=special_multi"`
 }
 
 type c struct{
@@ -250,14 +250,22 @@ func TestDecoder(t *testing.T){
 				[]interface{}{
 					map[string]interface{}{
 						Type: "test_rel",
-						StartNodeType: "a",
-						StartNodeId: int64(1),
-						EndNodeType: "b",
-						EndNodeId: int64(2),
+						StartNodeType: "b",
+						StartNodeId: int64(2),
+						EndNodeType: "a",
+						EndNodeId: int64(1),
 					},
 				},
 			},
 			[]interface{}{
+				graph.Node{
+					Labels: []string{"a"},
+					Properties: map[string]interface{}{
+						"test_field": "test",
+						"uuid": "dasdfasd",
+					},
+					NodeIdentity: 1,
+				},
 				graph.Node{
 					Labels: []string{"b"},
 					Properties: map[string]interface{}{
@@ -266,14 +274,6 @@ func TestDecoder(t *testing.T){
 						"test_time": fTime.Format(time.RFC3339),
 					},
 					NodeIdentity: 2,
-				},
-				graph.Node{
-					Labels: []string{"a"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfasd",
-					},
-					NodeIdentity: 1,
 				},
 			},
 			[]interface{}{
@@ -304,16 +304,16 @@ func TestDecoder(t *testing.T){
 		Id: 2,
 	}
 
-	comp.Single = comp22
+	comp.SingleA = comp22
 	comp22.Single = comp
 
 	req.Nil(decode(vars, &readin))
 	req.EqualValues(comp.TestField, readin.TestField)
 	req.EqualValues(comp.UUID, readin.UUID)
 	req.EqualValues(comp.Id, readin.Id)
-	req.EqualValues(comp.Single.Id, readin.Single.Id)
-	req.EqualValues(comp.Single.UUID, readin.Single.UUID)
-	req.EqualValues(comp.Single.TestField, readin.Single.TestField)
+	req.EqualValues(comp.SingleA.Id, readin.SingleA.Id)
+	req.EqualValues(comp.SingleA.UUID, readin.SingleA.UUID)
+	req.EqualValues(comp.SingleA.TestField, readin.SingleA.TestField)
 
 	var readinSlice []a
 
@@ -321,9 +321,9 @@ func TestDecoder(t *testing.T){
 	req.EqualValues(comp.TestField, readinSlice[0].TestField)
 	req.EqualValues(comp.UUID, readinSlice[0].UUID)
 	req.EqualValues(comp.Id, readinSlice[0].Id)
-	req.EqualValues(comp.Single.Id, readinSlice[0].Single.Id)
-	req.EqualValues(comp.Single.UUID, readinSlice[0].Single.UUID)
-	req.EqualValues(comp.Single.TestField, readinSlice[0].Single.TestField)
+	req.EqualValues(comp.SingleA.Id, readinSlice[0].SingleA.Id)
+	req.EqualValues(comp.SingleA.UUID, readinSlice[0].SingleA.UUID)
+	req.EqualValues(comp.SingleA.TestField, readinSlice[0].SingleA.TestField)
 
 
 
@@ -400,16 +400,16 @@ func TestDecoder(t *testing.T){
 		Test: "testing",
 	}
 
-	comp2.SingleSpec = c1
+	comp2.SingleSpecA = c1
 	b2.SingleSpec = c1
 
 	req.Nil(decode(vars2, &readin2))
 	req.EqualValues(comp2.TestField, readin2.TestField)
 	req.EqualValues(comp2.UUID, readin2.UUID)
 	req.EqualValues(comp2.Id, readin2.Id)
-	req.EqualValues(comp2.SingleSpec.End.Id, readin2.SingleSpec.End.Id)
-	req.EqualValues(comp2.SingleSpec.End.UUID, readin2.SingleSpec.End.UUID)
-	req.EqualValues(comp2.SingleSpec.End.TestField, readin2.SingleSpec.End.TestField)
+	req.EqualValues(comp2.SingleSpecA.End.Id, readin2.SingleSpecA.End.Id)
+	req.EqualValues(comp2.SingleSpecA.End.UUID, readin2.SingleSpecA.End.UUID)
+	req.EqualValues(comp2.SingleSpecA.End.TestField, readin2.SingleSpecA.End.TestField)
 
 	vars3 := [][]interface{}{
 		{
@@ -463,7 +463,7 @@ func TestDecoder(t *testing.T){
 		TestField: "test",
 		Id: 1,
 		UUID: "dasdfasd",
-		Multi: []b{
+		MultiA: []b{
 			{
 				TestField: "test",
 				UUID: "dasdfas",
@@ -477,11 +477,11 @@ func TestDecoder(t *testing.T){
 	req.EqualValues(comp3.TestField, readin3.TestField)
 	req.EqualValues(comp3.UUID, readin3.UUID)
 	req.EqualValues(comp3.Id, readin3.Id)
-	req.NotNil(readin3.Multi)
-	req.EqualValues(1, len(readin3.Multi))
-	req.EqualValues(comp3.Multi[0].Id, readin3.Multi[0].Id)
-	req.EqualValues(comp3.Multi[0].UUID, readin3.Multi[0].UUID)
-	req.EqualValues(comp3.Multi[0].TestField, readin3.Multi[0].TestField)
+	req.NotNil(readin3.MultiA)
+	req.EqualValues(1, len(readin3.MultiA))
+	req.EqualValues(comp3.MultiA[0].Id, readin3.MultiA[0].Id)
+	req.EqualValues(comp3.MultiA[0].UUID, readin3.MultiA[0].UUID)
+	req.EqualValues(comp3.MultiA[0].TestField, readin3.MultiA[0].TestField)
 
 	vars4 := [][]interface{}{
 		{
@@ -558,7 +558,7 @@ func TestDecoder(t *testing.T){
 		Test: "testing",
 	}
 
-	comp4.MultiSpec = append(comp4.MultiSpec, c4)
+	comp4.MultiSpecA = append(comp4.MultiSpecA, c4)
 	b3.MultiSpec = append(b3.MultiSpec, c4)
 
 	req.Nil(decode(vars4, &readin4))

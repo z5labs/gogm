@@ -29,7 +29,7 @@ func TestParseStruct(t *testing.T){
 		Test: "testing",
 	}
 
-	comp2.SingleSpec = c1
+	comp2.SingleSpecA = c1
 	b2.SingleSpec = c1
 
 	nodes := map[string]map[string]nodeCreateConf{}
@@ -68,7 +68,7 @@ func TestSave(t *testing.T){
 		Test: "testing",
 	}
 
-	comp2.SingleSpec = c1
+	comp2.SingleSpecA = c1
 	b2.SingleSpec = c1
 
 	err := dsl.Init(&dsl.ConnectionConfig{

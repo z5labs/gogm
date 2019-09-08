@@ -152,10 +152,28 @@ func (r *relationConfigs) Add(nodeType, relationship, fieldType string, dec deco
 	r.configs[key][fieldType] = append(r.configs[key][fieldType], dec)
 }
 
-func (r *relationConfigs) GetConfigs(nodeType, relationship, fieldType string) ([]decoratorConfig, error) {
+func (r *relationConfigs) GetConfigs(startNodeType, startNodeField, endNodeType, endNodeField, relationship string) (start, end *decoratorConfig, err error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	if r.configs == nil {
+		return nil, nil, errors.New("no configs provided")
+	}
+
+	start, err = r.getConfig(startNodeType, relationship, startNodeField)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	end, err = r.getConfig(endNodeType, relationship, endNodeField)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return start, end, nil
+}
+
+func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string) (*decoratorConfig, error) {
 	if r.configs == nil {
 		return nil, errors.New("no configs provided")
 	}
@@ -166,11 +184,18 @@ func (r *relationConfigs) GetConfigs(nodeType, relationship, fieldType string) (
 		return nil, fmt.Errorf("no configs for key [%s]", key)
 	}
 
-	if _, ok := r.configs[key][fieldType]; !ok {
+	var ok bool
+	var confs []decoratorConfig
+
+	if confs, ok = r.configs[key][fieldType]; !ok {
 		return nil, fmt.Errorf("no configs for key [%s] and field type [%s]", key, fieldType)
 	}
 
-	return r.configs[key][fieldType], nil
+	if len(confs) == 1 {
+		return &confs[0], nil
+	} else {
+		return nil, fmt.Errorf("invalid length [%v] should be 1", len(confs))
+	}
 }
 
 //isDifferentType, differentType, error
