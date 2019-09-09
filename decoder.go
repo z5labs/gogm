@@ -62,17 +62,30 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	arr = append(arr, arr1[1].([]interface{}))
 	arr = append(arr, arr1[2].([]interface{}))
 
+	emptyCheck := 0
+
 	//check for empty stuff -- starts at 1 because the first index is handled separately
 	for i := 0; i < 3; i++ {
 		if i == 0 {
 			continue
 		}
+
+		if len(arr[i]) == 0 {
+			emptyCheck ++
+			continue
+		}
+
 		if aCheck, ok := arr[i][0].([]interface{}); ok {
 			if len(aCheck) == 0 {
 				//set it to just be empty
 				arr[i] = []interface{}{}
 			}
 		}
+	}
+
+	//check if there's nothing to do
+	if emptyCheck == 2 {
+		return nil
 	}
 
 	p0 := len(arr[0])

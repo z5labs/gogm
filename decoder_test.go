@@ -675,4 +675,30 @@ func TestDecoder(t *testing.T){
 
 	req.Nil(decode(vars6, &readin6))
 	req.True(len(readin6) == 2)
+
+	vars7 := [][]interface{}{
+		{
+			[]interface{}{},
+			[]interface{}{},
+			[]interface{}{},
+		},
+	}
+
+	var readin7 []b
+
+	req.Nil(decode(vars7, &readin7))
+	req.True(len(readin7) == 0)
+
+	vars8 := [][]interface{}{
+		{
+			[]interface{}{},
+			[]interface{}{},
+			[]interface{}{},
+		},
+	}
+
+	var readin8 b
+
+	req.Nil(decode(vars8, &readin8))
+	req.Zero(readin8)
 }
