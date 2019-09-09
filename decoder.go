@@ -469,6 +469,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 		raw, ok := props[fieldConfig.Name]
 		if !ok{
 			if fieldConfig.IsTypeDef {
+				log.Debugf("skipping field %s since it is typedeffed and not defined", fieldConfig.Name)
 				continue
 			}
 			return nil, fmt.Errorf("unrecognized field [%s]", fieldConfig.Name)
