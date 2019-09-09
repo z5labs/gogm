@@ -156,10 +156,15 @@ func TestConvertNodeToValue(t *testing.T){
 	req.Nil(val)
 }
 
+type tdString string
+type tdInt int
+
 type a struct{
 	Id          int64  `gogm:"name=id"`
 	UUID        string `gogm:"pk;name=uuid"`
 	TestField   string `gogm:"name=test_field"`
+	TestTypeDefString tdString `gogm:"name=test_type_def_string"`
+	TestTypeDefInt tdInt `gogm:"name=test_type_def_int"`
 	SingleA     *b     `gogm:"direction=incoming;relationship=test_rel"`
 	MultiA      []b    `gogm:"direction=incoming;relationship=multib"`
 	SingleSpecA *c     `gogm:"direction=outgoing;relationship=special_single"`
@@ -262,6 +267,8 @@ func TestDecoder(t *testing.T){
 					Labels: []string{"a"},
 					Properties: map[string]interface{}{
 						"test_field": "test",
+						"test_type_def_string": "TDs",
+						"test_type_def_int": 600,
 						"uuid": "dasdfasd",
 					},
 					NodeIdentity: 1,
@@ -281,6 +288,8 @@ func TestDecoder(t *testing.T){
 					Labels: []string{"a"},
 					Properties: map[string]interface{}{
 						"test_field": "test",
+						"test_type_def_string": "TDs",
+						"test_type_def_int": 600,
 						"uuid": "dasdfasd",
 					},
 					NodeIdentity: 1,
@@ -294,6 +303,8 @@ func TestDecoder(t *testing.T){
 	comp := &a{
 		TestField: "test",
 		Id: 1,
+		TestTypeDefInt: 600,
+		TestTypeDefString: "TDs",
 		UUID: "dasdfasd",
 	}
 

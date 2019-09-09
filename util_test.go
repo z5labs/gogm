@@ -53,6 +53,8 @@ func TestToCypherParamsMap(t *testing.T){
 	require.Nil(t, err)
 	require.EqualValues(t, map[string]interface{}{
 		"uuid": "testuuid",
+		"test_type_def_int": 0,
+		"test_type_def_string": "",
 		"test_field": "testvalue",
 	}, params)
 

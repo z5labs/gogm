@@ -468,6 +468,9 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 
 		raw, ok := props[fieldConfig.Name]
 		if !ok{
+			if fieldConfig.IsTypeDef {
+				continue
+			}
 			return nil, fmt.Errorf("unrecognized field [%s]", fieldConfig.Name)
 		}
 
@@ -495,7 +498,13 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 
 				reflect.Indirect(val).FieldByName(field).Set(writeVal)
 			} else {
-				reflect.Indirect(val).FieldByName(field).Set(reflect.ValueOf(raw))
+				rawVal := reflect.ValueOf(raw)
+				indirect := reflect.Indirect(val)
+				if indirect.FieldByName(field).Type() == rawVal.Type() {
+					indirect.FieldByName(field).Set(rawVal)
+				} else {
+					indirect.FieldByName(field).Set(rawVal.Convert(indirect.FieldByName(field).Type()))
+				}
 			}
 		}
 	}

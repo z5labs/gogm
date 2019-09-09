@@ -277,7 +277,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 		return nil
 	}
 
-	log.Infof("on cycle %v", currentDepth)
+	log.Debugf("on cycle %v", currentDepth)
 
 	//validate params
 	err := parseValidate(currentDepth, maxDepth, current, nodesPtr, relationsPtr)

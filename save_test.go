@@ -15,6 +15,8 @@ func TestParseStruct(t *testing.T){
 
 	comp2 := &a{
 		TestField: "test",
+		TestTypeDefString: "dasdfas",
+		TestTypeDefInt: 600,
 		Id:        1,
 	}
 
