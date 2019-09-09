@@ -119,6 +119,12 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 		if i == 0 {
 			continue
 		}
+
+		//todo figure out why this is broken
+		if relationConfig.StartNodeType == "" || relationConfig.EndNodeType == "" {
+			continue
+		}
+
 		start, _, err := getValueAndConfig(relationConfig.StartNodeId, relationConfig.StartNodeType, nodeLookup)
 		if err != nil {
 			return err
