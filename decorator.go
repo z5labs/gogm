@@ -206,7 +206,10 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 				toReturn.Relationship = val
 				if varType.Kind() == reflect.Slice {
 					toReturn.ManyRelationship = true
-					toReturn.UsesEdgeNode = reflect.PtrTo(varType.Elem()).Implements(edgeType)
+					if varType.Elem().Kind() != reflect.Ptr {
+						return nil, errors.New("slice must be of pointer type")
+					}
+					toReturn.UsesEdgeNode = varType.Elem().Implements(edgeType)
 				} else {
 					toReturn.ManyRelationship = false
 					toReturn.UsesEdgeNode = varType.Implements(edgeType)
@@ -394,8 +397,13 @@ func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (
 					endType = field.Type.Elem()
 				} else if field.Type.Kind() == reflect.Slice {
 					temp := field.Type.Elem()
+					if strings.Contains(temp.String(), "interface") {
+						return nil, fmt.Errorf("relationship field [%s] on type [%s] can not be a slice of generic interface", config.Name, toReturn.Label)
+					}
 					if temp.Kind() == reflect.Ptr {
 						temp = temp.Elem()
+					} else {
+						return nil, fmt.Errorf("relationship field [%s] on type [%s] must a slice[]*%s", config.Name, toReturn.Label, temp.String())
 					}
 					endType = temp
 				} else {

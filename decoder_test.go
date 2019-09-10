@@ -166,9 +166,10 @@ type a struct{
 	TestTypeDefString tdString `gogm:"name=test_type_def_string"`
 	TestTypeDefInt tdInt `gogm:"name=test_type_def_int"`
 	SingleA     *b     `gogm:"direction=incoming;relationship=test_rel"`
-	MultiA      []b    `gogm:"direction=incoming;relationship=multib"`
+	ManyA	[]*b `gogm:"direction=incoming;relationship=testm2o"`
+	MultiA      []*b    `gogm:"direction=incoming;relationship=multib"`
 	SingleSpecA *c     `gogm:"direction=outgoing;relationship=special_single"`
-	MultiSpecA  []c    `gogm:"direction=outgoing;relationship=special_multi"`
+	MultiSpecA  []*c    `gogm:"direction=outgoing;relationship=special_multi"`
 }
 
 type b struct{
@@ -177,9 +178,10 @@ type b struct{
 	TestField string `gogm:"name=test_field"`
 	TestTime time.Time `gogm:"time;name=test_time"`
 	Single *a `gogm:"direction=outgoing;relationship=test_rel"`
-	Multi []a `gogm:"direction=outgoing;relationship=multib"`
+	ManyB *a `gogm:"direction=incoming;relationship=testm2o"`
+	Multi []*a `gogm:"direction=outgoing;relationship=multib"`
 	SingleSpec *c `gogm:"direction=incoming;relationship=special_single"`
-	MultiSpec []c `gogm:"direction=incoming;relationship=special_multi"`
+	MultiSpec []*c `gogm:"direction=incoming;relationship=special_multi"`
 }
 
 type c struct{
@@ -474,7 +476,7 @@ func TestDecoder(t *testing.T){
 		TestField: "test",
 		Id: 1,
 		UUID: "dasdfasd",
-		MultiA: []b{
+		MultiA: []*b{
 			{
 				TestField: "test",
 				UUID: "dasdfas",
@@ -569,8 +571,8 @@ func TestDecoder(t *testing.T){
 		Test: "testing",
 	}
 
-	comp4.MultiSpecA = append(comp4.MultiSpecA, c4)
-	b3.MultiSpec = append(b3.MultiSpec, c4)
+	comp4.MultiSpecA = append(comp4.MultiSpecA, &c4)
+	b3.MultiSpec = append(b3.MultiSpec, &c4)
 
 	req.Nil(decode(vars4, &readin4))
 	req.EqualValues(b3.TestField, readin4.TestField)

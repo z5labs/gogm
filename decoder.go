@@ -166,7 +166,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 			label := ""
 
-			if startConfig.Type.Kind() == reflect.Ptr{
+			if it.Kind() == reflect.Ptr{
 				label = it.Elem().Name()
 			} else {
 				label = it.Name()
@@ -221,7 +221,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 			//relate end-start
 			if reflect.Indirect(*end).FieldByName(endConfig.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*end).FieldByName(endConfig.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(endConfig.FieldName), reflect.Indirect(*val)))
+				reflect.Indirect(*end).FieldByName(endConfig.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(endConfig.FieldName), *val))
 			} else {
 				//non slice relationships are already asserted to be pointers
 				end.FieldByName(endConfig.FieldName).Set(*val)
@@ -229,20 +229,20 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 			//relate start-start
 			if reflect.Indirect(*start).FieldByName(startConfig.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*start).FieldByName(startConfig.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(startConfig.FieldName), reflect.Indirect(*val)))
+				reflect.Indirect(*start).FieldByName(startConfig.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(startConfig.FieldName), *val))
 			} else {
 				start.FieldByName(startConfig.FieldName).Set(*val)
 			}
 		} else {
 			if end.FieldByName(endConfig.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*end).FieldByName(endConfig.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(endConfig.FieldName), *start))
+				reflect.Indirect(*end).FieldByName(endConfig.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(endConfig.FieldName), start.Addr()))
 			} else {
 				end.FieldByName(endConfig.FieldName).Set(start.Addr())
 			}
 
 			//relate end-start
 			if start.FieldByName(startConfig.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*start).FieldByName(startConfig.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(startConfig.FieldName), *end))
+				reflect.Indirect(*start).FieldByName(startConfig.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(startConfig.FieldName), end.Addr()))
 			} else {
 				start.FieldByName(startConfig.FieldName).Set(end.Addr())
 			}

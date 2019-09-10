@@ -312,7 +312,9 @@ type validStruct struct {
 	IndexField  string                 `gogm:"index;name=index_field"`
 	UniqueField int                    `gogm:"unique;name=unique_field"`
 	OneToOne    *validStruct           `gogm:"relationship=one2one;direction=incoming"`
-	ManyToOne   []interface{}          `gogm:"relationship=many2one;direction=outgoing"`
+	ManyToOne   []*a        `gogm:"relationship=many2one;direction=outgoing"`
+	SpecialOne *c `gogm:"relationship=specC;direction=outgoing"`
+	SpecialMany []*c `gogm:"relationship=manyC;direction=outgoing"`
 	Props       map[string]interface{} `gogm:"properties;name=props"`
 	IgnoreMe    int                    `gogm:"-"`
 }
@@ -457,13 +459,30 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Direction:    dsl.DirectionIncoming,
 				Type:         reflect.TypeOf(&validStruct{}),
 			},
+			"SpecialOne": {
+				FieldName:    "SpecialOne",
+				Name:         "SpecialOne",
+				Relationship: "specC",
+				Direction:    dsl.DirectionOutgoing,
+				UsesEdgeNode: true,
+				Type:         reflect.TypeOf(&c{}),
+			},
+			"SpecialMany": {
+				FieldName:    "SpecialMany",
+				Name:         "SpecialMany",
+				Relationship: "manyC",
+				Direction:    dsl.DirectionOutgoing,
+				UsesEdgeNode: true,
+				ManyRelationship: true,
+				Type:         reflect.TypeOf([]*c{}),
+			},
 			"ManyToOne": {
 				FieldName:        "ManyToOne",
 				Name:             "ManyToOne",
 				Relationship:     "many2one",
 				Direction:        dsl.DirectionOutgoing,
 				ManyRelationship: true,
-				Type:             reflect.TypeOf([]interface{}{}),
+				Type:             reflect.TypeOf([]*a{}),
 			},
 			"Props": {
 				FieldName:  "Props",
