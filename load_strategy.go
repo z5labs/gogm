@@ -184,7 +184,7 @@ func PathLoadStrategyEdgeConstraint(sess *dsl.Session, startVariable, startLabel
 	}
 
 	qp, err := dsl.ParamsFromMap(map[string]interface{}{
-		endTargetField: "{targetField}",
+		endTargetField: dsl.ParamString(fmt.Sprintf("{%s}", endTargetField)),
 	})
 	if err != nil {
 		return nil, err
