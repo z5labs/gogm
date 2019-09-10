@@ -699,7 +699,10 @@ func TestDecoder(t *testing.T){
 
 	var readin7 []b
 
-	req.Nil(decode(vars7, &readin7))
+	emptyErr := decode(vars7, &readin7)
+
+	req.NotNil(emptyErr)
+	req.True(errors.As(emptyErr, &ErrNotFound))
 	req.True(len(readin7) == 0)
 
 	vars8 := [][]interface{}{
@@ -712,6 +715,9 @@ func TestDecoder(t *testing.T){
 
 	var readin8 b
 
-	req.Nil(decode(vars8, &readin8))
+	emptyErr = decode(vars8, &readin8)
+
+	req.NotNil(emptyErr)
+	req.True(errors.As(emptyErr, &ErrNotFound))
 	req.Zero(readin8)
 }

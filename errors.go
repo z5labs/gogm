@@ -1,6 +1,9 @@
 package gogm
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type InvalidDecoratorConfigError struct{
 	Field string
@@ -31,3 +34,8 @@ func NewInvalidStructConfigError(issue string) *InvalidStructConfigError{
 func (i *InvalidStructConfigError) Error() string{
 	return i.issue
 }
+
+var ErrNotFound = errors.New("gogm: data not found")
+var ErrInternal = errors.New("gogm: internal error")
+var ErrInvalidParams = errors.New("gogm: invalid params")
+var ErrConfiguration = errors.New("gogm: configuration was malformed")

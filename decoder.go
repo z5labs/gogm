@@ -27,7 +27,7 @@ func decodeNeoRows(rows neo.Rows, respObj interface{}) error{
 func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	defer func() {
 		if r := recover(); r != nil{
-			err = fmt.Errorf("%v", r)
+			err = fmt.Errorf("%v-%w", r, ErrInternal)
 		}
 	}()
 
@@ -36,24 +36,24 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	// length of 3
 
 	if respObj == nil {
-		return errors.New("response object can not be nil")
+		return fmt.Errorf("response object can not be nil - %w", ErrInvalidParams)
 	}
 
 	rv := reflect.ValueOf(respObj)
 	rt := reflect.TypeOf(respObj)
 
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return fmt.Errorf("invalid resp type %T", respObj)
+		return fmt.Errorf("invalid resp type %T - %w", respObj, ErrInternal)
 	}
 
 	if rawArr == nil || len(rawArr) != 1{
-		return fmt.Errorf("invalid rawArr size, %v", len(rawArr))
+		return fmt.Errorf("invalid rawArr size, %v - %w", len(rawArr), ErrInternal)
 	}
 
 	arr1 := rawArr[0]
 
 	if len(arr1) != 3{
-		return  fmt.Errorf("malformed response, invalid number of rows (%v != 3)", len(arr1))
+		return  fmt.Errorf("malformed response, invalid number of rows (%v != 3) - %w", len(arr1), ErrInternal)
 	}
 
 	var arr [][]interface{}
@@ -85,7 +85,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 	//check if there's nothing to do
 	if emptyCheck == 2 {
-		return nil
+		return fmt.Errorf("no data was returned by neo4j - %w", ErrNotFound)
 	}
 
 	p0 := len(arr[0])
@@ -99,7 +99,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 	//validate the type provided is compatible with return
 	if p2 == 0{
-		return errors.New("no primary node to return")
+		return fmt.Errorf("no primary node to return - %w", ErrInternal)
 	}
 
 	nodes := append(arr[1], arr[2]...)
@@ -120,7 +120,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	select {
 	case err := <- errChan:
 		log.WithError(err).Error()
-		return err
+		return fmt.Errorf("channel sorting error - %w", err)
 	default:
 		log.Debugf("passed setup")
 	}
@@ -175,12 +175,12 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 			temp, ok := mappedTypes.Get(label)// mappedTypes[boltNode.Labels[0]]
 			if !ok{
-				return fmt.Errorf("can not find mapping for node with label %s", label)
+				return fmt.Errorf("can not find mapping for node with label %s - %w", label, ErrInternal)
 			}
 
 			typeConfig = temp.(structDecoratorConfig)
 			if !ok{
-				return errors.New("unable to cast to structDecoratorConfig")
+				return fmt.Errorf("unable to cast [%T] to structDecoratorConfig - %w", temp, ErrInternal)
 			}
 
 			//create value
@@ -207,16 +207,16 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			//can ensure that it implements proper interface if it made it this far
 			res := val.MethodByName("SetStartNode").Call([]reflect.Value{startCall})
 			if res == nil || len(res) == 0 {
-				return errors.New("invalid response")
+				return fmt.Errorf("invalid response from edge callback - %w", err)
 			} else if !res[0].IsNil(){
-				return res[0].Interface().(error)
+				return fmt.Errorf("failed call to SetStartNode - %w", res[0].Interface().(error))
 			}
 
 			res = val.MethodByName("SetEndNode").Call([]reflect.Value{endCall})
 			if res == nil || len(res) == 0 {
-				return errors.New("invalid response")
+				return fmt.Errorf("invalid response from edge callback - %w", err)
 			} else if !res[0].IsNil(){
-				return res[0].Interface().(error)
+				return fmt.Errorf("failed call to SetEndNode - %w", res[0].Interface().(error))
 			}
 
 			//relate end-start

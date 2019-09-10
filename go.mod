@@ -1,6 +1,6 @@
 module github.com/mindstand/gogm
 
-go 1.12
+go 1.13
 
 require (
 	github.com/cornelk/hashmap v1.0.0

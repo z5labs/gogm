@@ -193,7 +193,7 @@ func PathLoadStrategyEdgeConstraint(sess *dsl.Session, startVariable, startLabel
 	builder := sess.QueryReadOnly().
 		Match(dsl.Path().
 			V(dsl.V{Name: startVariable, Type: startLabel}).
-			E(dsl.E{MinJumps: minJumps, MaxJumps: maxJumps}).
+			E(dsl.E{MinJumps: minJumps, MaxJumps: maxJumps, Direction: dsl.DirectionNone}).
 			V(dsl.V{Type: endLabel, Params: qp}).
 			Build()).
 
