@@ -168,6 +168,11 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 	//"deref" reflect interface type
 	respType = respType.Elem()
 
+	if respType.Kind() == reflect.Ptr{
+		//slice of pointers
+		respType = respType.Elem()
+	}
+
 	//get the type name -- this maps directly to the label
 	respObjName := respType.Name()
 
@@ -233,6 +238,11 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 
 	//"deref" reflect interface type
 	respType = respType.Elem()
+
+	if respType.Kind() == reflect.Ptr{
+		//slice of pointers
+		respType = respType.Elem()
+	}
 
 	//get the type name -- this maps directly to the label
 	respObjName := respType.Name()
