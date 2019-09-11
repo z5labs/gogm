@@ -27,7 +27,7 @@ func decodeNeoRows(rows neo.Rows, respObj interface{}) error{
 func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	defer func() {
 		if r := recover(); r != nil{
-			err = fmt.Errorf("%v-%w", r, ErrInternal)
+			err = fmt.Errorf("%v - PANIC RECOVERY - %w", r, ErrInternal)
 		}
 	}()
 
@@ -43,7 +43,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	rt := reflect.TypeOf(respObj)
 
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return fmt.Errorf("invalid resp type %T - %w", respObj, ErrInternal)
+		return fmt.Errorf("invalid resp type %T - %w", respObj, ErrInvalidParams)
 	}
 
 	if rawArr == nil || len(rawArr) != 1{
@@ -235,14 +235,14 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			}
 		} else {
 			if end.FieldByName(endConfig.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*end).FieldByName(endConfig.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(endConfig.FieldName), start.Addr()))
+				end.FieldByName(endConfig.FieldName).Set(reflect.Append(end.FieldByName(endConfig.FieldName), start.Addr()))
 			} else {
 				end.FieldByName(endConfig.FieldName).Set(start.Addr())
 			}
 
 			//relate end-start
 			if start.FieldByName(startConfig.FieldName).Kind() == reflect.Slice{
-				reflect.Indirect(*start).FieldByName(startConfig.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(startConfig.FieldName), end.Addr()))
+				start.FieldByName(startConfig.FieldName).Set(reflect.Append(start.FieldByName(startConfig.FieldName), end.Addr()))
 			} else {
 				start.FieldByName(startConfig.FieldName).Set(end.Addr())
 			}
@@ -261,13 +261,20 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 		sliceValuePtr := slicePtr.Elem()
 
+		sliceType := rt.Elem().Elem()
+
 		for _, id := range pks{
 			val, ok := nodeLookup[id]
 			if !ok{
 				return fmt.Errorf("cannot find value with id (%v)", id)
 			}
 
-			sliceValuePtr.Set(reflect.Append(sliceValuePtr, *val))
+			//handle slice of pointers
+			if sliceType.Kind() == reflect.Ptr {
+				sliceValuePtr.Set(reflect.Append(sliceValuePtr, val.Addr()))
+			} else {
+				sliceValuePtr.Set(reflect.Append(sliceValuePtr, *val))
+			}
 		}
 
 		reflect.Indirect(rv).Set(sliceValuePtr)

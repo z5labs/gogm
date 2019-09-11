@@ -328,6 +328,16 @@ func TestDecoder(t *testing.T){
 	req.EqualValues(comp.SingleA.UUID, readin.SingleA.UUID)
 	req.EqualValues(comp.SingleA.TestField, readin.SingleA.TestField)
 
+	var readinSlicePtr []*a
+
+	req.Nil(decode(vars, &readinSlicePtr))
+	req.EqualValues(comp.TestField, readinSlicePtr[0].TestField)
+	req.EqualValues(comp.UUID, readinSlicePtr[0].UUID)
+	req.EqualValues(comp.Id, readinSlicePtr[0].Id)
+	req.EqualValues(comp.SingleA.Id, readinSlicePtr[0].SingleA.Id)
+	req.EqualValues(comp.SingleA.UUID, readinSlicePtr[0].SingleA.UUID)
+	req.EqualValues(comp.SingleA.TestField, readinSlicePtr[0].SingleA.TestField)
+
 	var readinSlice []a
 
 	req.Nil(decode(vars, &readinSlice))
@@ -337,7 +347,6 @@ func TestDecoder(t *testing.T){
 	req.EqualValues(comp.SingleA.Id, readinSlice[0].SingleA.Id)
 	req.EqualValues(comp.SingleA.UUID, readinSlice[0].SingleA.UUID)
 	req.EqualValues(comp.SingleA.TestField, readinSlice[0].SingleA.TestField)
-
 
 
 	vars2 := [][]interface{}{
@@ -671,7 +680,7 @@ func TestDecoder(t *testing.T){
 		},
 	}
 
-	var readin6 []b
+	var readin6 []*b
 
 	//b31 := &b{
 	//	TestField: "test",
@@ -697,7 +706,7 @@ func TestDecoder(t *testing.T){
 		},
 	}
 
-	var readin7 []b
+	var readin7 []*b
 
 	emptyErr := decode(vars7, &readin7)
 
