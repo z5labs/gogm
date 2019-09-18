@@ -15,17 +15,20 @@ func dropAllIndexesAndConstraints() error{
 	if err != nil {
 		return err
 	}
-	driverPool.Reclaim(conn)
+	defer driverPool.Reclaim(conn)
 
 	constraintRows, err := dsl.QB().Cypher("CALL db.constraints").WithNeo(conn).Query(nil)
 	if err != nil{
 		return err
 	}
 
-	defer constraintRows.Close()
-
 	constraints, err := dsl.RowsToStringArray(constraintRows)
 	if err != nil{
+		return err
+	}
+
+	err = constraintRows.Close()
+	if err != nil {
 		return err
 	}
 
@@ -61,10 +64,13 @@ func dropAllIndexesAndConstraints() error{
 		return err
 	}
 
-	defer indexRows.Close()
-
 	indexes, err := dsl.RowsTo2DInterfaceArray(indexRows)
 	if err != nil{
+		return err
+	}
+
+	err = indexRows.Close()
+	if err != nil {
 		return err
 	}
 
@@ -104,7 +110,7 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 	if err != nil {
 		return err
 	}
-	driverPool.Reclaim(conn)
+	defer driverPool.Reclaim(conn)
 
 	//validate that we have to do anything
 	if mappedTypes == nil || mappedTypes.Len() == 0{
@@ -235,10 +241,13 @@ func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 		return err
 	}
 
-	defer constRows.Close()
-
 	foundConstraints, err := dsl.RowsToStringArray(constRows)
 	if err != nil{
+		return err
+	}
+
+	err = constRows.Close()
+	if err != nil {
 		return err
 	}
 
@@ -249,10 +258,13 @@ func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 		return err
 	}
 
-	defer indexRows.Close()
-
 	findexes, err := dsl.RowsTo2DInterfaceArray(indexRows)
 	if err != nil{
+		return err
+	}
+
+	err = indexRows.Close()
+	if err != nil {
 		return err
 	}
 

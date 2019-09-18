@@ -19,7 +19,7 @@ func TestDropAllIndexesAndConstraints(t *testing.T){
 	if err != nil {
 		require.Nil(t, err)
 	}
-	driverPool.Reclaim(conn)
+	defer driverPool.Reclaim(conn)
 	require.Nil(t, err)
 
 	err = dropAllIndexesAndConstraints()
@@ -44,19 +44,31 @@ func TestDropAllIndexesAndConstraints(t *testing.T){
 
 func TestIndexManagement(t *testing.T){
 	//requires connection
-	if !testing.Short(){
-		t.SkipNow()
-		return
-	}
+	//if !testing.Short(){
+	//	t.SkipNow()
+	//	return
+	//}
 
 	req := require.New(t)
 
+	var err error
+
+	conf := Config{
+		Username: "neo4j",
+		Password: "password",
+		Host: "0.0.0.0",
+		Port: 7687,
+		PoolSize: 15,
+	}
+
+	driverPool, err = driver.NewClosableDriverPool(conf.ConnectionString(), conf.PoolSize)
+	req.Nil(err)
+
 	//init
 	conn, err := driverPool.Open(driver.ReadWriteMode)
-	if err != nil {
-		require.Nil(t, err)
-	}
-	driverPool.Reclaim(conn)
+	require.Nil(t, err)
+
+	defer driverPool.Reclaim(conn)
 	req.Nil(err)
 
 	//delete everything
