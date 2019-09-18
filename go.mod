@@ -7,7 +7,7 @@ require (
 	github.com/dchest/siphash v1.2.1 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/kr/pretty v0.1.0 // indirect
-	github.com/mindstand/go-cypherdsl v0.0.0-20190917211550-0b1ba8219766
+	github.com/mindstand/go-cypherdsl v0.0.0-20190918002901-05bf3cabda17
 	github.com/mindstand/golang-neo4j-bolt-driver v0.0.0-20190917210539-9477821dd010
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/sirupsen/logrus v1.4.2

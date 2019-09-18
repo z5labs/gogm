@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	dsl "github.com/mindstand/go-cypherdsl"
+	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"reflect"
 )
 
@@ -23,7 +24,7 @@ type relCreateConf struct {
 	Direction dsl.Direction
 }
 
-func saveDepth(sess *dsl.Session, obj interface{}, depth int) error {
+func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 	if sess == nil {
 		return errors.New("session can not be nil")
 	}
@@ -80,7 +81,7 @@ func saveDepth(sess *dsl.Session, obj interface{}, depth int) error {
 	return relateNodes(sess, relations, ids)
 }
 
-func createNodes(sess *dsl.Session, crNodes map[string]map[string]nodeCreateConf) (map[string]int64, error){
+func createNodes(sess *driver.BoltConn, crNodes map[string]map[string]nodeCreateConf) (map[string]int64, error){
 	idMap := map[string]int64{}
 
 	for label, nodes := range crNodes{
@@ -107,7 +108,7 @@ func createNodes(sess *dsl.Session, crNodes map[string]map[string]nodeCreateConf
 		}
 
 		//todo replace once unwind is fixed and path
-		res, err := sess.Query().
+		res, err := dsl.QB().
 			Cypher("UNWIND {rows} as row").
 			Merge(&dsl.MergeConfig{
 				Path: path,
@@ -156,7 +157,7 @@ func createNodes(sess *dsl.Session, crNodes map[string]map[string]nodeCreateConf
 	return idMap, nil
 }
 
-func relateNodes(sess *dsl.Session, relations map[string][]relCreateConf, ids map[string]int64) error{
+func relateNodes(sess *driver.BoltConn, relations map[string][]relCreateConf, ids map[string]int64) error{
 	if relations == nil || len(relations) == 0{
 		return errors.New("relations can not be nil or empty")
 	}
@@ -214,7 +215,7 @@ func relateNodes(sess *dsl.Session, relations map[string][]relCreateConf, ids ma
 			return err
 		}
 
-		_, err = sess.Query().
+		_, err = dsl.QB().
 			Cypher("UNWIND {rows} as row").
 			Match(dsl.Path().V(dsl.V{Name: "startNode"}).Build()).
 			Where(dsl.C(&dsl.ConditionConfig{

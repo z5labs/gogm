@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cornelk/hashmap"
-	dsl "github.com/mindstand/go-cypherdsl"
+	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/sirupsen/logrus"
 	"reflect"
 )
@@ -46,6 +46,18 @@ type Config struct {
 	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy"`
 }
 
+func (c *Config) ConnectionString() string{
+	var protocol string
+
+	if c.IsCluster {
+		protocol = "bolt+routing"
+	} else {
+		protocol = "bolt"
+	}
+
+	return fmt.Sprintf("%s://%s:%s@%s:%v", protocol, c.Username, c.Password, c.Host, c.Port)
+}
+
 type IndexStrategy int
 
 const (
@@ -56,6 +68,9 @@ const (
 
 //convert these into concurrent hashmap
 var mappedTypes = &hashmap.HashMap{}
+
+//thread pool
+var driverPool driver.DriverPool
 
 //relationship + label
 var mappedRelations = &relationConfigs{}
@@ -96,14 +111,9 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 
 	if !isTest {
 		log.Debug("opening connection to neo4j")
-		err := dsl.Init(&dsl.ConnectionConfig{
-			PoolSize:  conf.PoolSize,
-			Port:      conf.Port,
-			IsCluster: conf.IsCluster,
-			Host:      conf.Host,
-			Password:  conf.Password,
-			Username:  conf.Username,
-		})
+
+		var err error
+		driverPool, err = driver.NewClosableDriverPool(conf.ConnectionString(), conf.PoolSize)
 		if err != nil {
 			return err
 		}

@@ -1,7 +1,7 @@
 package gogm
 
 import (
-	dsl "github.com/mindstand/go-cypherdsl"
+	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
@@ -146,16 +146,11 @@ func TestSave(t *testing.T){
 	comp2.SingleSpecA = c1
 	b2.SingleSpec = c1
 
-	err := dsl.Init(&dsl.ConnectionConfig{
-		Username: "neo4j",
-		Password: "password",
-		Host: "0.0.0.0",
-		Port: 7687,
-		PoolSize: 15,
-	})
-	require.Nil(t, err)
+	conn, err := driverPool.Open(driver.ReadWriteMode)
+	if err != nil {
+		require.Nil(t, err)
+	}
+	defer conn.Close()
 
-	sess := dsl.NewSession()
-
-	req.Nil(saveDepth(sess, comp2, defaultSaveDepth))
+	req.Nil(saveDepth(conn, comp2, defaultSaveDepth))
 }

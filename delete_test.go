@@ -1,7 +1,7 @@
 package gogm
 
 import (
-	dsl "github.com/mindstand/go-cypherdsl"
+	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -11,20 +11,17 @@ func TestDelete(t *testing.T){
 		t.Skip()
 		return
 	}
-	err := dsl.Init(&dsl.ConnectionConfig{
-		Username: "neo4j",
-		Password: "password",
-		Host: "0.0.0.0",
-		Port: 7687,
-		PoolSize: 15,
-	})
-	require.Nil(t, err)
+	conn, err := driverPool.Open(driver.ReadWriteMode)
+	if err != nil {
+		require.Nil(t, err)
+	}
+	defer conn.Close()
 
 	del := a{
 		Id: 0,
 		UUID: "5334ee8c-6231-40fd-83e5-16c8016ccde6",
 	}
 
-	err = deleteNode(dsl.NewSession(), &del)
+	err = deleteNode(conn, &del)
 	require.Nil(t, err)
 }

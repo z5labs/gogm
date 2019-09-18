@@ -26,7 +26,8 @@ func TestSession(t *testing.T){
 
 	req.EqualValues(3, mappedTypes.Len())
 
-	sess := NewSession()
+	sess, err := NewSession(true)
+	req.NotNil(err)
 
 	var stuffs []a
 

@@ -3,10 +3,11 @@ package gogm
 import (
 	"errors"
 	dsl "github.com/mindstand/go-cypherdsl"
+	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"reflect"
 )
 
-func deleteNode(conn *dsl.Session, deleteObj interface{}) error{
+func deleteNode(conn *driver.BoltConn, deleteObj interface{}) error{
 	rawType := reflect.TypeOf(deleteObj)
 
 	if rawType.Kind() != reflect.Ptr && rawType.Kind() != reflect.Slice{
@@ -54,8 +55,8 @@ func deleteNode(conn *dsl.Session, deleteObj interface{}) error{
 	return deleteByIds(conn, ids...)
 }
 
-func deleteByIds(conn *dsl.Session, ids ...int64) error{
-	rows, err := conn.Query().
+func deleteByIds(conn *driver.BoltConn, ids ...int64) error{
+	rows, err := dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
 		Where(dsl.C(&dsl.ConditionConfig{
@@ -65,6 +66,7 @@ func deleteByIds(conn *dsl.Session, ids ...int64) error{
 			Check: dsl.ParamString("row"),
 		})).
 		Delete(true, "n").
+		WithNeo(conn).
 		Exec(map[string]interface{}{
 			"rows": ids,
 		})
@@ -81,8 +83,8 @@ func deleteByIds(conn *dsl.Session, ids ...int64) error{
 	return nil
 }
 
-func deleteByUuids(conn *dsl.Session, ids ...string) error{
-	rows, err := conn.Query().
+func deleteByUuids(conn *driver.BoltConn, ids ...string) error{
+	rows, err := dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
 		Where(dsl.C(&dsl.ConditionConfig{
@@ -92,6 +94,7 @@ func deleteByUuids(conn *dsl.Session, ids ...string) error{
 			Check: dsl.ParamString("row"),
 		})).
 		Delete(true, "n").
+		WithNeo(conn).
 		Exec(map[string]interface{}{
 			"rows": ids,
 		})

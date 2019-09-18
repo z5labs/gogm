@@ -3,8 +3,9 @@ package gogm
 import (
 	"errors"
 	"github.com/cornelk/hashmap"
-	"github.com/mindstand/golang-neo4j-bolt-driver/structures/graph"
 	dsl "github.com/mindstand/go-cypherdsl"
+	driver "github.com/mindstand/golang-neo4j-bolt-driver"
+	"github.com/mindstand/golang-neo4j-bolt-driver/structures/graph"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
@@ -33,18 +34,14 @@ func TestDecode(t *testing.T){
 			collect(DISTINCT n) as Starts
 	`
 
-	err := dsl.Init(&dsl.ConnectionConfig{
-		Username: "neo4j",
-		Password: "password",
-		Host: "0.0.0.0",
-		Port: 7687,
-		PoolSize: 15,
-	})
-	require.Nil(t, err)
+	conn, err := driverPool.Open(driver.ReadWriteMode)
+	if err != nil {
+		require.Nil(t, err)
+	}
+	defer conn.Close()
 
-	sess := dsl.NewSession()
 
-	rows, err := sess.QueryReadOnly().Cypher(query).Query(nil)
+	rows, err := dsl.QB().WithNeo(conn).Cypher(query).Query(nil)
 	require.Nil(t, err)
 	require.NotNil(t, rows)
 

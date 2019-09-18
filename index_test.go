@@ -2,6 +2,7 @@ package gogm
 
 import (
 	dsl "github.com/mindstand/go-cypherdsl"
+	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
@@ -14,19 +15,17 @@ func TestDropAllIndexesAndConstraints(t *testing.T){
 		return
 	}
 
-	err := dsl.Init(&dsl.ConnectionConfig{
-		Username: "neo4j",
-		Password: "password",
-		Host: "0.0.0.0",
-		Port: 7687,
-		PoolSize: 15,
-	})
+	conn, err := driverPool.Open(driver.ReadWriteMode)
+	if err != nil {
+		require.Nil(t, err)
+	}
+	defer conn.Close()
 	require.Nil(t, err)
 
 	err = dropAllIndexesAndConstraints()
 	require.Nil(t, err)
 
-	constraintRows, err := dsl.QB(true).Cypher("CALL db.constraints").Query(nil)
+	constraintRows, err := dsl.QB().WithNeo(conn).Cypher("CALL db.constraints").Query(nil)
 	require.Nil(t, err)
 
 	found, _, err := constraintRows.All()
@@ -34,7 +33,7 @@ func TestDropAllIndexesAndConstraints(t *testing.T){
 
 	require.Equal(t, 0, len(found))
 
-	indexRows, err := dsl.QB(true).Cypher("CALL db.indexes()").Query(nil)
+	indexRows, err := dsl.QB().WithNeo(conn).Cypher("CALL db.indexes()").Query(nil)
 	require.Nil(t, err)
 
 	iFound, _, err := indexRows.All()
@@ -53,13 +52,11 @@ func TestIndexManagement(t *testing.T){
 	req := require.New(t)
 
 	//init
-	err := dsl.Init(&dsl.ConnectionConfig{
-		Username: "neo4j",
-		Password: "password",
-		Host: "0.0.0.0",
-		Port: 7687,
-		PoolSize: 15,
-	})
+	conn, err := driverPool.Open(driver.ReadWriteMode)
+	if err != nil {
+		require.Nil(t, err)
+	}
+	defer conn.Close()
 	req.Nil(err)
 
 	//delete everything

@@ -22,6 +22,10 @@ github.com/mindstand/go-cypherdsl v0.0.0-20190917210855-adc1c48228a0 h1:w7601e/+
 github.com/mindstand/go-cypherdsl v0.0.0-20190917210855-adc1c48228a0/go.mod h1:mx+0YAsvzadgEv1Ez11YgTEcuwKNNoZaYbrM1HPSq4A=
 github.com/mindstand/go-cypherdsl v0.0.0-20190917211550-0b1ba8219766 h1:pZURLMPs+QV0SLRP5PeNEVgOMz6wxIXjE314LXKHmKg=
 github.com/mindstand/go-cypherdsl v0.0.0-20190917211550-0b1ba8219766/go.mod h1:mx+0YAsvzadgEv1Ez11YgTEcuwKNNoZaYbrM1HPSq4A=
+github.com/mindstand/go-cypherdsl v0.0.0-20190917234148-bf8b7342eb8a h1:AcNa9WN4fEwE33jr3EAoaKEXD66rujiVL96IupzyLyU=
+github.com/mindstand/go-cypherdsl v0.0.0-20190917234148-bf8b7342eb8a/go.mod h1:mx+0YAsvzadgEv1Ez11YgTEcuwKNNoZaYbrM1HPSq4A=
+github.com/mindstand/go-cypherdsl v0.0.0-20190918002901-05bf3cabda17 h1:HYnqLWo9d6qajyjZJo8/8SV6TgL+9oym+mSbw4JWPsE=
+github.com/mindstand/go-cypherdsl v0.0.0-20190918002901-05bf3cabda17/go.mod h1:mx+0YAsvzadgEv1Ez11YgTEcuwKNNoZaYbrM1HPSq4A=
 github.com/mindstand/golang-neo4j-bolt-driver v0.0.0-20190917210539-9477821dd010 h1:WBcwBI6Zc0QJIDWg5P5HpHBFD5u4sn8SucOP4EHlHyk=
 github.com/mindstand/golang-neo4j-bolt-driver v0.0.0-20190917210539-9477821dd010/go.mod h1:SJGjyfk/mgTjbZOn3dHrpA3IqB5M1jTF0nsnh3dFXpM=
 github.com/mitchellh/mapstructure v1.1.2 h1:fmNYVwqnSfB9mZU6OS2O6GsXM+wcskZDuKQzvN1EDeE=

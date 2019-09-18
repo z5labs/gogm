@@ -6,11 +6,18 @@ import (
 	"github.com/cornelk/hashmap"
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/mindstand/gogm/util"
+	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 )
 
 //drops all known indexes
 func dropAllIndexesAndConstraints() error{
-	constraintRows, err := dsl.QB(true).Cypher("CALL db.constraints").Query(nil)
+	conn, err := driverPool.Open(driver.ReadWriteMode)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	constraintRows, err := dsl.QB().Cypher("CALL db.constraints").WithNeo(conn).Query(nil)
 	if err != nil{
 		return err
 	}
@@ -20,22 +27,19 @@ func dropAllIndexesAndConstraints() error{
 		return err
 	}
 
-	dropSess := dsl.NewSession()
-	defer dropSess.Close()
-
 	//if there is anything, get rid of it
 	if len(constraints) != 0{
-		err = dropSess.Begin(false)
+		tx, err := conn.Begin()
 		if err != nil{
 			return err
 		}
 
 		for _, constraint := range constraints {
 			log.Debugf("dropping constraint '%s'", constraint)
-			_, err := dropSess.Query().Cypher(fmt.Sprintf("DROP %s", constraint)).Exec(nil)
+			_, err := dsl.QB().Cypher(fmt.Sprintf("DROP %s", constraint)).WithNeo(conn).Exec(nil)
 			if err != nil{
 				oerr := err
-				err = dropSess.Rollback()
+				err = tx.Rollback()
 				if err != nil{
 					return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
 				}
@@ -44,13 +48,13 @@ func dropAllIndexesAndConstraints() error{
 			}
 		}
 
-		err = dropSess.Commit()
+		err = tx.Commit()
 		if err != nil{
 			return err
 		}
 	}
 
-	indexRows, err := dsl.QB(true).Cypher("CALL db.indexes()").Query(nil)
+	indexRows, err := dsl.QB().Cypher("CALL db.indexes()").WithNeo(conn).Query(nil)
 	if err != nil{
 		return err
 	}
@@ -62,7 +66,7 @@ func dropAllIndexesAndConstraints() error{
 
 	//if there is anything, get rid of it
 	if len(indexes) != 0{
-		err = dropSess.Begin(false)
+		tx, err := conn.Begin()
 		if err != nil{
 			return err
 		}
@@ -72,10 +76,10 @@ func dropAllIndexesAndConstraints() error{
 				return errors.New("invalid index config")
 			}
 
-			_, err := dropSess.Query().Cypher(fmt.Sprintf("DROP %s", index[0].(string))).Exec(nil)
+			_, err := dsl.QB().Cypher(fmt.Sprintf("DROP %s", index[0].(string))).WithNeo(conn).Exec(nil)
 			if err != nil{
 				oerr := err
-				err = dropSess.Rollback()
+				err = tx.Rollback()
 				if err != nil{
 					return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
 				}
@@ -84,7 +88,7 @@ func dropAllIndexesAndConstraints() error{
 			}
 		}
 
-		return dropSess.Commit()
+		return tx.Commit()
 	} else {
 		return nil
 	}
@@ -92,6 +96,12 @@ func dropAllIndexesAndConstraints() error{
 
 //creates all indexes
 func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
+	conn, err := driverPool.Open(driver.ReadWriteMode)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	//validate that we have to do anything
 	if mappedTypes == nil || mappedTypes.Len() == 0{
 		return errors.New("must have types to map")
@@ -99,11 +109,7 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 
 	numIndexCreated := 0
 
-	//setup session
-	sess := dsl.NewSession()
-	defer sess.Close()
-
-	err := sess.Begin(false)
+	tx, err := conn.Begin()
 	if err != nil{
 		return err
 	}
@@ -124,7 +130,7 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 			if config.PrimaryKey || config.Unique{
 				numIndexCreated++
 
-				_, err := sess.Query().Create(dsl.NewConstraint(&dsl.ConstraintConfig{
+				_, err := dsl.QB().WithNeo(conn).Create(dsl.NewConstraint(&dsl.ConstraintConfig{
 					Unique: true,
 					Name: node,
 					Type: structConfig.Label,
@@ -132,7 +138,7 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 				})).Exec(nil)
 				if err != nil{
 					oerr := err
-					err = sess.Rollback()
+					err = tx.Rollback()
 					if err != nil{
 						return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
 					}
@@ -147,13 +153,13 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 		//create composite index
 		if len(indexFields) > 0{
 			numIndexCreated++
-			_, err := sess.Query().Create(dsl.NewIndex(&dsl.IndexConfig{
+			_, err := dsl.QB().WithNeo(conn).Create(dsl.NewIndex(&dsl.IndexConfig{
 				Type: structConfig.Label,
 				Fields: indexFields,
 			})).Exec(nil)
 			if err != nil{
 				oerr := err
-				err = sess.Rollback()
+				err = tx.Rollback()
 				if err != nil{
 					return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
 				}
@@ -165,11 +171,17 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 
 	log.Debugf("created (%v) indexes", numIndexCreated)
 
-	return sess.Commit()
+	return tx.Commit()
 }
 
 //verifies all indexes
 func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
+	conn, err := driverPool.Open(driver.ReadWriteMode)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	//validate that we have to do anything
 	if mappedTypes == nil || mappedTypes.Len() == 0{
 		return errors.New("must have types to map")
@@ -214,7 +226,7 @@ func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 	}
 
 	//get whats there now
-	constRows, err := dsl.QB(true).Cypher("CALL db.constraints").Query(nil)
+	constRows, err := dsl.QB().WithNeo(conn).Cypher("CALL db.constraints").Query(nil)
 	if err != nil{
 		return err
 	}
@@ -226,7 +238,7 @@ func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 
 	var foundIndexes []string
 
-	indexRows, err := dsl.QB(true).Cypher("CALL db.indexes()").Query(nil)
+	indexRows, err := dsl.QB().WithNeo(conn).Cypher("CALL db.indexes()").Query(nil)
 	if err != nil{
 		return err
 	}

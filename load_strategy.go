@@ -25,11 +25,7 @@ MATCH (n:OrganizationNode)
 			collect(DISTINCT m) as Ends,
 			collect(DISTINCT n) as Starts*/
 
-func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error){
-	if sess == nil{
-		return nil, errors.New("session can not be nil")
-	}
-
+func PathLoadStrategyMany(variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error){
 	if variable == ""{
 		return nil, errors.New("variable name cannot be empty")
 	}
@@ -42,7 +38,7 @@ func PathLoadStrategyMany(sess *dsl.Session, variable, label string, depth int, 
 		return nil, errors.New("depth can not be less than 0")
 	}
 
-	builder := sess.QueryReadOnly().
+	builder := dsl.QB().
 		Match(dsl.Path().V(dsl.V{Name: variable, Type: label}).Build()).
 		With(&dsl.WithConfig{
 			Parts: []dsl.WithPart{
@@ -93,11 +89,7 @@ func BuildReturnQuery(builder dsl.Cypher, startSide, endSide, edge string){
 	)
 }
 
-func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
-	if sess == nil{
-		return nil, errors.New("session can not be nil")
-	}
-
+func PathLoadStrategyOne(variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
 	if variable == ""{
 		return nil, errors.New("variable name cannot be empty")
 	}
@@ -110,7 +102,7 @@ func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, a
 		return nil, errors.New("depth can not be less than 0")
 	}
 
-	builder := sess.QueryReadOnly().
+	builder := dsl.QB().
 		Match(dsl.Path().V(dsl.V{Name: variable, Type: label}).Build()).
 		With(&dsl.WithConfig{
 			Parts: []dsl.WithPart{
@@ -166,11 +158,7 @@ func PathLoadStrategyOne(sess *dsl.Session, variable, label string, depth int, a
 	return builder, nil
 }
 
-func PathLoadStrategyEdgeConstraint(sess *dsl.Session, startVariable, startLabel, endLabel, endTargetField string, minJumps, maxJumps, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
-	if sess == nil{
-		return nil, errors.New("session can not be nil")
-	}
-
+func PathLoadStrategyEdgeConstraint(startVariable, startLabel, endLabel, endTargetField string, minJumps, maxJumps, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
 	if startVariable == ""{
 		return nil, errors.New("variable name cannot be empty")
 	}
@@ -190,7 +178,7 @@ func PathLoadStrategyEdgeConstraint(sess *dsl.Session, startVariable, startLabel
 		return nil, err
 	}
 
-	builder := sess.QueryReadOnly().
+	builder := dsl.QB().
 		Match(dsl.Path().
 			V(dsl.V{Name: startVariable, Type: startLabel}).
 			E(dsl.E{MinJumps: minJumps, MaxJumps: maxJumps, Direction: dsl.DirectionNone}).
