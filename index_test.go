@@ -44,10 +44,10 @@ func TestDropAllIndexesAndConstraints(t *testing.T){
 
 func TestIndexManagement(t *testing.T){
 	//requires connection
-	//if !testing.Short(){
-	//	t.SkipNow()
-	//	return
-	//}
+	if !testing.Short(){
+		t.SkipNow()
+		return
+	}
 
 	req := require.New(t)
 
