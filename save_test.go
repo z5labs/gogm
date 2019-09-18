@@ -150,7 +150,7 @@ func TestSave(t *testing.T){
 	if err != nil {
 		require.Nil(t, err)
 	}
-	driverPool.Reclaim(conn)
+	defer driverPool.Reclaim(conn)
 
 	req.Nil(saveDepth(conn, comp2, defaultSaveDepth))
 }

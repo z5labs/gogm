@@ -81,7 +81,7 @@ func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 	return relateNodes(sess, relations, ids)
 }
 
-func createNodes(sess *driver.BoltConn, crNodes map[string]map[string]nodeCreateConf) (map[string]int64, error){
+func createNodes(conn *driver.BoltConn, crNodes map[string]map[string]nodeCreateConf) (map[string]int64, error){
 	idMap := map[string]int64{}
 
 	for label, nodes := range crNodes{
@@ -124,6 +124,7 @@ func createNodes(sess *driver.BoltConn, crNodes map[string]map[string]nodeCreate
 				},
 				Alias: "id",
 			}).
+			WithNeo(conn).
 			Query(map[string]interface{}{
 				"rows": rows,
 			})
@@ -157,7 +158,7 @@ func createNodes(sess *driver.BoltConn, crNodes map[string]map[string]nodeCreate
 	return idMap, nil
 }
 
-func relateNodes(sess *driver.BoltConn, relations map[string][]relCreateConf, ids map[string]int64) error{
+func relateNodes(conn *driver.BoltConn, relations map[string][]relCreateConf, ids map[string]int64) error{
 	if relations == nil || len(relations) == 0{
 		return errors.New("relations can not be nil or empty")
 	}
@@ -245,6 +246,7 @@ func relateNodes(sess *driver.BoltConn, relations map[string][]relCreateConf, id
 				Path: mergePath,
 			}).
 			Cypher("SET rel += row.props").
+			WithNeo(conn).
 			Exec(map[string]interface{}{
 				"rows": params,
 			})
