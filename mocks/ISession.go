@@ -12,7 +12,7 @@ type ISession struct {
 }
 
 // Begin provides a mock function with given fields:
-func (_m *ISession) Begin(bool) error {
+func (_m *ISession) Begin() error {
 	ret := _m.Called()
 
 	var r0 error
