@@ -22,6 +22,8 @@ func dropAllIndexesAndConstraints() error{
 		return err
 	}
 
+	defer constraintRows.Close()
+
 	constraints, err := dsl.RowsToStringArray(constraintRows)
 	if err != nil{
 		return err
@@ -231,6 +233,8 @@ func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 		return err
 	}
 
+	defer constRows.Close()
+
 	foundConstraints, err := dsl.RowsToStringArray(constRows)
 	if err != nil{
 		return err
@@ -242,6 +246,8 @@ func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 	if err != nil{
 		return err
 	}
+
+	defer indexRows.Close()
 
 	findexes, err := dsl.RowsTo2DInterfaceArray(indexRows)
 	if err != nil{
