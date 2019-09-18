@@ -19,7 +19,7 @@ func TestDropAllIndexesAndConstraints(t *testing.T){
 	if err != nil {
 		require.Nil(t, err)
 	}
-	defer conn.Close()
+	driverPool.Reclaim(conn)
 	require.Nil(t, err)
 
 	err = dropAllIndexesAndConstraints()
@@ -56,7 +56,7 @@ func TestIndexManagement(t *testing.T){
 	if err != nil {
 		require.Nil(t, err)
 	}
-	defer conn.Close()
+	driverPool.Reclaim(conn)
 	req.Nil(err)
 
 	//delete everything

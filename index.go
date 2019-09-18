@@ -15,7 +15,7 @@ func dropAllIndexesAndConstraints() error{
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	driverPool.Reclaim(conn)
 
 	constraintRows, err := dsl.QB().Cypher("CALL db.constraints").WithNeo(conn).Query(nil)
 	if err != nil{
@@ -104,7 +104,7 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	driverPool.Reclaim(conn)
 
 	//validate that we have to do anything
 	if mappedTypes == nil || mappedTypes.Len() == 0{
@@ -184,7 +184,7 @@ func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error{
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer driverPool.Reclaim(conn)
 
 	//validate that we have to do anything
 	if mappedTypes == nil || mappedTypes.Len() == 0{

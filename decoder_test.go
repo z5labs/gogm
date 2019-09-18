@@ -38,7 +38,7 @@ func TestDecode(t *testing.T){
 	if err != nil {
 		require.Nil(t, err)
 	}
-	defer conn.Close()
+	driverPool.Reclaim(conn)
 
 
 	rows, err := dsl.QB().WithNeo(conn).Cypher(query).Query(nil)

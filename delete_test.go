@@ -15,7 +15,7 @@ func TestDelete(t *testing.T){
 	if err != nil {
 		require.Nil(t, err)
 	}
-	defer conn.Close()
+	driverPool.Reclaim(conn)
 
 	del := a{
 		Id: 0,
