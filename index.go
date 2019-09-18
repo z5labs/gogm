@@ -61,6 +61,8 @@ func dropAllIndexesAndConstraints() error{
 		return err
 	}
 
+	defer indexRows.Close()
+
 	indexes, err := dsl.RowsTo2DInterfaceArray(indexRows)
 	if err != nil{
 		return err
