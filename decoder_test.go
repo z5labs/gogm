@@ -13,26 +13,26 @@ import (
 )
 
 func TestDecode(t *testing.T){
-	if !testing.Short(){
-		t.Skip()
-		return
-	}
+	//if !testing.Short(){
+	//	t.Skip()
+	//	return
+	//}
 
 	req := require.New(t)
 
-	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
+	req.Nil(setupInit(false, &Config{
+		Host:          "0.0.0.0",
+		Port:          7687,
+		IsCluster:     false,
+		Username:      "neo4j",
+		Password:      "password",
+		PoolSize:      50,
+		IndexStrategy: IGNORE_INDEX,
+	}, &a{}, &b{}, &c{}))
 
 	req.EqualValues(3, mappedTypes.Len())
 
-	query := `
-		MATCH (n:a)
-		WITH n
-		MATCH (n)-[e*0..2]-(m)
-		RETURN DISTINCT
-			collect(extract(n in e | {StartNodeId: ID(startnode(n)), StartNodeType: labels(startnode(n))[0], EndNodeId: ID(endnode(n)), EndNodeType: labels(endnode(n))[0], Obj: n, Type: type(n)})) as Edges,
-			collect(DISTINCT m) as Ends,
-			collect(DISTINCT n) as Starts
-	`
+	query := `match p=(n:a{uuid:'d5c56567-da8e-429f-9cea-300e722195e0'})-[*0..4]-() return p`
 
 	conn, err := driverPool.Open(driver.ReadWriteMode)
 	if err != nil {
@@ -49,9 +49,12 @@ func TestDecode(t *testing.T){
 	require.Nil(t, decodeNeoRows(rows, &stuff))
 	t.Log(stuff.Id)
 	t.Log(stuff.UUID)
-	t.Log(stuff.MultiSpecA[0].End.Id)
-	req.NotEqual(0, stuff.Id)
-	req.True(len(stuff.MultiSpecA) > 0)
+	t.Log(stuff)
+	req.NotNil(stuff.SingleSpecA)
+	req.NotNil(stuff.SingleSpecA.End.Single)
+	//t.Log(stuff.MultiSpecA[0].End.Id)
+	//req.NotEqual(0, stuff.Id)
+	//req.True(len(stuff.MultiSpecA) > 0)
 }
 
 type TestStruct struct {
@@ -238,61 +241,38 @@ func TestDecoder(t *testing.T){
 
 //	req.EqualValues(3, mappedTypes.Len())
 
-	Type := "Type"
-	StartNodeType := "StartNodeType"
-	StartNodeId := "StartNodeId"
-	EndNodeType := "EndNodeType"
-	EndNodeId := "EndNodeId"
-	Obj := "Obj"
-
 	fTime := time.Now().UTC()
 
 	vars := [][]interface{}{
 		{
-			[]interface{}{
-				[]interface{}{map[string]interface{}{}},
-				[]interface{}{
-					map[string]interface{}{
-						Type: "test_rel",
-						StartNodeType: "b",
-						StartNodeId: int64(2),
-						EndNodeType: "a",
-						EndNodeId: int64(1),
+			graph.Path{
+				Nodes: []graph.Node{
+					graph.Node{
+						Labels: []string{"b"},
+						Properties: map[string]interface{}{
+							"test_field": "test",
+							"uuid":       "dasdfas",
+							"test_time":  fTime.Format(time.RFC3339),
+						},
+						NodeIdentity: 2,
+					},
+					graph.Node{
+						Labels: []string{"a"},
+						Properties: map[string]interface{}{
+							"test_field": "test",
+							"uuid":       "dasdfasd",
+						},
+						NodeIdentity: 1,
 					},
 				},
-			},
-			[]interface{}{
-				graph.Node{
-					Labels: []string{"a"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"test_type_def_string": "TDs",
-						"test_type_def_int": 600,
-						"uuid": "dasdfasd",
+				Relationships: []graph.UnboundRelationship{
+					graph.UnboundRelationship{
+						RelIdentity: 1,
+						Type:        "test_rel",
+						Properties:  nil,
 					},
-					NodeIdentity: 1,
 				},
-				graph.Node{
-					Labels: []string{"b"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfas",
-						"test_time": fTime.Format(time.RFC3339),
-					},
-					NodeIdentity: 2,
-				},
-			},
-			[]interface{}{
-				graph.Node{
-					Labels: []string{"a"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"test_type_def_string": "TDs",
-						"test_type_def_int": 600,
-						"uuid": "dasdfasd",
-					},
-					NodeIdentity: 1,
-				},
+				Sequence: []int{1, 1},
 			},
 		},
 	}
@@ -348,50 +328,37 @@ func TestDecoder(t *testing.T){
 
 	vars2 := [][]interface{}{
 		{
-			[]interface{}{
-				[]interface{}{map[string]interface{}{}},
-				[]interface{}{
-					map[string]interface{}{
-						Type: "special_single",
-						StartNodeType: "a",
-						StartNodeId: int64(1),
-						EndNodeType: "b",
-						EndNodeId: int64(2),
-						Obj: map[string]interface{}{
+			graph.Path{
+				Nodes: []graph.Node{
+					graph.Node{
+						Labels: []string{"a"},
+						Properties: map[string]interface{}{
+							"test_field": "test",
+							"uuid":       "dasdfasd",
+						},
+						NodeIdentity: 1,
+					},
+					graph.Node{
+						Labels: []string{"b"},
+						Properties: map[string]interface{}{
+							"test_field": "test",
+							"uuid":       "dasdfas",
+							"test_time":  fTime.Format(time.RFC3339),
+						},
+						NodeIdentity: 2,
+					},
+				},
+				Relationships: []graph.UnboundRelationship{
+					graph.UnboundRelationship{
+						RelIdentity: 5,
+						Type:        "special_single",
+						Properties: map[string]interface{}{
 							"test": "testing",
 							"uuid": "asdfasdafsd",
 						},
 					},
 				},
-			},
-			[]interface{}{
-				graph.Node{
-					Labels: []string{"b"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfas",
-						"test_time": fTime.Format(time.RFC3339),
-					},
-					NodeIdentity: 2,
-				},
-				graph.Node{
-					Labels: []string{"a"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfasd",
-					},
-					NodeIdentity: 1,
-				},
-			},
-			[]interface{}{
-				graph.Node{
-					Labels: []string{"a"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfasd",
-					},
-					NodeIdentity: 1,
-				},
+				Sequence: []int{1, 1},
 			},
 		},
 	}
@@ -432,46 +399,34 @@ func TestDecoder(t *testing.T){
 
 	vars3 := [][]interface{}{
 		{
-			[]interface{}{
-				[]interface{}{map[string]interface{}{}},
-				[]interface{}{
-					map[string]interface{}{
-						Type: "multib",
-						StartNodeType: "a",
-						StartNodeId: int64(1),
-						EndNodeType: "b",
-						EndNodeId: int64(2),
+			graph.Path{
+				Nodes: []graph.Node{
+					graph.Node{
+						Labels: []string{"a"},
+						Properties: map[string]interface{}{
+							"test_field": "test",
+							"uuid": "dasdfasd",
+						},
+						NodeIdentity: 1,
+					},
+					graph.Node{
+						Labels: []string{"b"},
+						Properties: map[string]interface{}{
+							"test_field": "test",
+							"uuid": "dasdfas",
+							"test_time": fTime.Format(time.RFC3339),
+						},
+						NodeIdentity: 2,
 					},
 				},
-			},
-			[]interface{}{
-				graph.Node{
-					Labels: []string{"b"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfas",
-						"test_time": fTime.Format(time.RFC3339),
+				Relationships: []graph.UnboundRelationship{
+					graph.UnboundRelationship{
+						RelIdentity: 5,
+						Type:        "multib",
+						Properties:  nil,
 					},
-					NodeIdentity: 2,
 				},
-				graph.Node{
-					Labels: []string{"a"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfasd",
-					},
-					NodeIdentity: 1,
-				},
-			},
-			[]interface{}{
-				graph.Node{
-					Labels: []string{"a"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfasd",
-					},
-					NodeIdentity: 1,
-				},
+				Sequence:      []int{1,1},
 			},
 		},
 	}
@@ -504,53 +459,37 @@ func TestDecoder(t *testing.T){
 
 	vars4 := [][]interface{}{
 		{
-			[]interface{}{
-				[]interface{}{
-					map[string]interface{}{},
+			graph.Path{
+				Nodes: []graph.Node{
+					graph.Node{
+						Labels: []string{"a"},
+						Properties: map[string]interface{}{
+							"test_field": "test",
+							"uuid": "dasdfasd",
+						},
+						NodeIdentity: 1,
+					},
+					graph.Node{
+						Labels: []string{"b"},
+						Properties: map[string]interface{}{
+							"test_field": "test",
+							"uuid": "dasdfas",
+							"test_time": fTime.Format(time.RFC3339),
+						},
+						NodeIdentity: 2,
+					},
 				},
-				[]interface{}{
-					map[string]interface{}{
-						Type: "special_multi",
-						Obj: map[string]interface{}{
+				Relationships: []graph.UnboundRelationship{
+					graph.UnboundRelationship{
+						RelIdentity: 5,
+						Type:        "special_multi",
+						Properties: map[string]interface{}{
 							"test": "testing",
 							"uuid": "asdfasdafsd",
 						},
-						StartNodeType: "a",
-						StartNodeId: int64(1),
-						EndNodeType: "b",
-						EndNodeId: int64(2),
 					},
 				},
-			},
-			[]interface{}{
-				graph.Node{
-					Labels: []string{"b"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfas",
-						"test_time": fTime.Format(time.RFC3339),
-					},
-					NodeIdentity: 2,
-				},
-				graph.Node{
-					Labels: []string{"a"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfasd",
-					},
-					NodeIdentity: 1,
-				},
-			},
-			[]interface{}{
-				graph.Node{
-					Labels: []string{"b"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfas",
-						"test_time": fTime.Format(time.RFC3339),
-					},
-					NodeIdentity: 2,
-				},
+				Sequence:      []int{1,1},
 			},
 		},
 	}
@@ -593,31 +532,22 @@ func TestDecoder(t *testing.T){
 	var5uuid := "dasdfasdf"
 
 	vars5 := [][]interface{} {
-		[]interface{}{
-			[]interface{}{},
-			[]interface{}{
-				graph.Node{
-					NodeIdentity: 1,
-					Labels: []string{ "propsTest" },
-					Properties: map[string]interface{}{
-						"uuid": var5uuid,
-						"props.test": "test",
-						"props.test2": "test2",
-						"props.test3": "test3",
+		{
+			graph.Path{
+				Nodes: []graph.Node{
+					graph.Node{
+						NodeIdentity: 1,
+						Labels: []string{ "propsTest" },
+						Properties: map[string]interface{}{
+							"uuid": var5uuid,
+							"props.test": "test",
+							"props.test2": "test2",
+							"props.test3": "test3",
+						},
 					},
 				},
-			},
-			[]interface{}{
-				graph.Node{
-					NodeIdentity: 1,
-					Labels: []string{ "propsTest" },
-					Properties: map[string]interface{}{
-						"uuid": var5uuid,
-						"props.test": "test",
-						"props.test2": "test2",
-						"props.test3": "test3",
-					},
-				},
+				Relationships: nil,
+				Sequence:      nil,
 			},
 		},
 	}
@@ -643,36 +573,31 @@ func TestDecoder(t *testing.T){
 
 	//multi single
 	vars6 := [][]interface{}{
+
 		{
-			[]interface{}{
-				[]interface{}{
-					map[string]interface{}{},
-				},
-			},
-			[]interface{}{
-				[]interface{}{
-					map[string]interface{}{},
-				},
-			},
-			[]interface{}{
-				graph.Node{
-					Labels: []string{"b"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfas",
-						"test_time": fTime.Format(time.RFC3339),
+			graph.Path{
+				Nodes: []graph.Node{
+					graph.Node{
+						Labels: []string{"b"},
+						Properties: map[string]interface{}{
+							"test_field": "test",
+							"uuid": "dasdfas",
+							"test_time": fTime.Format(time.RFC3339),
+						},
+						NodeIdentity: 2,
 					},
-					NodeIdentity: 2,
-				},
-				graph.Node{
-					Labels: []string{"b"},
-					Properties: map[string]interface{}{
-						"test_field": "test",
-						"uuid": "dasdfas",
-						"test_time": fTime.Format(time.RFC3339),
+					graph.Node{
+						Labels: []string{"b"},
+						Properties: map[string]interface{}{
+							"test_field": "test",
+							"uuid": "dasdfas",
+							"test_time": fTime.Format(time.RFC3339),
+						},
+						NodeIdentity: 3,
 					},
-					NodeIdentity: 3,
 				},
+				Relationships: nil,
+				Sequence:      nil,
 			},
 		},
 	}
@@ -697,9 +622,11 @@ func TestDecoder(t *testing.T){
 
 	vars7 := [][]interface{}{
 		{
-			[]interface{}{},
-			[]interface{}{},
-			[]interface{}{},
+			graph.Path{
+				Nodes:         nil,
+				Relationships: nil,
+				Sequence:      nil,
+			},
 		},
 	}
 
@@ -713,9 +640,11 @@ func TestDecoder(t *testing.T){
 
 	vars8 := [][]interface{}{
 		{
-			[]interface{}{},
-			[]interface{}{},
-			[]interface{}{},
+			graph.Path{
+				Nodes:         nil,
+				Relationships: nil,
+				Sequence:      nil,
+			},
 		},
 	}
 

@@ -1,0 +1,298 @@
+[
+  {
+    "keys": [
+      "p"
+    ],
+    "length": 1,
+    "_fields": [
+      {
+        "start": {
+          "identity": {
+            "low": 123,
+            "high": 0
+          },
+          "labels": [
+            "a"
+          ],
+          "properties": {
+            "test_field": "test",
+            "test_type_def_int": {
+              "low": 0,
+              "high": 0
+            },
+            "uuid": "dd346d90-9dba-47f5-860b-8867fe220566",
+            "test_type_def_string": ""
+          }
+        },
+        "end": {
+          "identity": {
+            "low": 123,
+            "high": 0
+          },
+          "labels": [
+            "a"
+          ],
+          "properties": {
+            "test_field": "test",
+            "test_type_def_int": {
+              "low": 0,
+              "high": 0
+            },
+            "uuid": "dd346d90-9dba-47f5-860b-8867fe220566",
+            "test_type_def_string": ""
+          }
+        },
+        "segments": [],
+        "length": 0
+      }
+    ],
+    "_fieldLookup": {
+      "p": 0
+    }
+  },
+  {
+    "keys": [
+      "p"
+    ],
+    "length": 1,
+    "_fields": [
+      {
+        "start": {
+          "identity": {
+            "low": 124,
+            "high": 0
+          },
+          "labels": [
+            "b"
+          ],
+          "properties": {
+            "test_field": "test",
+            "uuid": "e72c0d19-592a-49ae-998a-7ef6c525af41",
+            "test_time": "2019-09-23T15:03:38Z"
+          }
+        },
+        "end": {
+          "identity": {
+            "low": 123,
+            "high": 0
+          },
+          "labels": [
+            "a"
+          ],
+          "properties": {
+            "test_field": "test",
+            "test_type_def_int": {
+              "low": 0,
+              "high": 0
+            },
+            "uuid": "dd346d90-9dba-47f5-860b-8867fe220566",
+            "test_type_def_string": ""
+          }
+        },
+        "segments": [
+          {
+            "start": {
+              "identity": {
+                "low": 124,
+                "high": 0
+              },
+              "labels": [
+                "b"
+              ],
+              "properties": {
+                "test_field": "test",
+                "uuid": "e72c0d19-592a-49ae-998a-7ef6c525af41",
+                "test_time": "2019-09-23T15:03:38Z"
+              }
+            },
+            "relationship": {
+              "identity": {
+                "low": 10,
+                "high": 0
+              },
+              "start": {
+                "low": 123,
+                "high": 0
+              },
+              "end": {
+                "low": 124,
+                "high": 0
+              },
+              "type": "special_single",
+              "properties": {
+                "test": "testing",
+                "uuid": ""
+              }
+            },
+            "end": {
+              "identity": {
+                "low": 123,
+                "high": 0
+              },
+              "labels": [
+                "a"
+              ],
+              "properties": {
+                "test_field": "test",
+                "test_type_def_int": {
+                  "low": 0,
+                  "high": 0
+                },
+                "uuid": "dd346d90-9dba-47f5-860b-8867fe220566",
+                "test_type_def_string": ""
+              }
+            }
+          }
+        ],
+        "length": 1
+      }
+    ],
+    "_fieldLookup": {
+      "p": 0
+    }
+  },
+  {
+    "keys": [
+      "p"
+    ],
+    "length": 1,
+    "_fields": [
+      {
+        "start": {
+          "identity": {
+            "low": 124,
+            "high": 0
+          },
+          "labels": [
+            "b"
+          ],
+          "properties": {
+            "test_field": "test",
+            "uuid": "e72c0d19-592a-49ae-998a-7ef6c525af41",
+            "test_time": "2019-09-23T15:03:38Z"
+          }
+        },
+        "end": {
+          "identity": {
+            "low": 124,
+            "high": 0
+          },
+          "labels": [
+            "b"
+          ],
+          "properties": {
+            "test_field": "test",
+            "uuid": "e72c0d19-592a-49ae-998a-7ef6c525af41",
+            "test_time": "2019-09-23T15:03:38Z"
+          }
+        },
+        "segments": [],
+        "length": 0
+      }
+    ],
+    "_fieldLookup": {
+      "p": 0
+    }
+  },
+  {
+    "keys": [
+      "p"
+    ],
+    "length": 1,
+    "_fields": [
+      {
+        "start": {
+          "identity": {
+            "low": 123,
+            "high": 0
+          },
+          "labels": [
+            "a"
+          ],
+          "properties": {
+            "test_field": "test",
+            "test_type_def_int": {
+              "low": 0,
+              "high": 0
+            },
+            "uuid": "dd346d90-9dba-47f5-860b-8867fe220566",
+            "test_type_def_string": ""
+          }
+        },
+        "end": {
+          "identity": {
+            "low": 124,
+            "high": 0
+          },
+          "labels": [
+            "b"
+          ],
+          "properties": {
+            "test_field": "test",
+            "uuid": "e72c0d19-592a-49ae-998a-7ef6c525af41",
+            "test_time": "2019-09-23T15:03:38Z"
+          }
+        },
+        "segments": [
+          {
+            "start": {
+              "identity": {
+                "low": 123,
+                "high": 0
+              },
+              "labels": [
+                "a"
+              ],
+              "properties": {
+                "test_field": "test",
+                "test_type_def_int": {
+                  "low": 0,
+                  "high": 0
+                },
+                "uuid": "dd346d90-9dba-47f5-860b-8867fe220566",
+                "test_type_def_string": ""
+              }
+            },
+            "relationship": {
+              "identity": {
+                "low": 10,
+                "high": 0
+              },
+              "start": {
+                "low": 123,
+                "high": 0
+              },
+              "end": {
+                "low": 124,
+                "high": 0
+              },
+              "type": "special_single",
+              "properties": {
+                "test": "testing",
+                "uuid": ""
+              }
+            },
+            "end": {
+              "identity": {
+                "low": 124,
+                "high": 0
+              },
+              "labels": [
+                "b"
+              ],
+              "properties": {
+                "test_field": "test",
+                "uuid": "e72c0d19-592a-49ae-998a-7ef6c525af41",
+                "test_time": "2019-09-23T15:03:38Z"
+              }
+            }
+          }
+        ],
+        "length": 1
+      }
+    ],
+    "_fieldLookup": {
+      "p": 0
+    }
+  }
+]

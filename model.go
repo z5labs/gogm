@@ -10,6 +10,8 @@ type Edge struct{
 }
 
 type neoEdgeConfig struct {
+	Id int64
+
 	StartNodeId int64
 	StartNodeType string
 
