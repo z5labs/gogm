@@ -6,10 +6,8 @@ import (
 	dsl "github.com/mindstand/go-cypherdsl"
 	neo "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/mindstand/golang-neo4j-bolt-driver/structures/graph"
-	"github.com/mitchellh/mapstructure"
 	"reflect"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -24,16 +22,25 @@ func decodeNeoRows(rows neo.Rows, respObj interface{}) error{
 	return decode(arr, respObj)
 }
 
+//example query `match p=(n)-[*0..5]-() return p`
+//decodes raw path response from driver
 func decode(rawArr [][]interface{}, respObj interface{}) (err error){
+	//check nil params
+	if rawArr == nil {
+		return fmt.Errorf("rawArr can not be nil, %w", ErrInvalidParams)
+	}
+
+	//check empty
+	if len(rawArr) == 0 {
+		return fmt.Errorf("nothing returned from driver, %w", ErrNotFound)
+	}
+
+	//we're doing reflection now, lets set up a panic recovery
 	defer func() {
 		if r := recover(); r != nil{
 			err = fmt.Errorf("%v - PANIC RECOVERY - %w", r, ErrInternal)
 		}
 	}()
-
-	//                                        0               1          2
-	//signature of returned array should be list of edges, list of ends, list of starts
-	// length of 3
 
 	if respObj == nil {
 		return fmt.Errorf("response object can not be nil - %w", ErrInvalidParams)
@@ -42,97 +49,52 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	rv := reflect.ValueOf(respObj)
 	rt := reflect.TypeOf(respObj)
 
+	primaryLabel := getPrimaryLabel(rt)
+
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return fmt.Errorf("invalid resp type %T - %w", respObj, ErrInvalidParams)
 	}
 
-	if rawArr == nil || len(rawArr) != 1{
-		return fmt.Errorf("invalid rawArr size, %v - %w", len(rawArr), ErrInternal)
-	}
 
-	arr1 := rawArr[0]
+	//todo optimize with set array size
+	var paths []*graph.Path
+	//todo handle strict rels and separate nodes
+	//var strictRels []*graph.Relationship
+	//var isolatedNodes []*graph.Node
 
-	if len(arr1) != 3{
-		return  fmt.Errorf("malformed response, invalid number of rows (%v != 3) - %w", len(arr1), ErrInternal)
-	}
-
-	var arr [][]interface{}
-
-	arr = append(arr, arr1[0].([]interface{}))
-	arr = append(arr, arr1[1].([]interface{}))
-	arr = append(arr, arr1[2].([]interface{}))
-
-	emptyCheck := 0
-
-	//check for empty stuff -- starts at 1 because the first index is handled separately
-	for i := 0; i < 3; i++ {
-		if i == 0 {
-			continue
-		}
-
-		if len(arr[i]) == 0 {
-			emptyCheck ++
-			continue
-		}
-
-		if aCheck, ok := arr[i][0].([]interface{}); ok {
-			if len(aCheck) == 0 {
-				//set it to just be empty
-				arr[i] = []interface{}{}
+	for _, arr := range rawArr {
+		for _, graphType := range arr {
+			switch graphType.(type) {
+			case graph.Path:
+				convP := graphType.(graph.Path)
+				paths = append(paths, &convP)
+				break
+			//case graph.Relationship:
+			//	convR := graphType.(graph.Relationship)
+			//	strictRels = append(strictRels, &convR)
+			//	break
+			//case graph.Node:
+			//	convN := graphType.(graph.Node)
+			//	isolatedNodes = append(isolatedNodes, &convN)
+			//	break
+			default:
+				return fmt.Errorf("%T unsupported type, %w", graphType, ErrInternal)
 			}
 		}
 	}
+	nodeLookup := make(map[int64]*reflect.Value)
+	var pks []int64
+	rels := make(map[int64]*neoEdgeConfig)
 
-	//check if there's nothing to do
-	if emptyCheck == 2 {
-		return fmt.Errorf("no data was returned by neo4j - %w", ErrNotFound)
+	if paths != nil && len(paths) != 0{
+		err = sortPaths(paths[len(paths)-1], &nodeLookup, &rels, &pks, primaryLabel)
+		if err != nil {
+			return err
+		}
 	}
-
-	p0 := len(arr[0])
-	p1 := len(arr[1])
-	p2 := len(arr[2])
-
-	//setup vals
-	nodeLookup := make(map[int64]*reflect.Value, p1+ p2)
-	pks := make([]int64, p2, p2)
-	rels := make([]neoEdgeConfig, p0, p0)
-
-	//validate the type provided is compatible with return
-	if p2 == 0{
-		return fmt.Errorf("no primary node to return - %w", ErrInternal)
-	}
-
-	nodes := append(arr[1], arr[2]...)
-
-	var wg sync.WaitGroup
-
-	wg.Add(3)
-
-	errChan := make(chan error, 3)
-
-	go convertAndMapNodes(nodes, &nodeLookup, errChan, &wg)
-	go getPks(arr[2], pks, errChan, &wg)
-	go convertAndMapEdges(arr[0], rels, errChan, &wg)
-
-	//wait for mapping to commence
-	wg.Wait()
-
-	select {
-	case err := <- errChan:
-		log.WithError(err).Error()
-		return fmt.Errorf("channel sorting error - %w", err)
-	default:
-		log.Debugf("passed setup")
-	}
-
-	close(errChan)
 
 	//build relationships
-	for i, relationConfig := range rels{
-		if i == 0 {
-			continue
-		}
-
+	for _, relationConfig := range rels{
 		//todo figure out why this is broken
 		if relationConfig.StartNodeType == "" || relationConfig.EndNodeType == "" {
 			continue
@@ -184,7 +146,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			}
 
 			//create value
-			val, err := convertToValue(-1, typeConfig, relationConfig.Obj, it)
+			val, err := convertToValue(relationConfig.Id, typeConfig, relationConfig.Obj, it)
 			if err != nil{
 				return err
 			}
@@ -288,6 +250,96 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	}
 }
 
+func getPrimaryLabel(rt reflect.Type) string {
+	//assume its already a pointer
+	rt = rt.Elem()
+
+	if rt.Kind() == reflect.Slice {
+		rt = rt.Elem()
+		if rt.Kind() == reflect.Ptr {
+			rt = rt.Elem()
+		}
+	}
+
+	return rt.Name()
+}
+
+func sortPaths(path *graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string) error {
+	if path == nil  {
+		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
+	}
+
+	if path.Nodes == nil || len(path.Nodes) == 0 {
+		return fmt.Errorf("no nodes found, %w", ErrNotFound)
+	}
+
+	for _, node := range path.Nodes {
+
+		if _, ok := (*nodeLookup)[node.NodeIdentity]; !ok {
+			//we haven't parsed this one yet, lets do that now
+			val, err := convertNodeToValue(node)
+			if err != nil {
+				return err
+			}
+
+			(*nodeLookup)[node.NodeIdentity] = val
+
+			//primary to return
+			if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
+				*pks = append(*pks, node.NodeIdentity)
+			}
+		}
+	}
+
+	//handle the relationships
+	//sequence is [node_id, edge_id (negative if its in the wrong direction), repeat....]
+	//
+	if path.Sequence != nil && len(path.Sequence) != 0 && path.Relationships != nil && len(path.Relationships) == (len(path.Sequence) / 2){
+		seqPrime := append([]int{0}, path.Sequence...)
+		seqPrimeLen := len(seqPrime)
+
+		for i := 0; i + 2 < seqPrimeLen; i += 2 {
+			startPosIndex := seqPrime[i]
+			edgeIndex := seqPrime[i+1] - 1 //to offset for array index
+			endPosIndex := seqPrime[i+2]
+
+			var startId int
+			var endId int
+			var edgeId int
+
+			//keep order
+			if edgeIndex >= 0 {
+				startId = startPosIndex
+				endId = endPosIndex
+				edgeId = edgeIndex
+			} else {
+				//reverse
+				startId = endPosIndex
+				endId = startPosIndex
+				edgeId = -edgeIndex
+			}
+
+			startNode := path.Nodes[startId]
+			endNode := path.Nodes[endId]
+			rel := path.Relationships[edgeId]
+
+			if _, ok := (*rels)[rel.RelIdentity]; !ok {
+				(*rels)[rel.RelIdentity] = &neoEdgeConfig{
+					Id:            rel.RelIdentity,
+					StartNodeId:   startNode.NodeIdentity,
+					StartNodeType: startNode.Labels[0],
+					EndNodeId:     endNode.NodeIdentity,
+					EndNodeType:   endNode.Labels[0],
+					Obj:           rel.Properties,
+					Type:          rel.Type,
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) (val *reflect.Value, conf structDecoratorConfig, err error){
 	var ok bool
 
@@ -307,110 +359,6 @@ func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) 
 	}
 
 	return
-}
-
-func getPks(nodes []interface{}, pks []int64, err chan error, wg *sync.WaitGroup) {
-	if nodes == nil || len(nodes) == 0{
-		err <- fmt.Errorf("nodes can not be nil or empty")
-		wg.Done()
-		return
-	}
-
-	for i, node := range nodes{
-		nodeConv, ok := node.(graph.Node)
-		if !ok{
-			err <- fmt.Errorf("unable to cast node to type graph.Node")
-			wg.Done()
-			return
-		}
-
-		pks[i] = nodeConv.NodeIdentity
-	}
-
-	wg.Done()
-}
-
-func convertAndMapEdges(nodes []interface{}, rels []neoEdgeConfig, err chan error, wg *sync.WaitGroup){
-	if nodes == nil{
-		err <- errors.New("edges can not be nil")
-		wg.Done()
-		return
-	}
-
-	if len(nodes) == 0{
-		wg.Done()
-		return
-	}
-
-	for i, n := range nodes{
-		//this is because of how resp is structured
-		narr, ok := n.([]interface{})
-		if !ok{
-			err <- fmt.Errorf("unable to cast to []interface, type is %T", n)
-			wg.Done()
-			return
-		}
-
-		if len(narr) == 0{
-			continue
-		}
-
-		for _, nr := range narr{
-			var node neoEdgeConfig
-			err1 := mapstructure.Decode(nr.(map[string]interface{}), &node)
-			if err1 != nil{
-				err <- err1
-				wg.Done()
-				return
-			} else {
-				rels[i] = node
-			}
-		}
-	}
-
-	wg.Done()
-}
-
-func convertAndMapNodes(nodes []interface{}, lookup *map[int64]*reflect.Value, err chan error, wg *sync.WaitGroup) {
-	if nodes == nil || len(nodes) == 0{
-		err <- errors.New("nodes can not be nil or empty")
-		wg.Done()
-		return
-	}
-
-	if lookup == nil{
-		err <- errors.New("lookup can not be nil")
-		wg.Done()
-		return
-	}
-
-	var ids []int64
-
-	for _, node := range nodes{
-		boltNode, ok := node.(graph.Node)
-		if !ok{
-			continue
-		}
-
-		if int64SliceContains(ids, boltNode.NodeIdentity) {
-			continue
-		} else {
-			ids = append(ids, boltNode.NodeIdentity)
-		}
-
-		var val *reflect.Value
-		var e error
-		val, e = convertNodeToValue(boltNode)
-		if e != nil{
-			err <- e
-			wg.Done()
-			return
-		}
-
-		(*lookup)[boltNode.NodeIdentity] = val
-	}
-
-	wg.Done()
 }
 
 var sliceOfEmptyInterface []interface{}

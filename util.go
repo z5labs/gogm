@@ -191,10 +191,10 @@ func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string) (*
 		return nil, fmt.Errorf("no configs for key [%s] and field type [%s]", key, fieldType)
 	}
 
-	if len(confs) == 1 {
+	if len(confs) >= 1 {
 		return &confs[0], nil
 	} else {
-		return nil, fmt.Errorf("invalid length [%v] should be 1", len(confs))
+		return nil, fmt.Errorf("config not found, %w", ErrInternal)
 	}
 }
 
