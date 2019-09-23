@@ -18,17 +18,17 @@ func int64SliceContains(s []int64, e int64) bool {
 	return false
 }
 
-func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error){
-	if val == nil{
+func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error) {
+	if val == nil {
 		return false, "", errors.New("value can not be nil")
 	}
 
-	if reflect.TypeOf(*val).Kind() == reflect.Ptr{
+	if reflect.TypeOf(*val).Kind() == reflect.Ptr {
 		*val = val.Elem()
 	}
 
 	checkUuid := reflect.Indirect(*val).FieldByName(fieldName).Interface().(string)
-	if checkUuid != ""{
+	if checkUuid != "" {
 		return false, checkUuid, nil
 	}
 
@@ -38,46 +38,46 @@ func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error)
 	return true, newUuid, nil
 }
 
-func getTypeName(val reflect.Type) (string, error){
-	if val.Kind() == reflect.Ptr{
+func getTypeName(val reflect.Type) (string, error) {
+	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
 
-	if val.Kind() == reflect.Slice{
+	if val.Kind() == reflect.Slice {
 		val = val.Elem()
-		if val.Kind() == reflect.Ptr{
+		if val.Kind() == reflect.Ptr {
 			val = val.Elem()
 		}
 	}
 
-	if val.Kind() == reflect.Struct{
+	if val.Kind() == reflect.Struct {
 		return val.Name(), nil
 	} else {
 		return "", fmt.Errorf("can not take name from kind {%s)", val.Kind().String())
 	}
 }
 
-func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[string]interface{}, error){
+func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[string]interface{}, error) {
 	var err error
 	defer func() {
-		if r := recover(); r != nil{
+		if r := recover(); r != nil {
 			err = fmt.Errorf("%v", r)
 		}
 	}()
 
-	if val.Type().Kind() == reflect.Interface || val.Type().Kind() == reflect.Ptr{
+	if val.Type().Kind() == reflect.Interface || val.Type().Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
 
 	ret := map[string]interface{}{}
 
-	for _, conf := range config.Fields{
-		if conf.Relationship != "" || conf.Name == "id"{
+	for _, conf := range config.Fields {
+		if conf.Relationship != "" || conf.Name == "id" {
 			continue
 		}
 
 		if conf.IsTime {
-			if conf.Type.Kind() == reflect.Int64{
+			if conf.Type.Kind() == reflect.Int64 {
 				ret[conf.Name] = val.FieldByName(conf.FieldName).Interface()
 			} else {
 				dateInterface := val.FieldByName(conf.FieldName).Interface()
@@ -91,13 +91,13 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 			}
 		} else if conf.Properties {
 			//check if field is a map
-			if conf.Type.Kind() == reflect.Map{
+			if conf.Type.Kind() == reflect.Map {
 				//try to cast it
 				propsMap, ok := val.FieldByName(conf.FieldName).Interface().(map[string]interface{})
 				if ok {
 					//if it works, create the fields
-					for k, v := range propsMap{
-						ret[conf.Name + "." + k] = v
+					for k, v := range propsMap {
+						ret[conf.Name+"."+k] = v
 					}
 				} else {
 					return nil, errors.New("unable to convert map to map[string]interface{}")
@@ -209,7 +209,7 @@ func getActualTypeIfAliased(iType reflect.Type) (bool, reflect.Type, error) {
 	}
 
 	//check if its a struct or an interface, we can skip that
-	if iType.Kind() == reflect.Struct || iType.Kind() == reflect.Interface || iType.Kind() == reflect.Slice || iType.Kind() == reflect.Map{
+	if iType.Kind() == reflect.Struct || iType.Kind() == reflect.Interface || iType.Kind() == reflect.Slice || iType.Kind() == reflect.Map {
 		return false, nil, nil
 	}
 
@@ -219,7 +219,7 @@ func getActualTypeIfAliased(iType reflect.Type) (bool, reflect.Type, error) {
 	}
 
 	actualType, err := getPrimitiveType(iType.Kind())
-	if err != nil{
+	if err != nil {
 		return false, nil, err
 	}
 

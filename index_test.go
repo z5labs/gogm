@@ -8,9 +8,9 @@ import (
 	"testing"
 )
 
-func TestDropAllIndexesAndConstraints(t *testing.T){
+func TestDropAllIndexesAndConstraints(t *testing.T) {
 	//requires connection
-	if !testing.Short(){
+	if !testing.Short() {
 		t.SkipNow()
 		return
 	}
@@ -42,9 +42,9 @@ func TestDropAllIndexesAndConstraints(t *testing.T){
 	require.Equal(t, 0, len(iFound))
 }
 
-func TestIndexManagement(t *testing.T){
+func TestIndexManagement(t *testing.T) {
 	//requires connection
-	if !testing.Short(){
+	if !testing.Short() {
 		t.SkipNow()
 		return
 	}
@@ -56,8 +56,8 @@ func TestIndexManagement(t *testing.T){
 	conf := Config{
 		Username: "neo4j",
 		Password: "password",
-		Host: "0.0.0.0",
-		Port: 7687,
+		Host:     "0.0.0.0",
+		Port:     7687,
 		PoolSize: 15,
 	}
 
@@ -77,44 +77,44 @@ func TestIndexManagement(t *testing.T){
 	//setup structure
 	mapp := toHashmapStructdecconf(map[string]structDecoratorConfig{
 		"TEST1": {
-			Label:"Test1",
+			Label:    "Test1",
 			IsVertex: true,
 			Fields: map[string]decoratorConfig{
 				"UUID": {
-					Name: "uuid",
+					Name:       "uuid",
 					PrimaryKey: true,
-					Type: reflect.TypeOf(""),
+					Type:       reflect.TypeOf(""),
 				},
 				"IndexField": {
-					Name: "index_field",
+					Name:  "index_field",
 					Index: true,
-					Type: reflect.TypeOf(1),
+					Type:  reflect.TypeOf(1),
 				},
 				"UniqueField": {
-					Name: "unique_field",
+					Name:   "unique_field",
 					Unique: true,
-					Type: reflect.TypeOf(""),
+					Type:   reflect.TypeOf(""),
 				},
 			},
 		},
 		"TEST2": {
-			Label: "Test2",
+			Label:    "Test2",
 			IsVertex: true,
 			Fields: map[string]decoratorConfig{
 				"UUID": {
-					Name: "uuid",
+					Name:       "uuid",
 					PrimaryKey: true,
-					Type: reflect.TypeOf(""),
+					Type:       reflect.TypeOf(""),
 				},
 				"IndexField1": {
-					Name: "index_field1",
+					Name:  "index_field1",
 					Index: true,
-					Type: reflect.TypeOf(1),
+					Type:  reflect.TypeOf(1),
 				},
 				"UniqueField1": {
-					Name: "unique_field1",
+					Name:   "unique_field1",
 					Unique: true,
-					Type: reflect.TypeOf(""),
+					Type:   reflect.TypeOf(""),
 				},
 			},
 		},

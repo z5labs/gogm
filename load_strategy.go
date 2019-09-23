@@ -13,43 +13,16 @@ const (
 	SCHEMA_LOAD_STRATEGY
 )
 
-func PathLoadStrategyMany(variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error){
-	if variable == ""{
+func PathLoadStrategyMany(variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
+	if variable == "" {
 		return nil, errors.New("variable name cannot be empty")
 	}
 
-	if label == ""{
+	if label == "" {
 		return nil, errors.New("label can not be empty")
 	}
 
-	if depth < 0{
-		return nil, errors.New("depth can not be less than 0")
-	}
-
-	builder := dsl.QB().
-		Match(dsl.Path().
-		P().
-		V(dsl.V{Name: variable}).
-		E(dsl.E{Direction: dsl.DirectionNone, MinJumps: 0, MaxJumps: depth}).
-		V().Build())
-
-	if additionalConstraints != nil{
-		builder.Where(additionalConstraints)
-	}
-
-	return builder.Return(false, dsl.ReturnPart{Name:"p"}), nil
-}
-
-func PathLoadStrategyOne(variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
-	if variable == ""{
-		return nil, errors.New("variable name cannot be empty")
-	}
-
-	if label == ""{
-		return nil, errors.New("label can not be empty")
-	}
-
-	if depth < 0{
+	if depth < 0 {
 		return nil, errors.New("depth can not be less than 0")
 	}
 
@@ -60,35 +33,62 @@ func PathLoadStrategyOne(variable, label string, depth int, additionalConstraint
 			E(dsl.E{Direction: dsl.DirectionNone, MinJumps: 0, MaxJumps: depth}).
 			V().Build())
 
-	if additionalConstraints != nil{
-		builder = builder.Where(additionalConstraints.And(&dsl.ConditionConfig{
-			Name: variable,
-			Field: "uuid",
-			ConditionOperator: dsl.EqualToOperator,
-			Check: dsl.ParamString("{uuid}"),
-		}))
-	} else {
-		builder = builder.Where(dsl.C(&dsl.ConditionConfig{
-			Name: variable,
-			Field: "uuid",
-			ConditionOperator: dsl.EqualToOperator,
-			Check: dsl.ParamString("{uuid}"),
-		}))
+	if additionalConstraints != nil {
+		builder.Where(additionalConstraints)
 	}
 
-	return builder.Return(false, dsl.ReturnPart{Name:"p"}), nil
+	return builder.Return(false, dsl.ReturnPart{Name: "p"}), nil
 }
 
-func PathLoadStrategyEdgeConstraint(startVariable, startLabel, endLabel, endTargetField string, minJumps, maxJumps, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
-	if startVariable == ""{
+func PathLoadStrategyOne(variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
+	if variable == "" {
 		return nil, errors.New("variable name cannot be empty")
 	}
 
-	if startLabel == ""{
+	if label == "" {
 		return nil, errors.New("label can not be empty")
 	}
 
-	if endLabel == ""{
+	if depth < 0 {
+		return nil, errors.New("depth can not be less than 0")
+	}
+
+	builder := dsl.QB().
+		Match(dsl.Path().
+			P().
+			V(dsl.V{Name: variable}).
+			E(dsl.E{Direction: dsl.DirectionNone, MinJumps: 0, MaxJumps: depth}).
+			V().Build())
+
+	if additionalConstraints != nil {
+		builder = builder.Where(additionalConstraints.And(&dsl.ConditionConfig{
+			Name:              variable,
+			Field:             "uuid",
+			ConditionOperator: dsl.EqualToOperator,
+			Check:             dsl.ParamString("{uuid}"),
+		}))
+	} else {
+		builder = builder.Where(dsl.C(&dsl.ConditionConfig{
+			Name:              variable,
+			Field:             "uuid",
+			ConditionOperator: dsl.EqualToOperator,
+			Check:             dsl.ParamString("{uuid}"),
+		}))
+	}
+
+	return builder.Return(false, dsl.ReturnPart{Name: "p"}), nil
+}
+
+func PathLoadStrategyEdgeConstraint(startVariable, startLabel, endLabel, endTargetField string, minJumps, maxJumps, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
+	if startVariable == "" {
+		return nil, errors.New("variable name cannot be empty")
+	}
+
+	if startLabel == "" {
+		return nil, errors.New("label can not be empty")
+	}
+
+	if endLabel == "" {
 		return nil, errors.New("label can not be empty")
 	}
 
@@ -107,7 +107,7 @@ func PathLoadStrategyEdgeConstraint(startVariable, startLabel, endLabel, endTarg
 			V(dsl.V{Type: endLabel, Params: qp}).
 			Build())
 
-	if additionalConstraints != nil{
+	if additionalConstraints != nil {
 		builder.Where(additionalConstraints)
 	}
 

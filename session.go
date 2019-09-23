@@ -10,14 +10,14 @@ import (
 
 const defaultDepth = 1
 
-type Session struct{
-	conn *driver.BoltConn
-	tx driver.Tx
+type Session struct {
+	conn         *driver.BoltConn
+	tx           driver.Tx
 	DefaultDepth int
 	LoadStrategy LoadStrategy
 }
 
-func NewSession(readonly bool) (*Session, error){
+func NewSession(readonly bool) (*Session, error) {
 	if driverPool == nil {
 		return nil, errors.New("driverPool cannot be nil")
 	}
@@ -45,7 +45,7 @@ func NewSession(readonly bool) (*Session, error){
 }
 
 func (s *Session) Begin() error {
-	if s.conn == nil{
+	if s.conn == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
@@ -64,7 +64,7 @@ func (s *Session) Begin() error {
 }
 
 func (s *Session) Rollback() error {
-	if s.conn == nil{
+	if s.conn == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
@@ -81,7 +81,7 @@ func (s *Session) Rollback() error {
 	return nil
 }
 
-func (s *Session) RollbackWithError(originalError error) error{
+func (s *Session) RollbackWithError(originalError error) error {
 	err := s.Rollback()
 	if err != nil {
 		return fmt.Errorf("original error: `%s`, rollback error: `%s`", originalError.Error(), err.Error())
@@ -91,7 +91,7 @@ func (s *Session) RollbackWithError(originalError error) error{
 }
 
 func (s *Session) Commit() error {
-	if s.conn == nil{
+	if s.conn == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
@@ -109,22 +109,22 @@ func (s *Session) Commit() error {
 }
 
 func (s *Session) Load(respObj interface{}, id string) error {
-	return s.LoadDepthFilterPagination(respObj, id, s.DefaultDepth, nil, nil,nil)
+	return s.LoadDepthFilterPagination(respObj, id, s.DefaultDepth, nil, nil, nil)
 }
 
-func (s *Session) LoadDepth(respObj interface{}, id string, depth int) error{
-	return s.LoadDepthFilterPagination(respObj, id, depth, nil, nil,nil)
+func (s *Session) LoadDepth(respObj interface{}, id string, depth int) error {
+	return s.LoadDepthFilterPagination(respObj, id, depth, nil, nil, nil)
 }
 
-func (s *Session) LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error{
-		return s.LoadDepthFilterPagination(respObj, id, depth, filter, params,nil)
+func (s *Session) LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
+	return s.LoadDepthFilterPagination(respObj, id, depth, filter, params, nil)
 }
 
 func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
 	respType := reflect.TypeOf(respObj)
 
 	//validate type is ptr
-	if respType.Kind() != reflect.Ptr{
+	if respType.Kind() != reflect.Ptr {
 		return errors.New("respObj must be type ptr")
 	}
 
@@ -144,7 +144,7 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	switch s.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
 		query, err = PathLoadStrategyOne(varName, respObjName, depth, filter)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
@@ -153,25 +153,24 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 		return errors.New("unknown load strategy")
 	}
 
-
 	//if the query requires pagination, set that up
-	if pagination != nil{
+	if pagination != nil {
 		err := pagination.Validate()
-		if err != nil{
+		if err != nil {
 			return err
 		}
 
 		query = query.
 			OrderBy(dsl.OrderByConfig{
-				Name: pagination.OrderByVarName,
+				Name:   pagination.OrderByVarName,
 				Member: pagination.OrderByField,
-				Desc: pagination.OrderByDesc,
+				Desc:   pagination.OrderByDesc,
 			}).
 			Skip(pagination.LimitPerPage * pagination.PageNumber).
-			Limit(pagination.LimitPerPage )
+			Limit(pagination.LimitPerPage)
 	}
 
-	if params == nil{
+	if params == nil {
 		params = map[string]interface{}{
 			"uuid": id,
 		}
@@ -180,7 +179,7 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	}
 
 	rows, err := query.WithNeo(s.conn).Query(params)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -202,7 +201,7 @@ func (s *Session) LoadAllDepthFilter(respObj interface{}, depth int, filter dsl.
 func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
 	rawRespType := reflect.TypeOf(respObj)
 
-	if rawRespType.Kind() != reflect.Ptr{
+	if rawRespType.Kind() != reflect.Ptr {
 		return fmt.Errorf("respObj must be a pointer to a slice, instead it is %T", respObj)
 	}
 
@@ -210,14 +209,14 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 	respType := rawRespType.Elem()
 
 	//validate type is ptr
-	if respType.Kind() != reflect.Slice{
+	if respType.Kind() != reflect.Slice {
 		return fmt.Errorf("respObj must be type slice, instead it is %T", respObj)
 	}
 
 	//"deref" reflect interface type
 	respType = respType.Elem()
 
-	if respType.Kind() == reflect.Ptr{
+	if respType.Kind() == reflect.Ptr {
 		//slice of pointers
 		respType = respType.Elem()
 	}
@@ -235,7 +234,7 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 	switch s.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
 		query, err = PathLoadStrategyMany(varName, respObjName, depth, filter)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
@@ -244,26 +243,25 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 		return errors.New("unknown load strategy")
 	}
 
-
 	//if the query requires pagination, set that up
-	if pagination != nil{
+	if pagination != nil {
 		err := pagination.Validate()
-		if err != nil{
+		if err != nil {
 			return err
 		}
 
 		query = query.
 			OrderBy(dsl.OrderByConfig{
-				Name: pagination.OrderByVarName,
+				Name:   pagination.OrderByVarName,
 				Member: pagination.OrderByField,
-				Desc: pagination.OrderByDesc,
+				Desc:   pagination.OrderByDesc,
 			}).
 			Skip(pagination.LimitPerPage * pagination.PageNumber).
-			Limit(pagination.LimitPerPage )
+			Limit(pagination.LimitPerPage)
 	}
 
 	rows, err := query.WithNeo(s.conn).Query(params)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -273,7 +271,7 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNodeField string, edgeConstraint interface{}, minJumps, maxJumps, depth int, filter dsl.ConditionOperator) error {
 	rawRespType := reflect.TypeOf(respObj)
 
-	if rawRespType.Kind() != reflect.Ptr{
+	if rawRespType.Kind() != reflect.Ptr {
 		return fmt.Errorf("respObj must be a pointer to a slice, instead it is %T", respObj)
 	}
 
@@ -281,14 +279,14 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 	respType := rawRespType.Elem()
 
 	//validate type is ptr
-	if respType.Kind() != reflect.Slice{
+	if respType.Kind() != reflect.Slice {
 		return fmt.Errorf("respObj must be type slice, instead it is %T", respObj)
 	}
 
 	//"deref" reflect interface type
 	respType = respType.Elem()
 
-	if respType.Kind() == reflect.Ptr{
+	if respType.Kind() == reflect.Ptr {
 		//slice of pointers
 		respType = respType.Elem()
 	}
@@ -306,7 +304,7 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 	switch s.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
 		query, err = PathLoadStrategyEdgeConstraint(varName, respObjName, endNodeType, endNodeField, minJumps, maxJumps, depth, filter)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
@@ -318,7 +316,7 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 	rows, err := query.WithNeo(s.conn).Query(map[string]interface{}{
 		endNodeField: edgeConstraint,
 	})
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -330,7 +328,7 @@ func (s *Session) Save(saveObj interface{}) error {
 }
 
 func (s *Session) SaveDepth(saveObj interface{}, depth int) error {
-	if s.conn == nil{
+	if s.conn == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
@@ -338,19 +336,19 @@ func (s *Session) SaveDepth(saveObj interface{}, depth int) error {
 }
 
 func (s *Session) Delete(deleteObj interface{}) error {
-	if s.conn == nil{
+	if s.conn == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
-	if deleteObj == nil{
+	if deleteObj == nil {
 		return errors.New("deleteObj can not be nil")
 	}
 
 	return deleteNode(s.conn, deleteObj)
 }
 
-func (s *Session) DeleteUUID(uuid string) error{
-	if s.conn == nil{
+func (s *Session) DeleteUUID(uuid string) error {
+	if s.conn == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
@@ -358,12 +356,12 @@ func (s *Session) DeleteUUID(uuid string) error{
 }
 
 func (s *Session) Query(query string, properties map[string]interface{}, respObj interface{}) error {
-	if s.conn == nil{
+	if s.conn == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
 	rows, err := dsl.QB().Cypher(query).WithNeo(s.conn).Query(properties)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -371,12 +369,12 @@ func (s *Session) Query(query string, properties map[string]interface{}, respObj
 }
 
 func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error) {
-	if s.conn == nil{
+	if s.conn == nil {
 		return nil, errors.New("neo4j connection not initialized")
 	}
 
 	rows, err := dsl.QB().Cypher(query).WithNeo(s.conn).Query(properties)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
@@ -393,9 +391,8 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 	return data, nil
 }
 
-
 func (s *Session) PurgeDatabase() error {
-	if s.conn == nil{
+	if s.conn == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
@@ -404,7 +401,7 @@ func (s *Session) PurgeDatabase() error {
 }
 
 func (s *Session) Close() error {
-	if s.conn == nil{
+	if s.conn == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
@@ -426,4 +423,3 @@ func (s *Session) Close() error {
 
 	return nil
 }
-

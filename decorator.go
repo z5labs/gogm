@@ -41,8 +41,8 @@ type decoratorConfig struct {
 	PrimaryKey       bool
 	Properties       bool
 	IsTime           bool
-	IsTypeDef		bool
-	TypedefActual reflect.Type
+	IsTypeDef        bool
+	TypedefActual    reflect.Type
 	Ignore           bool
 }
 
@@ -183,8 +183,6 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		Type:       varType,
 		FieldName:  name,
 	}
-
-
 
 	for _, field := range fields {
 
@@ -437,7 +435,7 @@ func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (
 						return nil, errors.New("cannot convert to type reflect.Type")
 					}
 
-					if convertedType.Kind() == reflect.Ptr{
+					if convertedType.Kind() == reflect.Ptr {
 						endTypeName = convertedType.Elem().Name()
 					} else {
 						endTypeName = convertedType.Name()

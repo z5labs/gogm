@@ -312,9 +312,9 @@ type validStruct struct {
 	IndexField  string                 `gogm:"index;name=index_field"`
 	UniqueField int                    `gogm:"unique;name=unique_field"`
 	OneToOne    *validStruct           `gogm:"relationship=one2one;direction=incoming"`
-	ManyToOne   []*a        `gogm:"relationship=many2one;direction=outgoing"`
-	SpecialOne *c `gogm:"relationship=specC;direction=outgoing"`
-	SpecialMany []*c `gogm:"relationship=manyC;direction=outgoing"`
+	ManyToOne   []*a                   `gogm:"relationship=many2one;direction=outgoing"`
+	SpecialOne  *c                     `gogm:"relationship=specC;direction=outgoing"`
+	SpecialMany []*c                   `gogm:"relationship=manyC;direction=outgoing"`
 	Props       map[string]interface{} `gogm:"properties;name=props"`
 	IgnoreMe    int                    `gogm:"-"`
 }
@@ -468,13 +468,13 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Type:         reflect.TypeOf(&c{}),
 			},
 			"SpecialMany": {
-				FieldName:    "SpecialMany",
-				Name:         "SpecialMany",
-				Relationship: "manyC",
-				Direction:    dsl.DirectionOutgoing,
-				UsesEdgeNode: true,
+				FieldName:        "SpecialMany",
+				Name:             "SpecialMany",
+				Relationship:     "manyC",
+				Direction:        dsl.DirectionOutgoing,
+				UsesEdgeNode:     true,
 				ManyRelationship: true,
-				Type:         reflect.TypeOf([]*c{}),
+				Type:             reflect.TypeOf([]*c{}),
 			},
 			"ManyToOne": {
 				FieldName:        "ManyToOne",

@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestSession(t *testing.T){
-	if !testing.Short(){
+func TestSession(t *testing.T) {
+	if !testing.Short() {
 		t.Skip()
 		return
 	}
@@ -14,11 +14,11 @@ func TestSession(t *testing.T){
 	req := require.New(t)
 
 	conf := Config{
-		Username: "neo4j",
-		Password: "password",
-		Host: "0.0.0.0",
-		Port: 7687,
-		PoolSize: 15,
+		Username:      "neo4j",
+		Password:      "password",
+		Host:          "0.0.0.0",
+		Port:          7687,
+		PoolSize:      15,
 		IndexStrategy: VALIDATE_INDEX,
 	}
 

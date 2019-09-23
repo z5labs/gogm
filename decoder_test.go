@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-func TestDecode(t *testing.T){
-	if !testing.Short(){
+func TestDecode(t *testing.T) {
+	if !testing.Short() {
 		t.Skip()
 		return
 	}
@@ -40,7 +40,6 @@ func TestDecode(t *testing.T){
 	}
 	defer driverPool.Reclaim(conn)
 
-
 	rows, err := dsl.QB().WithNeo(conn).Cypher(query).Query(nil)
 	require.Nil(t, err)
 	require.NotNil(t, rows)
@@ -58,33 +57,32 @@ func TestDecode(t *testing.T){
 }
 
 type TestStruct struct {
-	Id int64
-	UUID string
+	Id         int64
+	UUID       string
 	OtherField string
-
 }
 
-func toHashmap(m map[string]interface{}) *hashmap.HashMap{
+func toHashmap(m map[string]interface{}) *hashmap.HashMap {
 	h := &hashmap.HashMap{}
 
-	for k, v := range m{
+	for k, v := range m {
 		h.Set(k, v)
 	}
 
 	return h
 }
 
-func toHashmapStructdecconf(m map[string]structDecoratorConfig) *hashmap.HashMap{
+func toHashmapStructdecconf(m map[string]structDecoratorConfig) *hashmap.HashMap {
 	h := &hashmap.HashMap{}
 
-	for k, v := range m{
+	for k, v := range m {
 		h.Set(k, v)
 	}
 
 	return h
 }
 
-func TestConvertNodeToValue(t *testing.T){
+func TestConvertNodeToValue(t *testing.T) {
 
 	req := require.New(t)
 
@@ -93,9 +91,9 @@ func TestConvertNodeToValue(t *testing.T){
 			Type: reflect.TypeOf(TestStruct{}),
 			Fields: map[string]decoratorConfig{
 				"UUID": {
-					Type: reflect.TypeOf(""),
+					Type:       reflect.TypeOf(""),
 					PrimaryKey: true,
-					Name: "uuid",
+					Name:       "uuid",
 				},
 				"Id": {
 					Type: reflect.TypeOf(int64(0)),
@@ -106,7 +104,7 @@ func TestConvertNodeToValue(t *testing.T){
 					Name: "other_field",
 				},
 			},
-			Label: "TestStruct",
+			Label:    "TestStruct",
 			IsVertex: true,
 		},
 	})
@@ -114,7 +112,7 @@ func TestConvertNodeToValue(t *testing.T){
 	bn := graph.Node{
 		NodeIdentity: 10,
 		Properties: map[string]interface{}{
-			"uuid": "dadfasdfasdf",
+			"uuid":        "dadfasdfasdf",
 			"other_field": "dafsdfasd",
 		},
 		Labels: []string{"TestStruct"},
@@ -124,17 +122,17 @@ func TestConvertNodeToValue(t *testing.T){
 	req.Nil(err)
 	req.NotNil(val)
 	req.EqualValues(TestStruct{
-		Id: 10,
-		UUID: "dadfasdfasdf",
+		Id:         10,
+		UUID:       "dadfasdfasdf",
 		OtherField: "dafsdfasd",
 	}, val.Interface().(TestStruct))
 
 	bn = graph.Node{
 		NodeIdentity: 10,
 		Properties: map[string]interface{}{
-			"uuid": "dadfasdfasdf",
+			"uuid":        "dadfasdfasdf",
 			"other_field": "dafsdfasd",
-			"t": "dadfasdf",
+			"t":           "dadfasdf",
 		},
 		Labels: []string{"TestStruct"},
 	}
@@ -159,37 +157,37 @@ func TestConvertNodeToValue(t *testing.T){
 type tdString string
 type tdInt int
 
-type a struct{
-	Id          int64  `gogm:"name=id"`
-	UUID        string `gogm:"pk;name=uuid"`
-	TestField   string `gogm:"name=test_field"`
+type a struct {
+	Id                int64    `gogm:"name=id"`
+	UUID              string   `gogm:"pk;name=uuid"`
+	TestField         string   `gogm:"name=test_field"`
 	TestTypeDefString tdString `gogm:"name=test_type_def_string"`
-	TestTypeDefInt tdInt `gogm:"name=test_type_def_int"`
-	SingleA     *b     `gogm:"direction=incoming;relationship=test_rel"`
-	ManyA	[]*b `gogm:"direction=incoming;relationship=testm2o"`
-	MultiA      []*b    `gogm:"direction=incoming;relationship=multib"`
-	SingleSpecA *c     `gogm:"direction=outgoing;relationship=special_single"`
-	MultiSpecA  []*c    `gogm:"direction=outgoing;relationship=special_multi"`
+	TestTypeDefInt    tdInt    `gogm:"name=test_type_def_int"`
+	SingleA           *b       `gogm:"direction=incoming;relationship=test_rel"`
+	ManyA             []*b     `gogm:"direction=incoming;relationship=testm2o"`
+	MultiA            []*b     `gogm:"direction=incoming;relationship=multib"`
+	SingleSpecA       *c       `gogm:"direction=outgoing;relationship=special_single"`
+	MultiSpecA        []*c     `gogm:"direction=outgoing;relationship=special_multi"`
 }
 
-type b struct{
-	Id int64 `gogm:"name=id"`
-	UUID string `gogm:"pk;name=uuid"`
-	TestField string `gogm:"name=test_field"`
-	TestTime time.Time `gogm:"time;name=test_time"`
-	Single *a `gogm:"direction=outgoing;relationship=test_rel"`
-	ManyB *a `gogm:"direction=incoming;relationship=testm2o"`
-	Multi []*a `gogm:"direction=outgoing;relationship=multib"`
-	SingleSpec *c `gogm:"direction=incoming;relationship=special_single"`
-	MultiSpec []*c `gogm:"direction=incoming;relationship=special_multi"`
+type b struct {
+	Id         int64     `gogm:"name=id"`
+	UUID       string    `gogm:"pk;name=uuid"`
+	TestField  string    `gogm:"name=test_field"`
+	TestTime   time.Time `gogm:"time;name=test_time"`
+	Single     *a        `gogm:"direction=outgoing;relationship=test_rel"`
+	ManyB      *a        `gogm:"direction=incoming;relationship=testm2o"`
+	Multi      []*a      `gogm:"direction=outgoing;relationship=multib"`
+	SingleSpec *c        `gogm:"direction=incoming;relationship=special_single"`
+	MultiSpec  []*c      `gogm:"direction=incoming;relationship=special_multi"`
 }
 
-type c struct{
-	Id int64 `gogm:"name=id"`
-	UUID string `gogm:"pk;name=uuid"`
+type c struct {
+	Id    int64  `gogm:"name=id"`
+	UUID  string `gogm:"pk;name=uuid"`
 	Start *a
-	End *b
-	Test string `gogm:"name=test"`
+	End   *b
+	Test  string `gogm:"name=test"`
 }
 
 func (c *c) GetStartNode() interface{} {
@@ -203,7 +201,7 @@ func (c *c) GetStartNodeType() reflect.Type {
 func (c *c) SetStartNode(v interface{}) error {
 	var ok bool
 	c.Start, ok = v.(*a)
-	if !ok{
+	if !ok {
 		return errors.New("unable to cast to a")
 	}
 
@@ -221,7 +219,7 @@ func (c *c) GetEndNodeType() reflect.Type {
 func (c *c) SetEndNode(v interface{}) error {
 	var ok bool
 	c.End, ok = v.(*b)
-	if !ok{
+	if !ok {
 		return errors.New("unable to cast to b")
 	}
 
@@ -229,17 +227,17 @@ func (c *c) SetEndNode(v interface{}) error {
 }
 
 type propsTest struct {
-	Id int64 `gogm:"name=id"`
-	UUID string `gogm:"pk;name=uuid"`
+	Id    int64                  `gogm:"name=id"`
+	UUID  string                 `gogm:"pk;name=uuid"`
 	Props map[string]interface{} `gogm:"name=props;properties"`
 }
 
-func TestDecoder(t *testing.T){
+func TestDecoder(t *testing.T) {
 	req := require.New(t)
 
 	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}, &propsTest{}))
 
-//	req.EqualValues(3, mappedTypes.Len())
+	//	req.EqualValues(3, mappedTypes.Len())
 
 	fTime := time.Now().UTC()
 
@@ -280,18 +278,18 @@ func TestDecoder(t *testing.T){
 	var readin a
 
 	comp := &a{
-		TestField: "test",
-		Id: 1,
-		TestTypeDefInt: 600,
+		TestField:         "test",
+		Id:                1,
+		TestTypeDefInt:    600,
 		TestTypeDefString: "TDs",
-		UUID: "dasdfasd",
+		UUID:              "dasdfasd",
 	}
 
 	comp22 := &b{
 		TestField: "test",
-		UUID: "dasdfas",
-		TestTime: fTime,
-		Id: 2,
+		UUID:      "dasdfas",
+		TestTime:  fTime,
+		Id:        2,
 	}
 
 	comp.SingleA = comp22
@@ -324,7 +322,6 @@ func TestDecoder(t *testing.T){
 	req.EqualValues(comp.SingleA.Id, readinSlice[0].SingleA.Id)
 	req.EqualValues(comp.SingleA.UUID, readinSlice[0].SingleA.UUID)
 	req.EqualValues(comp.SingleA.TestField, readinSlice[0].SingleA.TestField)
-
 
 	vars2 := [][]interface{}{
 		{
@@ -373,17 +370,17 @@ func TestDecoder(t *testing.T){
 
 	b2 := &b{
 		TestField: "test",
-		UUID: "dasdfas",
-		TestTime: fTime,
-		Id: 2,
+		UUID:      "dasdfas",
+		TestTime:  fTime,
+		Id:        2,
 	}
 
 	c1 := &c{
-		UUID: "asdfasdafsd",
-		Id: 420,
+		UUID:  "asdfasdafsd",
+		Id:    420,
 		Start: comp2,
-		End: b2,
-		Test: "testing",
+		End:   b2,
+		Test:  "testing",
 	}
 
 	comp2.SingleSpecA = c1
@@ -405,7 +402,7 @@ func TestDecoder(t *testing.T){
 						Labels: []string{"a"},
 						Properties: map[string]interface{}{
 							"test_field": "test",
-							"uuid": "dasdfasd",
+							"uuid":       "dasdfasd",
 						},
 						NodeIdentity: 1,
 					},
@@ -413,8 +410,8 @@ func TestDecoder(t *testing.T){
 						Labels: []string{"b"},
 						Properties: map[string]interface{}{
 							"test_field": "test",
-							"uuid": "dasdfas",
-							"test_time": fTime.Format(time.RFC3339),
+							"uuid":       "dasdfas",
+							"test_time":  fTime.Format(time.RFC3339),
 						},
 						NodeIdentity: 2,
 					},
@@ -426,7 +423,7 @@ func TestDecoder(t *testing.T){
 						Properties:  nil,
 					},
 				},
-				Sequence:      []int{1,1},
+				Sequence: []int{1, 1},
 			},
 		},
 	}
@@ -435,14 +432,14 @@ func TestDecoder(t *testing.T){
 
 	comp3 := a{
 		TestField: "test",
-		Id: 1,
-		UUID: "dasdfasd",
+		Id:        1,
+		UUID:      "dasdfasd",
 		MultiA: []*b{
 			{
 				TestField: "test",
-				UUID: "dasdfas",
-				Id: 2,
-				TestTime: fTime,
+				UUID:      "dasdfas",
+				Id:        2,
+				TestTime:  fTime,
 			},
 		},
 	}
@@ -465,7 +462,7 @@ func TestDecoder(t *testing.T){
 						Labels: []string{"a"},
 						Properties: map[string]interface{}{
 							"test_field": "test",
-							"uuid": "dasdfasd",
+							"uuid":       "dasdfasd",
 						},
 						NodeIdentity: 1,
 					},
@@ -473,8 +470,8 @@ func TestDecoder(t *testing.T){
 						Labels: []string{"b"},
 						Properties: map[string]interface{}{
 							"test_field": "test",
-							"uuid": "dasdfas",
-							"test_time": fTime.Format(time.RFC3339),
+							"uuid":       "dasdfas",
+							"test_time":  fTime.Format(time.RFC3339),
 						},
 						NodeIdentity: 2,
 					},
@@ -489,7 +486,7 @@ func TestDecoder(t *testing.T){
 						},
 					},
 				},
-				Sequence:      []int{1,1},
+				Sequence: []int{1, 1},
 			},
 		},
 	}
@@ -504,16 +501,16 @@ func TestDecoder(t *testing.T){
 
 	b3 := &b{
 		TestField: "test",
-		UUID: "dasdfas",
-		TestTime: fTime,
-		Id: 2,
+		UUID:      "dasdfas",
+		TestTime:  fTime,
+		Id:        2,
 	}
 
 	c4 := c{
-		UUID: "asdfasdafsd",
+		UUID:  "asdfasdafsd",
 		Start: comp4,
-		End: b3,
-		Test: "testing",
+		End:   b3,
+		Test:  "testing",
 	}
 
 	comp4.MultiSpecA = append(comp4.MultiSpecA, &c4)
@@ -531,16 +528,16 @@ func TestDecoder(t *testing.T){
 
 	var5uuid := "dasdfasdf"
 
-	vars5 := [][]interface{} {
+	vars5 := [][]interface{}{
 		{
 			graph.Path{
 				Nodes: []graph.Node{
 					graph.Node{
 						NodeIdentity: 1,
-						Labels: []string{ "propsTest" },
+						Labels:       []string{"propsTest"},
 						Properties: map[string]interface{}{
-							"uuid": var5uuid,
-							"props.test": "test",
+							"uuid":        var5uuid,
+							"props.test":  "test",
 							"props.test2": "test2",
 							"props.test3": "test3",
 						},
@@ -555,10 +552,10 @@ func TestDecoder(t *testing.T){
 	var readin5 propsTest
 
 	r := propsTest{
-		Id:    1,
-		UUID:  var5uuid,
+		Id:   1,
+		UUID: var5uuid,
 		Props: map[string]interface{}{
-			"test": "test",
+			"test":  "test",
 			"test2": "test2",
 			"test3": "test3",
 		},
@@ -581,8 +578,8 @@ func TestDecoder(t *testing.T){
 						Labels: []string{"b"},
 						Properties: map[string]interface{}{
 							"test_field": "test",
-							"uuid": "dasdfas",
-							"test_time": fTime.Format(time.RFC3339),
+							"uuid":       "dasdfas",
+							"test_time":  fTime.Format(time.RFC3339),
 						},
 						NodeIdentity: 2,
 					},
@@ -590,8 +587,8 @@ func TestDecoder(t *testing.T){
 						Labels: []string{"b"},
 						Properties: map[string]interface{}{
 							"test_field": "test",
-							"uuid": "dasdfas",
-							"test_time": fTime.Format(time.RFC3339),
+							"uuid":       "dasdfas",
+							"test_time":  fTime.Format(time.RFC3339),
 						},
 						NodeIdentity: 3,
 					},

@@ -6,8 +6,8 @@ import (
 	"testing"
 )
 
-func TestDelete(t *testing.T){
-	if !testing.Short(){
+func TestDelete(t *testing.T) {
+	if !testing.Short() {
 		t.Skip()
 		return
 	}
@@ -18,7 +18,7 @@ func TestDelete(t *testing.T){
 	defer driverPool.Reclaim(conn)
 
 	del := a{
-		Id: 0,
+		Id:   0,
 		UUID: "5334ee8c-6231-40fd-83e5-16c8016ccde6",
 	}
 

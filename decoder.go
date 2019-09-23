@@ -11,11 +11,11 @@ import (
 	"time"
 )
 
-func decodeNeoRows(rows neo.Rows, respObj interface{}) error{
+func decodeNeoRows(rows neo.Rows, respObj interface{}) error {
 	defer rows.Close()
 
 	arr, err := dsl.RowsTo2DInterfaceArray(rows)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -24,7 +24,7 @@ func decodeNeoRows(rows neo.Rows, respObj interface{}) error{
 
 //example query `match p=(n)-[*0..5]-() return p`
 //decodes raw path response from driver
-func decode(rawArr [][]interface{}, respObj interface{}) (err error){
+func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 	//check nil params
 	if rawArr == nil {
 		return fmt.Errorf("rawArr can not be nil, %w", ErrInvalidParams)
@@ -37,7 +37,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 	//we're doing reflection now, lets set up a panic recovery
 	defer func() {
-		if r := recover(); r != nil{
+		if r := recover(); r != nil {
 			err = fmt.Errorf("%v - PANIC RECOVERY - %w", r, ErrInternal)
 		}
 	}()
@@ -54,7 +54,6 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return fmt.Errorf("invalid resp type %T - %w", respObj, ErrInvalidParams)
 	}
-
 
 	//todo optimize with set array size
 	var paths []*graph.Path
@@ -86,7 +85,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	var pks []int64
 	rels := make(map[int64]*neoEdgeConfig)
 
-	if paths != nil && len(paths) != 0{
+	if paths != nil && len(paths) != 0 {
 		err = sortPaths(paths[len(paths)-1], &nodeLookup, &rels, &pks, primaryLabel)
 		if err != nil {
 			return err
@@ -94,7 +93,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	}
 
 	//build relationships
-	for _, relationConfig := range rels{
+	for _, relationConfig := range rels {
 		//todo figure out why this is broken
 		if relationConfig.StartNodeType == "" || relationConfig.EndNodeType == "" {
 			continue
@@ -122,32 +121,32 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			it := startConfig.Type
 
 			//get the actual type if its a slice
-			if it.Kind() == reflect.Slice{
+			if it.Kind() == reflect.Slice {
 				it = it.Elem()
 			}
 
 			label := ""
 
-			if it.Kind() == reflect.Ptr{
+			if it.Kind() == reflect.Ptr {
 				label = it.Elem().Name()
 			} else {
 				label = it.Name()
 				it = reflect.PtrTo(it)
 			}
 
-			temp, ok := mappedTypes.Get(label)// mappedTypes[boltNode.Labels[0]]
-			if !ok{
+			temp, ok := mappedTypes.Get(label) // mappedTypes[boltNode.Labels[0]]
+			if !ok {
 				return fmt.Errorf("can not find mapping for node with label %s - %w", label, ErrInternal)
 			}
 
 			typeConfig = temp.(structDecoratorConfig)
-			if !ok{
+			if !ok {
 				return fmt.Errorf("unable to cast [%T] to structDecoratorConfig - %w", temp, ErrInternal)
 			}
 
 			//create value
 			val, err := convertToValue(relationConfig.Id, typeConfig, relationConfig.Obj, it)
-			if err != nil{
+			if err != nil {
 				return err
 			}
 
@@ -160,7 +159,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 				startCall = *start
 			}
 
-			if end.Kind() != reflect.Ptr{
+			if end.Kind() != reflect.Ptr {
 				endCall = end.Addr()
 			} else {
 				endCall = *end
@@ -170,19 +169,19 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			res := val.MethodByName("SetStartNode").Call([]reflect.Value{startCall})
 			if res == nil || len(res) == 0 {
 				return fmt.Errorf("invalid response from edge callback - %w", err)
-			} else if !res[0].IsNil(){
+			} else if !res[0].IsNil() {
 				return fmt.Errorf("failed call to SetStartNode - %w", res[0].Interface().(error))
 			}
 
 			res = val.MethodByName("SetEndNode").Call([]reflect.Value{endCall})
 			if res == nil || len(res) == 0 {
 				return fmt.Errorf("invalid response from edge callback - %w", err)
-			} else if !res[0].IsNil(){
+			} else if !res[0].IsNil() {
 				return fmt.Errorf("failed call to SetEndNode - %w", res[0].Interface().(error))
 			}
 
 			//relate end-start
-			if reflect.Indirect(*end).FieldByName(endConfig.FieldName).Kind() == reflect.Slice{
+			if reflect.Indirect(*end).FieldByName(endConfig.FieldName).Kind() == reflect.Slice {
 				reflect.Indirect(*end).FieldByName(endConfig.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(endConfig.FieldName), *val))
 			} else {
 				//non slice relationships are already asserted to be pointers
@@ -190,20 +189,20 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 			}
 
 			//relate start-start
-			if reflect.Indirect(*start).FieldByName(startConfig.FieldName).Kind() == reflect.Slice{
+			if reflect.Indirect(*start).FieldByName(startConfig.FieldName).Kind() == reflect.Slice {
 				reflect.Indirect(*start).FieldByName(startConfig.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(startConfig.FieldName), *val))
 			} else {
 				start.FieldByName(startConfig.FieldName).Set(*val)
 			}
 		} else {
-			if end.FieldByName(endConfig.FieldName).Kind() == reflect.Slice{
+			if end.FieldByName(endConfig.FieldName).Kind() == reflect.Slice {
 				end.FieldByName(endConfig.FieldName).Set(reflect.Append(end.FieldByName(endConfig.FieldName), start.Addr()))
 			} else {
 				end.FieldByName(endConfig.FieldName).Set(start.Addr())
 			}
 
 			//relate end-start
-			if start.FieldByName(startConfig.FieldName).Kind() == reflect.Slice{
+			if start.FieldByName(startConfig.FieldName).Kind() == reflect.Slice {
 				start.FieldByName(startConfig.FieldName).Set(reflect.Append(start.FieldByName(startConfig.FieldName), end.Addr()))
 			} else {
 				start.FieldByName(startConfig.FieldName).Set(end.Addr())
@@ -212,7 +211,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 	}
 
 	//handle if its returning a slice -- validation has been done at an earlier step
-	if rt.Elem().Kind() == reflect.Slice{
+	if rt.Elem().Kind() == reflect.Slice {
 
 		reflection := reflect.MakeSlice(rt.Elem(), 0, cap(pks))
 
@@ -225,9 +224,9 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error){
 
 		sliceType := rt.Elem().Elem()
 
-		for _, id := range pks{
+		for _, id := range pks {
 			val, ok := nodeLookup[id]
-			if !ok{
+			if !ok {
 				return fmt.Errorf("cannot find value with id (%v)", id)
 			}
 
@@ -265,7 +264,7 @@ func getPrimaryLabel(rt reflect.Type) string {
 }
 
 func sortPaths(path *graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string) error {
-	if path == nil  {
+	if path == nil {
 		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
 	}
 
@@ -294,11 +293,11 @@ func sortPaths(path *graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map
 	//handle the relationships
 	//sequence is [node_id, edge_id (negative if its in the wrong direction), repeat....]
 	//
-	if path.Sequence != nil && len(path.Sequence) != 0 && path.Relationships != nil && len(path.Relationships) == (len(path.Sequence) / 2){
+	if path.Sequence != nil && len(path.Sequence) != 0 && path.Relationships != nil && len(path.Relationships) == (len(path.Sequence)/2) {
 		seqPrime := append([]int{0}, path.Sequence...)
 		seqPrimeLen := len(seqPrime)
 
-		for i := 0; i + 2 < seqPrimeLen; i += 2 {
+		for i := 0; i+2 < seqPrimeLen; i += 2 {
 			startPosIndex := seqPrime[i]
 			edgeIndex := seqPrime[i+1] - 1 //to offset for array index
 			endPosIndex := seqPrime[i+2]
@@ -340,7 +339,7 @@ func sortPaths(path *graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map
 	return nil
 }
 
-func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) (val *reflect.Value, conf structDecoratorConfig, err error){
+func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) (val *reflect.Value, conf structDecoratorConfig, err error) {
 	var ok bool
 
 	val, ok = nodeLookup[id]
@@ -354,7 +353,7 @@ func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) 
 	}
 
 	conf, ok = temp.(structDecoratorConfig)
-	if !ok{
+	if !ok {
 		return nil, structDecoratorConfig{}, errors.New("unable to cast to structDecoratorConfig")
 	}
 
@@ -364,36 +363,36 @@ func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) 
 var sliceOfEmptyInterface []interface{}
 var emptyInterfaceType = reflect.TypeOf(sliceOfEmptyInterface).Elem()
 
-func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]interface{}, rtype reflect.Type) (valss *reflect.Value, err error){
+func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]interface{}, rtype reflect.Type) (valss *reflect.Value, err error) {
 	defer func() {
-		if r := recover(); r != nil{
+		if r := recover(); r != nil {
 			err = fmt.Errorf("%v", r)
 		}
 	}()
 
-	if rtype == nil{
+	if rtype == nil {
 		return nil, errors.New("rtype can not be nil")
 	}
 
 	isPtr := false
-	if rtype.Kind() == reflect.Ptr{
+	if rtype.Kind() == reflect.Ptr {
 		isPtr = true
 		rtype = rtype.Elem()
 	}
 
 	val := reflect.New(rtype)
 
-	if graphId >= 0{
+	if graphId >= 0 {
 		reflect.Indirect(val).FieldByName("Id").Set(reflect.ValueOf(graphId))
 	}
 
-	for field, fieldConfig := range conf.Fields{
-		if fieldConfig.Name == "id"{
+	for field, fieldConfig := range conf.Fields {
+		if fieldConfig.Name == "id" {
 			continue //id is handled above
 		}
 
 		//skip if its a relation field
-		if fieldConfig.Relationship != ""{
+		if fieldConfig.Relationship != "" {
 			continue
 		}
 
@@ -422,7 +421,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 		}
 
 		raw, ok := props[fieldConfig.Name]
-		if !ok{
+		if !ok {
 			if fieldConfig.IsTypeDef {
 				log.Debugf("skipping field %s since it is typedeffed and not defined", fieldConfig.Name)
 				continue
@@ -430,7 +429,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 			return nil, fmt.Errorf("unrecognized field [%s]", fieldConfig.Name)
 		}
 
-		if raw == nil{
+		if raw == nil {
 			continue //its already initialized to 0 value, no need to do anything
 		} else {
 			if fieldConfig.IsTime {
@@ -440,13 +439,13 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 				}
 
 				convTime, err := time.Parse(time.RFC3339, timeStr)
-				if err != nil{
+				if err != nil {
 					return nil, err
 				}
 
 				var writeVal reflect.Value
 
-				if fieldConfig.Type.Kind() == reflect.Ptr{
+				if fieldConfig.Type.Kind() == reflect.Ptr {
 					writeVal = reflect.ValueOf(convTime).Addr()
 				} else {
 					writeVal = reflect.ValueOf(convTime)
@@ -466,7 +465,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 	}
 
 	//if its not a pointer, dereference it
-	if !isPtr{
+	if !isPtr {
 		retV := reflect.Indirect(val)
 		return &retV, nil
 	}
@@ -474,21 +473,21 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 	return &val, err
 }
 
-func convertNodeToValue(boltNode graph.Node) (*reflect.Value, error){
+func convertNodeToValue(boltNode graph.Node) (*reflect.Value, error) {
 
-	if boltNode.Labels == nil || len(boltNode.Labels) == 0{
+	if boltNode.Labels == nil || len(boltNode.Labels) == 0 {
 		return nil, errors.New("boltNode has no labels")
 	}
 
 	var typeConfig structDecoratorConfig
 
-	temp, ok := mappedTypes.Get(boltNode.Labels[0])// mappedTypes[boltNode.Labels[0]]
-	if !ok{
+	temp, ok := mappedTypes.Get(boltNode.Labels[0]) // mappedTypes[boltNode.Labels[0]]
+	if !ok {
 		return nil, fmt.Errorf("can not find mapping for node with label %s", boltNode.Labels[0])
 	}
 
 	typeConfig, ok = temp.(structDecoratorConfig)
-	if !ok{
+	if !ok {
 		return nil, errors.New("unable to cast to struct decorator config")
 	}
 

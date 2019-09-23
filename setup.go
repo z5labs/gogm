@@ -46,7 +46,7 @@ type Config struct {
 	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy"`
 }
 
-func (c *Config) ConnectionString() string{
+func (c *Config) ConnectionString() string {
 	var protocol string
 
 	if c.IsCluster {

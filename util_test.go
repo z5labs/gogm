@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestSetUuidIfNeeded(t *testing.T){
+func TestSetUuidIfNeeded(t *testing.T) {
 	val := &a{}
 
 	_, _, err := setUuidIfNeeded(nil, "UUID")
@@ -25,7 +25,7 @@ func TestSetUuidIfNeeded(t *testing.T){
 	require.False(t, isCreated)
 }
 
-func TestGetTypeName(t *testing.T){
+func TestGetTypeName(t *testing.T) {
 	val := &a{}
 
 	name, err := getTypeName(reflect.TypeOf(val))
@@ -39,10 +39,10 @@ func TestGetTypeName(t *testing.T){
 	require.EqualValues(t, "a", name)
 }
 
-func TestToCypherParamsMap(t *testing.T){
+func TestToCypherParamsMap(t *testing.T) {
 	val := a{
-		Id: 0,
-		UUID: "testuuid",
+		Id:        0,
+		UUID:      "testuuid",
 		TestField: "testvalue",
 	}
 
@@ -52,15 +52,15 @@ func TestToCypherParamsMap(t *testing.T){
 	params, err := toCypherParamsMap(reflect.ValueOf(val), *config)
 	require.Nil(t, err)
 	require.EqualValues(t, map[string]interface{}{
-		"uuid": "testuuid",
-		"test_type_def_int": 0,
+		"uuid":                 "testuuid",
+		"test_type_def_int":    0,
 		"test_type_def_string": "",
-		"test_field": "testvalue",
+		"test_field":           "testvalue",
 	}, params)
 
 	p := propsTest{
-		Id:    1,
-		UUID:  "testuuid",
+		Id:   1,
+		UUID: "testuuid",
 		Props: map[string]interface{}{
 			"test": "testvalue",
 		},
@@ -69,10 +69,10 @@ func TestToCypherParamsMap(t *testing.T){
 	config, err = getStructDecoratorConfig(&p, mappedRelations)
 	require.Nil(t, err)
 
-	params, err  = toCypherParamsMap(reflect.ValueOf(&p), *config)
+	params, err = toCypherParamsMap(reflect.ValueOf(&p), *config)
 	require.Nil(t, err)
 	require.EqualValues(t, map[string]interface{}{
-		"uuid": "testuuid",
+		"uuid":       "testuuid",
 		"props.test": "testvalue",
 	}, params)
 }

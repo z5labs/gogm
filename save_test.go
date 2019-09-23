@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func TestParseStruct(t *testing.T){
+func TestParseStruct(t *testing.T) {
 	req := require.New(t)
 
 	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
@@ -23,21 +23,21 @@ func TestParseStruct(t *testing.T){
 func parseO2O(req *require.Assertions) {
 	//test single save
 	comp1 := &a{
-		TestField: "test",
+		TestField:         "test",
 		TestTypeDefString: "dasdfas",
-		TestTypeDefInt: 600,
-		Id:        1,
+		TestTypeDefInt:    600,
+		Id:                1,
 	}
 
 	b1 := &b{
 		TestField: "test",
-		Id: 2,
+		Id:        2,
 	}
 
 	c1 := &c{
 		Start: comp1,
-		End: b1,
-		Test: "testing",
+		End:   b1,
+		Test:  "testing",
 	}
 
 	comp1.SingleSpecA = c1
@@ -59,16 +59,16 @@ func parseO2O(req *require.Assertions) {
 func parseM2O(req *require.Assertions) {
 	//test single save
 	a1 := &a{
-		TestField: "test",
+		TestField:         "test",
 		TestTypeDefString: "dasdfas",
-		TestTypeDefInt: 600,
-		Id:        1,
-		ManyA: []*b{},
+		TestTypeDefInt:    600,
+		Id:                1,
+		ManyA:             []*b{},
 	}
 
 	b1 := &b{
 		TestField: "test",
-		Id: 2,
+		Id:        2,
 	}
 
 	b1.ManyB = a1
@@ -90,18 +90,18 @@ func parseM2O(req *require.Assertions) {
 func parseM2M(req *require.Assertions) {
 	//test single save
 	a1 := &a{
-		TestField: "test",
+		TestField:         "test",
 		TestTypeDefString: "dasdfas",
-		TestTypeDefInt: 600,
-		Id:        1,
-		ManyA: []*b{},
-		MultiA: []*b{},
+		TestTypeDefInt:    600,
+		Id:                1,
+		ManyA:             []*b{},
+		MultiA:            []*b{},
 	}
 
 	b1 := &b{
 		TestField: "test",
-		Id: 2,
-		Multi: []*a{},
+		Id:        2,
+		Multi:     []*a{},
 	}
 
 	b1.Multi = append(b1.Multi, a1)
@@ -120,7 +120,7 @@ func parseM2M(req *require.Assertions) {
 	req.Equal(1, len(relations))
 }
 
-func TestSave(t *testing.T){
+func TestSave(t *testing.T) {
 	t.Skip()
 	req := require.New(t)
 
@@ -133,14 +133,14 @@ func TestSave(t *testing.T){
 
 	b2 := &b{
 		TestField: "test",
-		TestTime: time.Now().UTC(),
-		Id: 2,
+		TestTime:  time.Now().UTC(),
+		Id:        2,
 	}
 
 	c1 := &c{
 		Start: comp2,
-		End: b2,
-		Test: "testing",
+		End:   b2,
+		Test:  "testing",
 	}
 
 	comp2.SingleSpecA = c1

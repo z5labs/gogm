@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-type InvalidDecoratorConfigError struct{
+type InvalidDecoratorConfigError struct {
 	Field string
 	Issue string
 }
@@ -18,20 +18,20 @@ func NewInvalidDecoratorConfigError(issue, field string) *InvalidDecoratorConfig
 }
 
 func (i *InvalidDecoratorConfigError) Error() string {
-	return fmt.Sprintf("issue: %s. occured on field '%s'", i.Issue, i.Field)
+	return fmt.Sprintf("issue: %s. occurred on field '%s'", i.Issue, i.Field)
 }
 
-type InvalidStructConfigError struct{
+type InvalidStructConfigError struct {
 	issue string
 }
 
-func NewInvalidStructConfigError(issue string) *InvalidStructConfigError{
+func NewInvalidStructConfigError(issue string) *InvalidStructConfigError {
 	return &InvalidStructConfigError{
 		issue: issue,
 	}
 }
 
-func (i *InvalidStructConfigError) Error() string{
+func (i *InvalidStructConfigError) Error() string {
 	return i.issue
 }
 

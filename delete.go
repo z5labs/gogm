@@ -7,19 +7,19 @@ import (
 	"reflect"
 )
 
-func deleteNode(conn *driver.BoltConn, deleteObj interface{}) error{
+func deleteNode(conn *driver.BoltConn, deleteObj interface{}) error {
 	rawType := reflect.TypeOf(deleteObj)
 
-	if rawType.Kind() != reflect.Ptr && rawType.Kind() != reflect.Slice{
+	if rawType.Kind() != reflect.Ptr && rawType.Kind() != reflect.Slice {
 		return errors.New("delete obj can only be ptr or slice")
 	}
 
 	var ids []int64
 
-	if rawType.Kind() == reflect.Ptr{
+	if rawType.Kind() == reflect.Ptr {
 		delValue := reflect.ValueOf(deleteObj).Elem()
 		id, ok := delValue.FieldByName("Id").Interface().(int64)
-		if !ok{
+		if !ok {
 			return errors.New("unable to cast id to int64")
 		}
 
@@ -29,7 +29,7 @@ func deleteNode(conn *driver.BoltConn, deleteObj interface{}) error{
 
 		extraElem := false
 
-		if slType.Kind() == reflect.Ptr{
+		if slType.Kind() == reflect.Ptr {
 			extraElem = true
 		}
 
@@ -37,14 +37,14 @@ func deleteNode(conn *driver.BoltConn, deleteObj interface{}) error{
 
 		slLen := slVal.Len()
 
-		for i := 0; i < slLen; i++{
+		for i := 0; i < slLen; i++ {
 			val := slVal.Index(i)
 			if extraElem {
 				val = val.Elem()
 			}
 
 			id, ok := val.FieldByName("Id").Interface().(int64)
-			if !ok{
+			if !ok {
 				return errors.New("unable to cast id to int64")
 			}
 
@@ -55,56 +55,56 @@ func deleteNode(conn *driver.BoltConn, deleteObj interface{}) error{
 	return deleteByIds(conn, ids...)
 }
 
-func deleteByIds(conn *driver.BoltConn, ids ...int64) error{
+func deleteByIds(conn *driver.BoltConn, ids ...int64) error {
 	rows, err := dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
 		Where(dsl.C(&dsl.ConditionConfig{
 			FieldManipulationFunction: "ID",
-			Name: "n",
-			ConditionOperator: dsl.EqualToOperator,
-			Check: dsl.ParamString("row"),
+			Name:                      "n",
+			ConditionOperator:         dsl.EqualToOperator,
+			Check:                     dsl.ParamString("row"),
 		})).
 		Delete(true, "n").
 		WithNeo(conn).
 		Exec(map[string]interface{}{
 			"rows": ids,
 		})
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
-	if numRows, err := rows.RowsAffected(); err != nil{
+	if numRows, err := rows.RowsAffected(); err != nil {
 		return err
-	} else if numRows == 0{
+	} else if numRows == 0 {
 		return errors.New("nothing got deleted")
 	}
 
 	return nil
 }
 
-func deleteByUuids(conn *driver.BoltConn, ids ...string) error{
+func deleteByUuids(conn *driver.BoltConn, ids ...string) error {
 	rows, err := dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
 		Where(dsl.C(&dsl.ConditionConfig{
-			Name: "n",
-			Field: "uuid",
+			Name:              "n",
+			Field:             "uuid",
 			ConditionOperator: dsl.EqualToOperator,
-			Check: dsl.ParamString("row"),
+			Check:             dsl.ParamString("row"),
 		})).
 		Delete(true, "n").
 		WithNeo(conn).
 		Exec(map[string]interface{}{
 			"rows": ids,
 		})
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
-	if numRows, err := rows.RowsAffected(); err != nil{
+	if numRows, err := rows.RowsAffected(); err != nil {
 		return err
-	} else if numRows == 0{
+	} else if numRows == 0 {
 		return errors.New("nothing got deleted")
 	}
 
