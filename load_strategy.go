@@ -58,7 +58,7 @@ func PathLoadStrategyOne(variable, label string, depth int, additionalConstraint
 			P().
 			V(dsl.V{Name: variable}).
 			E(dsl.E{Direction: dsl.DirectionNone, MinJumps: 0, MaxJumps: depth}).
-			V().Build())
+			V(dsl.V{}).Build())
 
 	if additionalConstraints != nil {
 		builder = builder.Where(additionalConstraints.And(&dsl.ConditionConfig{
@@ -111,5 +111,5 @@ func PathLoadStrategyEdgeConstraint(startVariable, startLabel, endLabel, endTarg
 		builder.Where(additionalConstraints)
 	}
 
-	return builder.Return(false, dsl.ReturnPart{Name: "n"}), nil
+	return builder.Return(false, dsl.ReturnPart{Name: "p"}), nil
 }
