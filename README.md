@@ -1,6 +1,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mindstand/gogm)](https://goreportcard.com/report/github.com/mindstand/gogm)
 [![Actions Status](https://github.com/mindstand/gogm/workflows/Go/badge.svg)](https://github.com/mindstand/gogm/actions)
-# GoGM Golang Object Graph Model Library
+# GoGM Golang Object Graph Mapper
 
 ```
 go get -u github.com/mindstand/gogm
