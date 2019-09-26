@@ -299,7 +299,7 @@ func sortPaths(path *graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map
 
 		for i := 0; i+2 < seqPrimeLen; i += 2 {
 			startPosIndex := seqPrime[i]
-			edgeIndex := seqPrime[i+1] - 1 //to offset for array index
+			edgeIndex := seqPrime[i+1]
 			endPosIndex := seqPrime[i+2]
 
 			var startId int
@@ -320,7 +320,7 @@ func sortPaths(path *graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map
 
 			startNode := path.Nodes[startId]
 			endNode := path.Nodes[endId]
-			rel := path.Relationships[edgeId]
+			rel := path.Relationships[edgeId - 1] //offset for the array
 
 			if _, ok := (*rels)[rel.RelIdentity]; !ok {
 				(*rels)[rel.RelIdentity] = &neoEdgeConfig{
