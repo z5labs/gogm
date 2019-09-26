@@ -86,7 +86,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 	rels := make(map[int64]*neoEdgeConfig)
 
 	if paths != nil && len(paths) != 0 {
-		err = sortPaths(paths[len(paths)-1], &nodeLookup, &rels, &pks, primaryLabel)
+		err = sortPaths(paths, &nodeLookup, &rels, &pks, primaryLabel)
 		if err != nil {
 			return err
 		}
@@ -263,74 +263,79 @@ func getPrimaryLabel(rt reflect.Type) string {
 	return rt.Name()
 }
 
-func sortPaths(path *graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string) error {
-	if path == nil {
+func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string) error {
+	if paths == nil {
 		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
 	}
 
-	if path.Nodes == nil || len(path.Nodes) == 0 {
-		return fmt.Errorf("no nodes found, %w", ErrNotFound)
-	}
+	for _, path := range paths {
+		if path == nil {
+			return errors.New("path can not be nil")
+		}
 
-	for _, node := range path.Nodes {
+		if path.Nodes == nil || len(path.Nodes) == 0 {
+			return fmt.Errorf("no nodes found, %w", ErrNotFound)
+		}
 
-		if _, ok := (*nodeLookup)[node.NodeIdentity]; !ok {
-			//we haven't parsed this one yet, lets do that now
-			val, err := convertNodeToValue(node)
-			if err != nil {
-				return err
-			}
+		for _, node := range path.Nodes {
 
-			(*nodeLookup)[node.NodeIdentity] = val
+			if _, ok := (*nodeLookup)[node.NodeIdentity]; !ok {
+				//we haven't parsed this one yet, lets do that now
+				val, err := convertNodeToValue(node)
+				if err != nil {
+					return err
+				}
 
-			//primary to return
-			if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
-				*pks = append(*pks, node.NodeIdentity)
+				(*nodeLookup)[node.NodeIdentity] = val
+
+				//primary to return
+				if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
+					*pks = append(*pks, node.NodeIdentity)
+				}
 			}
 		}
-	}
 
-	//handle the relationships
-	//sequence is [node_id, edge_id (negative if its in the wrong direction), repeat....]
-	//
-	if path.Sequence != nil && len(path.Sequence) != 0 && path.Relationships != nil && len(path.Relationships) == (len(path.Sequence)/2) {
-		seqPrime := append([]int{0}, path.Sequence...)
-		seqPrimeLen := len(seqPrime)
+		//handle the relationships
+		//sequence is [node_id, edge_id (negative if its in the wrong direction), repeat....]
+		if path.Sequence != nil && len(path.Sequence) != 0 && path.Relationships != nil && len(path.Relationships) == (len(path.Sequence)/2) {
+			seqPrime := append([]int{0}, path.Sequence...)
+			seqPrimeLen := len(seqPrime)
 
-		for i := 0; i+2 < seqPrimeLen; i += 2 {
-			startPosIndex := seqPrime[i]
-			edgeIndex := seqPrime[i+1]
-			endPosIndex := seqPrime[i+2]
+			for i := 0; i+2 < seqPrimeLen; i += 2 {
+				startPosIndex := seqPrime[i]
+				edgeIndex := seqPrime[i+1]
+				endPosIndex := seqPrime[i+2]
 
-			var startId int
-			var endId int
-			var edgeId int
+				var startId int
+				var endId int
+				var edgeId int
 
-			//keep order
-			if edgeIndex >= 0 {
-				startId = startPosIndex
-				endId = endPosIndex
-				edgeId = edgeIndex
-			} else {
-				//reverse
-				startId = endPosIndex
-				endId = startPosIndex
-				edgeId = -edgeIndex
-			}
+				//keep order
+				if edgeIndex >= 0 {
+					startId = startPosIndex
+					endId = endPosIndex
+					edgeId = edgeIndex
+				} else {
+					//reverse
+					startId = endPosIndex
+					endId = startPosIndex
+					edgeId = -edgeIndex
+				}
 
-			startNode := path.Nodes[startId]
-			endNode := path.Nodes[endId]
-			rel := path.Relationships[edgeId - 1] //offset for the array
+				startNode := path.Nodes[startId]
+				endNode := path.Nodes[endId]
+				rel := path.Relationships[edgeId-1] //offset for the array
 
-			if _, ok := (*rels)[rel.RelIdentity]; !ok {
-				(*rels)[rel.RelIdentity] = &neoEdgeConfig{
-					Id:            rel.RelIdentity,
-					StartNodeId:   startNode.NodeIdentity,
-					StartNodeType: startNode.Labels[0],
-					EndNodeId:     endNode.NodeIdentity,
-					EndNodeType:   endNode.Labels[0],
-					Obj:           rel.Properties,
-					Type:          rel.Type,
+				if _, ok := (*rels)[rel.RelIdentity]; !ok {
+					(*rels)[rel.RelIdentity] = &neoEdgeConfig{
+						Id:            rel.RelIdentity,
+						StartNodeId:   startNode.NodeIdentity,
+						StartNodeType: startNode.Labels[0],
+						EndNodeId:     endNode.NodeIdentity,
+						EndNodeType:   endNode.Labels[0],
+						Obj:           rel.Properties,
+						Type:          rel.Type,
+					}
 				}
 			}
 		}
