@@ -101,6 +101,9 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 
 	if strictRels != nil && len(strictRels) != 0 {
 		err = sortStrictRels(strictRels, &labelLookup, &rels)
+		if err != nil {
+			return err
+		}
 	}
 
 	//build relationships
