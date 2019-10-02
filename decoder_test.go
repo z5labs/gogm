@@ -652,4 +652,22 @@ func TestDecoder(t *testing.T) {
 	req.NotNil(emptyErr)
 	req.True(errors.As(emptyErr, &ErrNotFound))
 	req.Zero(readin8)
+
+	vars9 := [][]interface{}{
+		{
+			graph.Node{
+				NodeIdentity: 55,
+				Labels: []string{"b"},
+				Properties: map[string]interface{}{
+					"test_field": "test",
+					"uuid":       "dasdfas",
+				},
+			},
+		},
+	}
+	var readin9 b
+	req.Nil(decode(vars9, &readin9))
+	req.Equal("test", readin9.TestField)
+	req.Equal(int64(55), readin9.Id)
+	req.Equal("dasdfas", readin9.UUID)
 }

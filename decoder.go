@@ -57,9 +57,8 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 
 	//todo optimize with set array size
 	var paths []*graph.Path
-	//todo handle strict rels and separate nodes
-	//var strictRels []*graph.Relationship
-	//var isolatedNodes []*graph.Node
+	var strictRels []*graph.Relationship
+	var isolatedNodes []*graph.Node
 
 	for _, arr := range rawArr {
 		for _, graphType := range arr {
@@ -68,14 +67,14 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 				convP := graphType.(graph.Path)
 				paths = append(paths, &convP)
 				break
-			//case graph.Relationship:
-			//	convR := graphType.(graph.Relationship)
-			//	strictRels = append(strictRels, &convR)
-			//	break
-			//case graph.Node:
-			//	convN := graphType.(graph.Node)
-			//	isolatedNodes = append(isolatedNodes, &convN)
-			//	break
+			case graph.Relationship:
+				convR := graphType.(graph.Relationship)
+				strictRels = append(strictRels, &convR)
+				break
+			case graph.Node:
+				convN := graphType.(graph.Node)
+				isolatedNodes = append(isolatedNodes, &convN)
+				break
 			default:
 				return fmt.Errorf("%T unsupported type, %w", graphType, ErrInternal)
 			}
@@ -84,12 +83,24 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 	nodeLookup := make(map[int64]*reflect.Value)
 	var pks []int64
 	rels := make(map[int64]*neoEdgeConfig)
+	labelLookup := map[int64]string{}
 
 	if paths != nil && len(paths) != 0 {
 		err = sortPaths(paths, &nodeLookup, &rels, &pks, primaryLabel)
 		if err != nil {
 			return err
 		}
+	}
+
+	if isolatedNodes != nil && len(isolatedNodes) != 0{
+		err = sortIsolatedNodes(isolatedNodes, &labelLookup, &nodeLookup, &pks, primaryLabel)
+		if err != nil {
+			return err
+		}
+	}
+
+	if strictRels != nil && len(strictRels) != 0 {
+		err = sortStrictRels(strictRels, &labelLookup, &rels)
 	}
 
 	//build relationships
@@ -261,6 +272,77 @@ func getPrimaryLabel(rt reflect.Type) string {
 	}
 
 	return rt.Name()
+}
+
+func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]string, nodeLookup *map[int64]*reflect.Value, pks *[]int64, pkLabel string) error {
+	if isolatedNodes == nil {
+		return fmt.Errorf("isolatedNodes can not be nil, %w", ErrInternal)
+	}
+
+	for _, node := range isolatedNodes {
+		if node == nil {
+			return fmt.Errorf("node should not be nil, %w", ErrInternal)
+		}
+
+		//check if node has already been found by another process
+		if _, ok := (*nodeLookup)[node.NodeIdentity]; !ok {
+			//if it hasn't, map it
+			val, err := convertNodeToValue(*node)
+			if err != nil {
+				return err
+			}
+
+			(*nodeLookup)[node.NodeIdentity] = val
+
+			//primary to return
+			if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
+				*pks = append(*pks, node.NodeIdentity)
+			}
+
+			//set label map
+			if _, ok := (*labelLookup)[node.NodeIdentity]; !ok && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
+				(*labelLookup)[node.NodeIdentity] = node.Labels[0]
+			}
+		}
+	}
+
+	return nil
+}
+
+func sortStrictRels(strictRels []*graph.Relationship, labelLookup *map[int64]string, rels *map[int64]*neoEdgeConfig) error {
+	if strictRels == nil {
+		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
+	}
+
+	for _, rel := range strictRels {
+		if rel == nil {
+			return errors.New("path can not be nil")
+		}
+
+		if _, ok := (*rels)[rel.RelIdentity]; !ok {
+			startLabel, ok := (*labelLookup)[rel.StartNodeIdentity]
+			if !ok {
+				return fmt.Errorf("label not found for node [%v], %w", rel.StartNodeIdentity, ErrInternal)
+			}
+
+			endLabel, ok := (*labelLookup)[rel.EndNodeIdentity]
+			if !ok {
+				return fmt.Errorf("label not found for node [%v], %w", rel.EndNodeIdentity, ErrInternal)
+			}
+
+			(*rels)[rel.RelIdentity] = &neoEdgeConfig{
+				Id:            rel.RelIdentity,
+				StartNodeId:   rel.StartNodeIdentity,
+				StartNodeType: startLabel,
+				EndNodeId:     rel.StartNodeIdentity,
+				EndNodeType:   endLabel,
+				Obj:           rel.Properties,
+				Type:          rel.Type,
+			}
+		}
+	}
+
+	return nil
 }
 
 func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string) error {
