@@ -661,6 +661,7 @@ func TestDecoder(t *testing.T) {
 				Properties: map[string]interface{}{
 					"test_field": "test",
 					"uuid":       "dasdfas",
+					"test_time":  fTime.Format(time.RFC3339),
 				},
 			},
 		},

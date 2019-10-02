@@ -62,6 +62,10 @@ import (
   "github.com/mindstand/gogm"
   "time"
 )
+
+type tdString string
+type tdInt int
+
 //structs for the example (can also be found in decoder_test.go)
 type VertexA struct {
 	Id                int64    `gogm:"name=id"`
@@ -69,11 +73,11 @@ type VertexA struct {
 	TestField         string   `gogm:"name=test_field"`
 	TestTypeDefString tdString `gogm:"name=test_type_def_string"`
 	TestTypeDefInt    tdInt    `gogm:"name=test_type_def_int"`
-	SingleA           *b       `gogm:"direction=incoming;relationship=test_rel"`
-	ManyA             []*b     `gogm:"direction=incoming;relationship=testm2o"`
-	MultiA            []*b     `gogm:"direction=incoming;relationship=multib"`
-	SingleSpecA       *c       `gogm:"direction=outgoing;relationship=special_single"`
-	MultiSpecA        []*c     `gogm:"direction=outgoing;relationship=special_multi"`
+	SingleA           *VertexB       `gogm:"direction=incoming;relationship=test_rel"`
+	ManyA             []*VertexB     `gogm:"direction=incoming;relationship=testm2o"`
+	MultiA            []*VertexB     `gogm:"direction=incoming;relationship=multib"`
+	SingleSpecA       *EdgeC       `gogm:"direction=outgoing;relationship=special_single"`
+	MultiSpecA        []*EdgeC     `gogm:"direction=outgoing;relationship=special_multi"`
 }
 
 type VertexB struct {
@@ -81,18 +85,20 @@ type VertexB struct {
 	UUID       string    `gogm:"pk;name=uuid"`
 	TestField  string    `gogm:"name=test_field"`
 	TestTime   time.Time `gogm:"time;name=test_time"`
-	Single     *a        `gogm:"direction=outgoing;relationship=test_rel"`
-	ManyB      *a        `gogm:"direction=incoming;relationship=testm2o"`
-	Multi      []*a      `gogm:"direction=outgoing;relationship=multib"`
-	SingleSpec *c        `gogm:"direction=incoming;relationship=special_single"`
-	MultiSpec  []*c      `gogm:"direction=incoming;relationship=special_multi"`
+
+	Single     *VertexA         `gogm:"direction=outgoing;relationship=test_rel"`
+	ManyB      *VertexA         `gogm:"direction=incoming;relationship=testm2o"`
+	Multi      []*VertexA       `gogm:"direction=outgoing;relationship=multib"`
+
+	SingleSpec *EdgeC        `gogm:"direction=incoming;relationship=special_single"`
+	MultiSpec  []*EdgeC      `gogm:"direction=incoming;relationship=special_multi"`
 }
 
 type EdgeC struct {
 	Id    int64  `gogm:"name=id"`
 	UUID  string `gogm:"pk;name=uuid"`
-	Start *a
-	End   *b
+	Start *VertexA
+	End   *VertexB
 	Test  string `gogm:"name=test"`
 }
 
@@ -107,13 +113,13 @@ func main(){
     Username:      "neo4j",
   }
   
-  err := gogm.Init(&config, &a, &b, &c)
+  err := gogm.Init(&config, &VertexA{}, &VertexB{}, &EdgeC{})
   if err != nil {
     panic(err)
   }
   
   //param is readonly, we're going to make stuff so we're going to do read write
-  session, err := gogm.NewSession(false) 
+  sess, err := gogm.NewSession(false) 
   if err != nil {
     panic(err)
   }
@@ -122,11 +128,11 @@ func main(){
   defer sess.Close()
   
   aVal := &VertexA{
-    TestField: "woo neo4j"
+    TestField: "woo neo4j",
   }
   
   bVal := &VertexB{
-    TestTime: time.Now().Utc()
+    TestTime: time.Now().UTC(),
   }
   
   //set bi directional pointer
