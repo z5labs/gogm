@@ -92,7 +92,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 		}
 	}
 
-	if isolatedNodes != nil && len(isolatedNodes) != 0{
+	if isolatedNodes != nil && len(isolatedNodes) != 0 {
 		err = sortIsolatedNodes(isolatedNodes, &labelLookup, &nodeLookup, &pks, primaryLabel)
 		if err != nil {
 			return err

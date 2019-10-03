@@ -657,7 +657,7 @@ func TestDecoder(t *testing.T) {
 		{
 			graph.Node{
 				NodeIdentity: 55,
-				Labels: []string{"b"},
+				Labels:       []string{"b"},
 				Properties: map[string]interface{}{
 					"test_field": "test",
 					"uuid":       "dasdfas",
