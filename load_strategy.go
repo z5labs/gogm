@@ -26,15 +26,21 @@ func PathLoadStrategyMany(variable, label string, depth int, additionalConstrain
 		return nil, errors.New("depth can not be less than 0")
 	}
 
-	builder := dsl.QB().
-		Match(dsl.Path().
-			P().
-			V(dsl.V{Name: variable}).
+	path := dsl.Path().
+		P().
+		V(dsl.V{Name: variable})
+
+	if depth != 0 {
+		path = path.
 			E(dsl.E{Direction: dsl.DirectionNone, MinJumps: 0, MaxJumps: depth}).
-			V().Build())
+			V(dsl.V{})
+	}
+
+	builder := dsl.QB().
+		Match(path.Build())
 
 	if additionalConstraints != nil {
-		builder.Where(additionalConstraints)
+		builder = builder.Where(additionalConstraints)
 	}
 
 	return builder.Return(false, dsl.ReturnPart{Name: "p"}), nil
@@ -53,12 +59,18 @@ func PathLoadStrategyOne(variable, label string, depth int, additionalConstraint
 		return nil, errors.New("depth can not be less than 0")
 	}
 
-	builder := dsl.QB().
-		Match(dsl.Path().
-			P().
-			V(dsl.V{Name: variable}).
+	path := dsl.Path().
+		P().
+		V(dsl.V{Name: variable})
+
+	if depth != 0 {
+		path = path.
 			E(dsl.E{Direction: dsl.DirectionNone, MinJumps: 0, MaxJumps: depth}).
-			V(dsl.V{}).Build())
+			V(dsl.V{})
+	}
+
+	builder := dsl.QB().
+		Match(path.Build())
 
 	if additionalConstraints != nil {
 		builder = builder.Where(additionalConstraints.And(&dsl.ConditionConfig{
