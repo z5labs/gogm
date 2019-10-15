@@ -106,6 +106,11 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 		}
 	}
 
+	//check if we have anything to do
+	if len(pks) == 0 {
+		return fmt.Errorf("no primary nodes to return, %w", ErrNotFound)
+	}
+
 	//build relationships
 	for _, relationConfig := range rels {
 		//todo figure out why this is broken
