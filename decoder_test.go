@@ -537,7 +537,7 @@ func TestDecoder(t *testing.T) {
 						Labels:       []string{"propsTest"},
 						Properties: map[string]interface{}{
 							"uuid":        var5uuid,
-							"props.test":  "test",
+							"props.test.test":  "test",
 							"props.test2": "test2",
 							"props.test3": "test3",
 						},
@@ -555,7 +555,7 @@ func TestDecoder(t *testing.T) {
 		Id:   1,
 		UUID: var5uuid,
 		Props: map[string]interface{}{
-			"test":  "test",
+			"test.test":  "test",
 			"test2": "test2",
 			"test3": "test3",
 		},

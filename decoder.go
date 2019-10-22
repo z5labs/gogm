@@ -501,12 +501,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 					continue
 				}
 
-				parts := strings.Split(k, ".")
-				if len(parts) != 2 {
-					return nil, fmt.Errorf("invalid key [%s]", k)
-				}
-
-				mapKey := parts[1]
+				mapKey := strings.Replace(k, fieldConfig.Name + ".", "", 1)
 
 				mapVal.SetMapIndex(reflect.ValueOf(mapKey), reflect.ValueOf(v))
 			}
