@@ -30,10 +30,14 @@ github.com/mindstand/go-cypherdsl v0.0.0-20190925190219-d8d2d74226ff h1:L4C1B6PJ
 github.com/mindstand/go-cypherdsl v0.0.0-20190925190219-d8d2d74226ff/go.mod h1:mKgzgBSogeG67qIIHoZiyVgr8WedN/AUM/PsSnK3Ttw=
 github.com/mindstand/go-cypherdsl v0.0.0-20191015132354-46f703539cfd h1:47Y4R1y8i8UMZmLLLa0WC6jwVOVmWVkZ1ELanz3AVGk=
 github.com/mindstand/go-cypherdsl v0.0.0-20191015132354-46f703539cfd/go.mod h1:mKgzgBSogeG67qIIHoZiyVgr8WedN/AUM/PsSnK3Ttw=
+github.com/mindstand/go-cypherdsl v0.0.0-20191030200322-ed2619be6449 h1:7UX/6ALQpxeCbfL/jDBmRYAn6nb3NKinux9zlZHXkCY=
+github.com/mindstand/go-cypherdsl v0.0.0-20191030200322-ed2619be6449/go.mod h1:n9dd9gmjEr26QvHMzyJIYsmiBnpb7Yjxbrl0wwMHBRI=
 github.com/mindstand/golang-neo4j-bolt-driver v0.0.0-20190917210539-9477821dd010 h1:WBcwBI6Zc0QJIDWg5P5HpHBFD5u4sn8SucOP4EHlHyk=
 github.com/mindstand/golang-neo4j-bolt-driver v0.0.0-20190917210539-9477821dd010/go.mod h1:SJGjyfk/mgTjbZOn3dHrpA3IqB5M1jTF0nsnh3dFXpM=
 github.com/mindstand/golang-neo4j-bolt-driver v0.0.0-20190925190017-eca83d3ce35c h1:6jP0r3PDFjQgvcCKTCVsIFO40giVse1/Btj7BFlVg6U=
 github.com/mindstand/golang-neo4j-bolt-driver v0.0.0-20190925190017-eca83d3ce35c/go.mod h1:SJGjyfk/mgTjbZOn3dHrpA3IqB5M1jTF0nsnh3dFXpM=
+github.com/mindstand/golang-neo4j-bolt-driver v0.0.0-20191030200006-d15c1c182165 h1:r3B25jDadcUDN6QfyDhLpQ4Offefy1DtDHpxbiqq+m8=
+github.com/mindstand/golang-neo4j-bolt-driver v0.0.0-20191030200006-d15c1c182165/go.mod h1:SJGjyfk/mgTjbZOn3dHrpA3IqB5M1jTF0nsnh3dFXpM=
 github.com/mitchellh/mapstructure v1.1.2 h1:fmNYVwqnSfB9mZU6OS2O6GsXM+wcskZDuKQzvN1EDeE=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
@@ -61,6 +65,8 @@ golang.org/x/sys v0.0.0-20190924154521-2837fb4f24fe h1:6fAMxZRR6sl1Uq8U61gxU+kPT
 golang.org/x/sys v0.0.0-20190924154521-2837fb4f24fe/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20191010194322-b09406accb47 h1:/XfQ9z7ib8eEJX2hdgFTZJ/ntt0swNk5oYBziWeTCvY=
 golang.org/x/sys v0.0.0-20191010194322-b09406accb47/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c h1:S/FtSvpNLtFBgjTqcKsRpsa6aVsI6iztaz1bQd9BJwE=
+golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 h1:YR8cESwS4TdDjEe65xsg0ogRM/Nc3DYOhEAlW+xobZo=
 gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=

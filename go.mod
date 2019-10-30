@@ -7,12 +7,12 @@ require (
 	github.com/dchest/siphash v1.2.1 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/kr/pretty v0.1.0 // indirect
-	github.com/mindstand/go-cypherdsl v0.0.0-20191015132354-46f703539cfd
-	github.com/mindstand/golang-neo4j-bolt-driver v0.0.0-20190925190017-eca83d3ce35c
+	github.com/mindstand/go-cypherdsl v0.0.0-20191030200322-ed2619be6449
+	github.com/mindstand/golang-neo4j-bolt-driver v0.0.0-20191030200006-d15c1c182165
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0
-	golang.org/x/sys v0.0.0-20191010194322-b09406accb47 // indirect
+	golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )
