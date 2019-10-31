@@ -150,8 +150,8 @@ func TestConvertNodeToValue(t *testing.T) {
 	}
 	mappedTypes.Set("TestStruct", te)
 	val, err = convertNodeToValue(bn)
-	req.NotNil(err)
-	req.Nil(val)
+	req.Nil(err)
+	req.NotNil(val)
 }
 
 type tdString string

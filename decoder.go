@@ -510,16 +510,20 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 			continue
 		}
 
-		raw, ok := props[fieldConfig.Name]
+		var raw interface{}
+		var ok bool
+
+		raw, ok = props[fieldConfig.Name]
 		if !ok {
 			if fieldConfig.IsTypeDef {
 				log.Debugf("skipping field %s since it is typedeffed and not defined", fieldConfig.Name)
 				continue
 			}
-			return nil, fmt.Errorf("unrecognized field [%s]", fieldConfig.Name)
 		}
 
-		if raw == nil {
+		rawVal := reflect.ValueOf(raw)
+
+		if raw == nil || rawVal.IsZero(){
 			continue //its already initialized to 0 value, no need to do anything
 		} else {
 			if fieldConfig.IsTime {
@@ -543,7 +547,6 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 
 				reflect.Indirect(val).FieldByName(field).Set(writeVal)
 			} else {
-				rawVal := reflect.ValueOf(raw)
 				indirect := reflect.Indirect(val)
 				if indirect.FieldByName(field).Type() == rawVal.Type() {
 					indirect.FieldByName(field).Set(rawVal)
