@@ -157,6 +157,13 @@ func TestConvertNodeToValue(t *testing.T) {
 type tdString string
 type tdInt int
 
+type f struct {
+	Id                int64    `gogm:"name=id"`
+	UUID              string   `gogm:"pk;name=uuid"`
+	Parents []*f `gogm:"direction=outgoing;relationship=test"`
+	Children []*f `gogm:"direction=incoming;relationship=test"`
+}
+
 type a struct {
 	Id                int64    `gogm:"name=id"`
 	UUID              string   `gogm:"pk;name=uuid"`
@@ -235,9 +242,88 @@ type propsTest struct {
 func TestDecoder(t *testing.T) {
 	req := require.New(t)
 
-	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}, &propsTest{}))
+	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}, &f{}, &propsTest{}))
 
 	//	req.EqualValues(3, mappedTypes.Len())
+
+	vars10 := [][]interface{}{
+		{
+			graph.Path{
+				Nodes: []graph.Node{
+					graph.Node{
+						Labels: []string{"f"},
+						Properties: map[string]interface{}{
+							"uuid":       "0",
+						},
+						NodeIdentity: 0,
+					},
+					graph.Node{
+						Labels: []string{"f"},
+						Properties: map[string]interface{}{
+							"uuid":       "1",
+						},
+						NodeIdentity: 1,
+					},
+					graph.Node{
+						Labels: []string{"f"},
+						Properties: map[string]interface{}{
+							"uuid":       "2",
+						},
+						NodeIdentity: 2,
+					},
+				},
+				Relationships: []graph.UnboundRelationship{
+					graph.UnboundRelationship{
+						RelIdentity: 3,
+						Type:        "test",
+					},
+					graph.UnboundRelationship{
+						RelIdentity: 4,
+						Type:        "test",
+					},
+				},
+				Sequence: []int{1, 1, /*#*/ 2, 2},
+			},
+		},
+	}
+
+	f0 := f{
+		Id:       0,
+		UUID:     "0",
+	}
+
+	f1 := f{
+		Id:       1,
+		UUID:     "1",
+	}
+
+	f2 := f{
+		Id:       2,
+		UUID:     "2",
+	}
+
+	f0.Parents = []*f{&f1}
+	f1.Children = []*f{&f0}
+	f1.Parents = []*f{&f2}
+	f2.Children = []*f{&f1}
+
+	var readin10 []*f
+	req.Nil(decode(vars10, &readin10))
+	req.True(len(readin10) == 3)
+	for _, r := range readin10 {
+		if r.Id == 0 {
+			req.True(len(r.Parents) == 1)
+			req.True(len(r.Children) == 0)
+		} else if r.Id == 1 {
+			req.True(len(r.Parents) == 1)
+			req.True(len(r.Children) == 1)
+		} else if r.Id == 2 {
+			req.True(len(r.Parents) == 0)
+			req.True(len(r.Children) == 1)
+		} else {
+			t.FailNow()
+		}
+	}
 
 	fTime := time.Now().UTC()
 
@@ -570,7 +656,6 @@ func TestDecoder(t *testing.T) {
 
 	//multi single
 	vars6 := [][]interface{}{
-
 		{
 			graph.Path{
 				Nodes: []graph.Node{
@@ -671,4 +756,6 @@ func TestDecoder(t *testing.T) {
 	req.Equal("test", readin9.TestField)
 	req.Equal(int64(55), readin9.Id)
 	req.Equal("dasdfas", readin9.UUID)
+
+
 }

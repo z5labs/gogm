@@ -118,11 +118,13 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 			continue
 		}
 
+		//grab reflect value for start
 		start, _, err := getValueAndConfig(relationConfig.StartNodeId, relationConfig.StartNodeType, nodeLookup)
 		if err != nil {
 			return err
 		}
 
+		//grab reflect value for end
 		end, _, err := getValueAndConfig(relationConfig.EndNodeId, relationConfig.EndNodeType, nodeLookup)
 		if err != nil {
 			return err

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	go_cypherdsl "github.com/mindstand/go-cypherdsl"
 	"reflect"
 	"sync"
 	"time"
@@ -152,7 +153,7 @@ func (r *relationConfigs) Add(nodeType, relationship, fieldType string, dec deco
 	r.configs[key][fieldType] = append(r.configs[key][fieldType], dec)
 }
 
-func (r *relationConfigs) GetConfigs(startNodeType, startNodeField, endNodeType, endNodeField, relationship string) (start, end *decoratorConfig, err error) {
+func (r *relationConfigs) GetConfigs(startNodeType, startNodeFieldType, endNodeType, endNodeFieldType, relationship string) (start, end *decoratorConfig, err error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -160,12 +161,12 @@ func (r *relationConfigs) GetConfigs(startNodeType, startNodeField, endNodeType,
 		return nil, nil, errors.New("no configs provided")
 	}
 
-	start, err = r.getConfig(startNodeType, relationship, startNodeField)
+	start, err = r.getConfig(startNodeType, relationship, startNodeFieldType, go_cypherdsl.DirectionOutgoing)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	end, err = r.getConfig(endNodeType, relationship, endNodeField)
+	end, err = r.getConfig(endNodeType, relationship, endNodeFieldType, go_cypherdsl.DirectionIncoming)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -173,7 +174,7 @@ func (r *relationConfigs) GetConfigs(startNodeType, startNodeField, endNodeType,
 	return start, end, nil
 }
 
-func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string) (*decoratorConfig, error) {
+func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string, direction go_cypherdsl.Direction) (*decoratorConfig, error) {
 	if r.configs == nil {
 		return nil, errors.New("no configs provided")
 	}
@@ -191,8 +192,15 @@ func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string) (*
 		return nil, fmt.Errorf("no configs for key [%s] and field type [%s]", key, fieldType)
 	}
 
-	if len(confs) >= 1 {
+	if len(confs) == 1 {
 		return &confs[0], nil
+	} else if len(confs) > 1 {
+		for _, c := range confs {
+			if c.Direction == direction {
+				return &c, nil
+			}
+		}
+		return nil, errors.New("relation with correct direction not found")
 	} else {
 		return nil, fmt.Errorf("config not found, %w", ErrInternal)
 	}
