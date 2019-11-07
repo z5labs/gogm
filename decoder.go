@@ -76,7 +76,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 				isolatedNodes = append(isolatedNodes, &convN)
 				break
 			default:
-				return fmt.Errorf("%T unsupported type, %w", graphType, ErrInternal)
+				continue
 			}
 		}
 	}
