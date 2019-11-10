@@ -111,13 +111,24 @@ func PathLoadStrategyEdgeConstraint(startVariable, startLabel, endLabel, endTarg
 		return nil, err
 	}
 
-	builder := dsl.QB().
-		Match(dsl.Path().
-			P().
-			V(dsl.V{Name: startVariable, Type: startLabel}).
-			E(dsl.E{MinJumps: minJumps, MaxJumps: maxJumps, Direction: dsl.DirectionNone}).
-			V(dsl.V{Type: endLabel, Params: qp}).
-			Build())
+	path := dsl.Path().P()
+
+	if depth > 0 {
+		path.V(dsl.V{}).
+			E(dsl.E{
+				Direction: dsl.DirectionNone,
+				MinJumps:  0,
+				MaxJumps:  depth,
+			})
+	}
+
+	path.
+		V(dsl.V{Name: startVariable, Type: startLabel}).
+		E(dsl.E{MinJumps: minJumps, MaxJumps: maxJumps, Direction: dsl.DirectionNone}).
+		V(dsl.V{Type: endLabel, Params: qp}).
+		Build()
+
+	builder := dsl.QB().Match(path)
 
 	if additionalConstraints != nil {
 		builder.Where(additionalConstraints)
