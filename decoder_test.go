@@ -158,10 +158,10 @@ type tdString string
 type tdInt int
 
 type f struct {
-	Id                int64    `gogm:"name=id"`
-	UUID              string   `gogm:"pk;name=uuid"`
-	Parents []*f `gogm:"direction=outgoing;relationship=test"`
-	Children []*f `gogm:"direction=incoming;relationship=test"`
+	Id       int64  `gogm:"name=id"`
+	UUID     string `gogm:"pk;name=uuid"`
+	Parents  []*f   `gogm:"direction=outgoing;relationship=test"`
+	Children []*f   `gogm:"direction=incoming;relationship=test"`
 }
 
 type a struct {
@@ -253,21 +253,21 @@ func TestDecoder(t *testing.T) {
 					graph.Node{
 						Labels: []string{"f"},
 						Properties: map[string]interface{}{
-							"uuid":       "0",
+							"uuid": "0",
 						},
 						NodeIdentity: 0,
 					},
 					graph.Node{
 						Labels: []string{"f"},
 						Properties: map[string]interface{}{
-							"uuid":       "1",
+							"uuid": "1",
 						},
 						NodeIdentity: 1,
 					},
 					graph.Node{
 						Labels: []string{"f"},
 						Properties: map[string]interface{}{
-							"uuid":       "2",
+							"uuid": "2",
 						},
 						NodeIdentity: 2,
 					},
@@ -282,24 +282,24 @@ func TestDecoder(t *testing.T) {
 						Type:        "test",
 					},
 				},
-				Sequence: []int{1, 1, /*#*/ 2, 2},
+				Sequence: []int{1, 1 /*#*/, 2, 2},
 			},
 		},
 	}
 
 	f0 := f{
-		Id:       0,
-		UUID:     "0",
+		Id:   0,
+		UUID: "0",
 	}
 
 	f1 := f{
-		Id:       1,
-		UUID:     "1",
+		Id:   1,
+		UUID: "1",
 	}
 
 	f2 := f{
-		Id:       2,
-		UUID:     "2",
+		Id:   2,
+		UUID: "2",
 	}
 
 	f0.Parents = []*f{&f1}
@@ -622,10 +622,10 @@ func TestDecoder(t *testing.T) {
 						NodeIdentity: 1,
 						Labels:       []string{"propsTest"},
 						Properties: map[string]interface{}{
-							"uuid":        var5uuid,
-							"props.test.test":  "test",
-							"props.test2": "test2",
-							"props.test3": "test3",
+							"uuid":            var5uuid,
+							"props.test.test": "test",
+							"props.test2":     "test2",
+							"props.test3":     "test3",
 						},
 					},
 				},
@@ -641,9 +641,9 @@ func TestDecoder(t *testing.T) {
 		Id:   1,
 		UUID: var5uuid,
 		Props: map[string]interface{}{
-			"test.test":  "test",
-			"test2": "test2",
-			"test3": "test3",
+			"test.test": "test",
+			"test2":     "test2",
+			"test3":     "test3",
 		},
 	}
 
@@ -756,6 +756,5 @@ func TestDecoder(t *testing.T) {
 	req.Equal("test", readin9.TestField)
 	req.Equal(int64(55), readin9.Id)
 	req.Equal("dasdfas", readin9.UUID)
-
 
 }

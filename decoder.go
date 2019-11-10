@@ -503,7 +503,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 					continue
 				}
 
-				mapKey := strings.Replace(k, fieldConfig.Name + ".", "", 1)
+				mapKey := strings.Replace(k, fieldConfig.Name+".", "", 1)
 
 				mapVal.SetMapIndex(reflect.ValueOf(mapKey), reflect.ValueOf(v))
 			}
@@ -525,7 +525,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 
 		rawVal := reflect.ValueOf(raw)
 
-		if raw == nil || rawVal.IsZero(){
+		if raw == nil || rawVal.IsZero() {
 			continue //its already initialized to 0 value, no need to do anything
 		} else {
 			if fieldConfig.IsTime {
