@@ -41,8 +41,10 @@ func TestGetTypeName(t *testing.T) {
 
 func TestToCypherParamsMap(t *testing.T) {
 	val := a{
-		Id:        0,
-		UUID:      "testuuid",
+		embedTest: embedTest{
+			Id:   0,
+			UUID: "testuuid",
+		},
 		TestField: "testvalue",
 	}
 

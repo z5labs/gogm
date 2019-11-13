@@ -372,10 +372,14 @@ func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (
 
 	toReturn.Fields = map[string]decoratorConfig{}
 
-	//iterate through fields and get their configuration
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
+	fields := getFields(t)
 
+	if fields == nil || len(fields) == 0 {
+		return nil, errors.New("failed to parse fields")
+	}
+
+	//iterate through fields and get their configuration
+	for _, field := range fields {
 		tag := field.Tag.Get(decoratorName)
 
 		if tag != "" {
@@ -457,4 +461,22 @@ func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (
 	}
 
 	return toReturn, nil
+}
+
+func getFields(val reflect.Type) []*reflect.StructField {
+	var fields []*reflect.StructField
+	if val.Kind() == reflect.Ptr {
+		return getFields(val.Elem())
+	}
+
+	for i := 0; i < val.NumField(); i++ {
+		tempField := val.Field(i)
+		if tempField.Anonymous && tempField.Type.Kind() == reflect.Struct{
+			fields = append(fields, getFields(tempField.Type)...)
+		} else {
+			fields = append(fields, &tempField)
+		}
+	}
+
+	return fields
 }
