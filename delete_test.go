@@ -18,8 +18,10 @@ func TestDelete(t *testing.T) {
 	defer driverPool.Reclaim(conn)
 
 	del := a{
-		Id:   0,
-		UUID: "5334ee8c-6231-40fd-83e5-16c8016ccde6",
+		embedTest: embedTest{
+			Id:   0,
+			UUID: "5334ee8c-6231-40fd-83e5-16c8016ccde6",
+		},
 	}
 
 	err = deleteNode(conn, &del)

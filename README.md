@@ -42,8 +42,9 @@ Ex.
 type TdString string
 
 type MyNeo4jObject struct {
-  Id int64 `gogm:"name=id"` //required to have an int64 id field
-  UUID string `gogm:"pk;name=uuid"` //required to have uuid string field marked as pk
+  // provides required node fields
+  gogm.BaseNode
+
   Field string `gogm:"name=field"`
   Props map[string]interface{} `gogm:"properties;name=props"` //note that this would show up as `props.<key>` in neo4j
   IgnoreMe bool `gogm="-"`
@@ -68,8 +69,9 @@ type tdInt int
 
 //structs for the example (can also be found in decoder_test.go)
 type VertexA struct {
-	Id                int64    `gogm:"name=id"`
-	UUID              string   `gogm:"pk;name=uuid"`
+    // provides required node fields
+	gogm.BaseNode
+
 	TestField         string   `gogm:"name=test_field"`
 	TestTypeDefString tdString `gogm:"name=test_type_def_string"`
 	TestTypeDefInt    tdInt    `gogm:"name=test_type_def_int"`
@@ -81,8 +83,9 @@ type VertexA struct {
 }
 
 type VertexB struct {
-	Id         int64     `gogm:"name=id"`
-	UUID       string    `gogm:"pk;name=uuid"`
+    // provides required node fields
+	gogm.BaseNode
+
 	TestField  string    `gogm:"name=test_field"`
 	TestTime   time.Time `gogm:"time;name=test_time"`
 
@@ -95,8 +98,9 @@ type VertexB struct {
 }
 
 type EdgeC struct {
-	Id    int64  `gogm:"name=id"`
-	UUID  string `gogm:"pk;name=uuid"`
+    // provides required node fields
+	gogm.BaseNode
+
 	Start *VertexA
 	End   *VertexB
 	Test  string `gogm:"name=test"`
@@ -157,11 +161,12 @@ func main(){
 ```
 
 ## Inspiration
-Inspiration came from the Java OGM implementation by Neo4j. We studied their implementation to use as a good basis for ours in go! So, thanks Neo4j!
+Inspiration came from the Java OGM implementation by Neo4j.
 
 ## Road Map
-- Support for embedded structs (refer to issue #5)
 - More validation (refer to issues #2, #8)
+- Schema Migration
+- Generation CLI for link functions
 - Errors overhaul using go 1.13 error wrapping
 - TLS Support
 - Documentation (obviously)

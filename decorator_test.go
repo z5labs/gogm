@@ -306,9 +306,13 @@ func TestNewDecoratorConfig(t *testing.T) {
 
 //structs with decorators for testing
 
-type validStruct struct {
+type embedTest struct {
 	Id          int64                  `gogm:"name=id"`
 	UUID        string                 `gogm:"pk;name=uuid"`
+}
+
+type validStruct struct {
+	embedTest
 	IndexField  string                 `gogm:"index;name=index_field"`
 	UniqueField int                    `gogm:"unique;name=unique_field"`
 	OneToOne    *validStruct           `gogm:"relationship=one2one;direction=incoming"`

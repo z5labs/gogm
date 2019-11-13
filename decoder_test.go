@@ -158,15 +158,13 @@ type tdString string
 type tdInt int
 
 type f struct {
-	Id       int64  `gogm:"name=id"`
-	UUID     string `gogm:"pk;name=uuid"`
+	embedTest
 	Parents  []*f   `gogm:"direction=outgoing;relationship=test"`
 	Children []*f   `gogm:"direction=incoming;relationship=test"`
 }
 
 type a struct {
-	Id                int64    `gogm:"name=id"`
-	UUID              string   `gogm:"pk;name=uuid"`
+	embedTest
 	TestField         string   `gogm:"name=test_field"`
 	TestTypeDefString tdString `gogm:"name=test_type_def_string"`
 	TestTypeDefInt    tdInt    `gogm:"name=test_type_def_int"`
@@ -178,8 +176,7 @@ type a struct {
 }
 
 type b struct {
-	Id         int64     `gogm:"name=id"`
-	UUID       string    `gogm:"pk;name=uuid"`
+	embedTest
 	TestField  string    `gogm:"name=test_field"`
 	TestTime   time.Time `gogm:"time;name=test_time"`
 	Single     *a        `gogm:"direction=outgoing;relationship=test_rel"`
@@ -190,8 +187,7 @@ type b struct {
 }
 
 type c struct {
-	Id    int64  `gogm:"name=id"`
-	UUID  string `gogm:"pk;name=uuid"`
+	embedTest
 	Start *a
 	End   *b
 	Test  string `gogm:"name=test"`
@@ -288,18 +284,24 @@ func TestDecoder(t *testing.T) {
 	}
 
 	f0 := f{
-		Id:   0,
-		UUID: "0",
+		embedTest: embedTest{
+			Id:   0,
+			UUID: "0",
+		},
 	}
 
 	f1 := f{
-		Id:   1,
-		UUID: "1",
+		embedTest: embedTest{
+			Id:   1,
+			UUID: "1",
+		},
 	}
 
 	f2 := f{
-		Id:   2,
-		UUID: "2",
+		embedTest: embedTest{
+			Id:   2,
+			UUID: "2",
+		},
 	}
 
 	f0.Parents = []*f{&f1}
@@ -364,18 +366,22 @@ func TestDecoder(t *testing.T) {
 	var readin a
 
 	comp := &a{
+		embedTest: embedTest{
+			Id:   1,
+			UUID: "dasdfasd",
+		},
 		TestField:         "test",
-		Id:                1,
 		TestTypeDefInt:    600,
 		TestTypeDefString: "TDs",
-		UUID:              "dasdfasd",
 	}
 
 	comp22 := &b{
+		embedTest: embedTest{
+			Id:   2,
+			UUID: "dasdfas",
+		},
 		TestField: "test",
-		UUID:      "dasdfas",
 		TestTime:  fTime,
-		Id:        2,
 	}
 
 	comp.SingleA = comp22
@@ -449,21 +455,27 @@ func TestDecoder(t *testing.T) {
 	var readin2 a
 
 	comp2 := &a{
+		embedTest: embedTest{
+			Id:   1,
+			UUID: "dasdfasd",
+		},
 		TestField: "test",
-		Id:        1,
-		UUID:      "dasdfasd",
 	}
 
 	b2 := &b{
+		embedTest: embedTest{
+			Id:   2,
+			UUID: "dasdfas",
+		},
 		TestField: "test",
-		UUID:      "dasdfas",
 		TestTime:  fTime,
-		Id:        2,
 	}
 
 	c1 := &c{
-		UUID:  "asdfasdafsd",
-		Id:    420,
+		embedTest: embedTest{
+			Id:   34,
+			UUID: "asdfasdafsd",
+		},
 		Start: comp2,
 		End:   b2,
 		Test:  "testing",
@@ -517,14 +529,18 @@ func TestDecoder(t *testing.T) {
 	var readin3 a
 
 	comp3 := a{
+		embedTest: embedTest{
+			Id:   1,
+			UUID: "dasdfasd",
+		},
 		TestField: "test",
-		Id:        1,
-		UUID:      "dasdfasd",
 		MultiA: []*b{
 			{
 				TestField: "test",
-				UUID:      "dasdfas",
-				Id:        2,
+				embedTest: embedTest{
+					Id:   2,
+					UUID: "dasdfas",
+				},
 				TestTime:  fTime,
 			},
 		},
@@ -581,19 +597,25 @@ func TestDecoder(t *testing.T) {
 
 	comp4 := &a{
 		TestField: "test",
-		Id:        1,
-		UUID:      "dasdfasd",
+		embedTest: embedTest{
+			Id:   1,
+			UUID: "dasdfasd",
+		},
 	}
 
 	b3 := &b{
 		TestField: "test",
-		UUID:      "dasdfas",
+		embedTest: embedTest{
+			Id:   2,
+			UUID: "dasdfas",
+		},
 		TestTime:  fTime,
-		Id:        2,
 	}
 
 	c4 := c{
-		UUID:  "asdfasdafsd",
+		embedTest: embedTest{
+			UUID: "asdfasdafsd",
+		},
 		Start: comp4,
 		End:   b3,
 		Test:  "testing",
