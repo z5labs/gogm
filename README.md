@@ -161,11 +161,12 @@ func main(){
 ```
 
 ## Inspiration
-Inspiration came from the Java OGM implementation by Neo4j. We studied their implementation to use as a good basis for ours in go! So, thanks Neo4j!
+Inspiration came from the Java OGM implementation by Neo4j.
 
 ## Road Map
-- Support for embedded structs (refer to issue #5)
 - More validation (refer to issues #2, #8)
+- Schema Migration
+- Generation CLI for link functions
 - Errors overhaul using go 1.13 error wrapping
 - TLS Support
 - Documentation (obviously)
