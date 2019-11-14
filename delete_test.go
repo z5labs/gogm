@@ -18,7 +18,7 @@ func TestDelete(t *testing.T) {
 	defer driverPool.Reclaim(conn)
 
 	del := a{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   0,
 			UUID: "5334ee8c-6231-40fd-83e5-16c8016ccde6",
 		},

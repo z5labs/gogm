@@ -41,7 +41,7 @@ func TestGetTypeName(t *testing.T) {
 
 func TestToCypherParamsMap(t *testing.T) {
 	val := a{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   0,
 			UUID: "testuuid",
 		},

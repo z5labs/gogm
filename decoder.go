@@ -81,19 +81,20 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 		}
 	}
 	nodeLookup := make(map[int64]*reflect.Value)
+	relMaps := make(map[int64]map[string]*RelationLoad)
 	var pks []int64
 	rels := make(map[int64]*neoEdgeConfig)
 	labelLookup := map[int64]string{}
 
 	if paths != nil && len(paths) != 0 {
-		err = sortPaths(paths, &nodeLookup, &rels, &pks, primaryLabel)
+		err = sortPaths(paths, &nodeLookup, &rels, &pks, primaryLabel, &relMaps)
 		if err != nil {
 			return err
 		}
 	}
 
 	if isolatedNodes != nil && len(isolatedNodes) != 0 {
-		err = sortIsolatedNodes(isolatedNodes, &labelLookup, &nodeLookup, &pks, primaryLabel)
+		err = sortIsolatedNodes(isolatedNodes, &labelLookup, &nodeLookup, &pks, primaryLabel, &relMaps)
 		if err != nil {
 			return err
 		}
@@ -113,7 +114,6 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 
 	//build relationships
 	for _, relationConfig := range rels {
-		//todo figure out why this is broken
 		if relationConfig.StartNodeType == "" || relationConfig.EndNodeType == "" {
 			continue
 		}
@@ -134,6 +134,50 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 			relationConfig.EndNodeType, relationConfig.StartNodeType, relationConfig.Type)
 		if err != nil {
 			return err
+		}
+
+		if startMap, ok := relMaps[relationConfig.StartNodeId]; ok {
+			if conf, ok := startMap[startConfig.FieldName]; ok {
+				conf.Ids = append(conf.Ids, relationConfig.EndNodeId)
+			} else {
+ 				var rt RelationType
+ 				if startConfig.ManyRelationship {
+ 					rt = Multi
+				} else {
+					rt = Single
+				}
+
+				newConf := &RelationLoad{
+					Ids: []int64{relationConfig.EndNodeId},
+					RelationType: rt,
+				}
+
+				startMap[startConfig.FieldName] = newConf
+			}
+		} else {
+			return fmt.Errorf("relation config not found for id [%v]", relationConfig.StartNodeId)
+		}
+
+		if endMap, ok := relMaps[relationConfig.EndNodeId]; ok {
+			if conf, ok := endMap[endConfig.FieldName]; ok {
+				conf.Ids = append(conf.Ids, relationConfig.EndNodeId)
+			} else {
+				var rt RelationType
+				if endConfig.ManyRelationship {
+					rt = Multi
+				} else {
+					rt = Single
+				}
+
+				newConf := &RelationLoad{
+					Ids: []int64{relationConfig.StartNodeId},
+					RelationType: rt,
+				}
+
+				endMap[endConfig.FieldName] = newConf
+			}
+		} else {
+			return fmt.Errorf("relation config not found for id [%v]", relationConfig.StartNodeId)
 		}
 
 		if startConfig.UsesEdgeNode {
@@ -231,6 +275,13 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 		}
 	}
 
+	//set load maps
+	if len(rels) != 0 {
+		for id, val := range nodeLookup {
+			reflect.Indirect(*val).FieldByName(loadMapField).Set(reflect.ValueOf(relMaps[id]))
+		}
+	}
+
 	//handle if its returning a slice -- validation has been done at an earlier step
 	if rt.Elem().Kind() == reflect.Slice {
 
@@ -284,7 +335,7 @@ func getPrimaryLabel(rt reflect.Type) string {
 	return rt.Name()
 }
 
-func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]string, nodeLookup *map[int64]*reflect.Value, pks *[]int64, pkLabel string) error {
+func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]string, nodeLookup *map[int64]*reflect.Value, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationLoad) error {
 	if isolatedNodes == nil {
 		return fmt.Errorf("isolatedNodes can not be nil, %w", ErrInternal)
 	}
@@ -303,6 +354,7 @@ func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]strin
 			}
 
 			(*nodeLookup)[node.NodeIdentity] = val
+			(*relMaps)[node.NodeIdentity] = map[string]*RelationLoad{}
 
 			//primary to return
 			if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
@@ -355,7 +407,7 @@ func sortStrictRels(strictRels []*graph.Relationship, labelLookup *map[int64]str
 	return nil
 }
 
-func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string) error {
+func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationLoad) error {
 	if paths == nil {
 		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
 	}
@@ -379,6 +431,7 @@ func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *
 				}
 
 				(*nodeLookup)[node.NodeIdentity] = val
+				(*relMaps)[node.NodeIdentity] = map[string]*RelationLoad{}
 
 				//primary to return
 				if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {

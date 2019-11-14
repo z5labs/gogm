@@ -26,13 +26,13 @@ func parseO2O(req *require.Assertions) {
 		TestField:         "test",
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 		},
 	}
 
 	b1 := &b{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 		},
 		TestField: "test",
@@ -66,7 +66,7 @@ func parseM2O(req *require.Assertions) {
 		TestField:         "test",
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 		},
 		ManyA:             []*b{},
@@ -74,7 +74,7 @@ func parseM2O(req *require.Assertions) {
 
 	b1 := &b{
 		TestField: "test",
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 		},
 	}
@@ -101,7 +101,7 @@ func parseM2M(req *require.Assertions) {
 		TestField:         "test",
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 		},
 		ManyA:             []*b{},
@@ -110,7 +110,7 @@ func parseM2M(req *require.Assertions) {
 
 	b1 := &b{
 		TestField: "test",
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 		},
 		Multi:     []*a{},
@@ -140,7 +140,7 @@ func TestSave(t *testing.T) {
 
 	comp2 := &a{
 		TestField: "test",
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 		},
 	}
@@ -148,7 +148,7 @@ func TestSave(t *testing.T) {
 	b2 := &b{
 		TestField: "test",
 		TestTime:  time.Now().UTC(),
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 		},
 	}

@@ -158,13 +158,13 @@ type tdString string
 type tdInt int
 
 type f struct {
-	embedTest
+	BaseNode
 	Parents  []*f   `gogm:"direction=outgoing;relationship=test"`
 	Children []*f   `gogm:"direction=incoming;relationship=test"`
 }
 
 type a struct {
-	embedTest
+	BaseNode
 	TestField         string   `gogm:"name=test_field"`
 	TestTypeDefString tdString `gogm:"name=test_type_def_string"`
 	TestTypeDefInt    tdInt    `gogm:"name=test_type_def_int"`
@@ -176,7 +176,7 @@ type a struct {
 }
 
 type b struct {
-	embedTest
+	BaseNode
 	TestField  string    `gogm:"name=test_field"`
 	TestTime   time.Time `gogm:"time;name=test_time"`
 	Single     *a        `gogm:"direction=outgoing;relationship=test_rel"`
@@ -187,7 +187,7 @@ type b struct {
 }
 
 type c struct {
-	embedTest
+	BaseNode
 	Start *a
 	End   *b
 	Test  string `gogm:"name=test"`
@@ -284,21 +284,21 @@ func TestDecoder(t *testing.T) {
 	}
 
 	f0 := f{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   0,
 			UUID: "0",
 		},
 	}
 
 	f1 := f{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 			UUID: "1",
 		},
 	}
 
 	f2 := f{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 			UUID: "2",
 		},
@@ -315,13 +315,17 @@ func TestDecoder(t *testing.T) {
 	for _, r := range readin10 {
 		if r.Id == 0 {
 			req.True(len(r.Parents) == 1)
+			req.True(r.LoadMap["Parents"].Ids[0] == 1)
 			req.True(len(r.Children) == 0)
 		} else if r.Id == 1 {
 			req.True(len(r.Parents) == 1)
+			req.True(r.LoadMap["Parents"].Ids[0] == 2)
 			req.True(len(r.Children) == 1)
+			req.True(r.LoadMap["Children"].Ids[0] == 0)
 		} else if r.Id == 2 {
 			req.True(len(r.Parents) == 0)
 			req.True(len(r.Children) == 1)
+			req.True(r.LoadMap["Children"].Ids[0] == 1)
 		} else {
 			t.FailNow()
 		}
@@ -366,7 +370,7 @@ func TestDecoder(t *testing.T) {
 	var readin a
 
 	comp := &a{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 			UUID: "dasdfasd",
 		},
@@ -376,7 +380,7 @@ func TestDecoder(t *testing.T) {
 	}
 
 	comp22 := &b{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 			UUID: "dasdfas",
 		},
@@ -455,7 +459,7 @@ func TestDecoder(t *testing.T) {
 	var readin2 a
 
 	comp2 := &a{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 			UUID: "dasdfasd",
 		},
@@ -463,7 +467,7 @@ func TestDecoder(t *testing.T) {
 	}
 
 	b2 := &b{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 			UUID: "dasdfas",
 		},
@@ -472,7 +476,7 @@ func TestDecoder(t *testing.T) {
 	}
 
 	c1 := &c{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   34,
 			UUID: "asdfasdafsd",
 		},
@@ -529,7 +533,7 @@ func TestDecoder(t *testing.T) {
 	var readin3 a
 
 	comp3 := a{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 			UUID: "dasdfasd",
 		},
@@ -537,7 +541,7 @@ func TestDecoder(t *testing.T) {
 		MultiA: []*b{
 			{
 				TestField: "test",
-				embedTest: embedTest{
+				BaseNode: BaseNode{
 					Id:   2,
 					UUID: "dasdfas",
 				},
@@ -597,7 +601,7 @@ func TestDecoder(t *testing.T) {
 
 	comp4 := &a{
 		TestField: "test",
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 			UUID: "dasdfasd",
 		},
@@ -605,7 +609,7 @@ func TestDecoder(t *testing.T) {
 
 	b3 := &b{
 		TestField: "test",
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 			UUID: "dasdfas",
 		},
@@ -613,7 +617,7 @@ func TestDecoder(t *testing.T) {
 	}
 
 	c4 := c{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			UUID: "asdfasdafsd",
 		},
 		Start: comp4,
