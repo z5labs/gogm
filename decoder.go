@@ -546,6 +546,10 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 			continue
 		}
 
+		if fieldConfig.Ignore {
+			continue
+		}
+
 		if fieldConfig.Properties {
 			mapType := reflect.MapOf(reflect.TypeOf(""), emptyInterfaceType)
 			mapVal := reflect.MakeMap(mapType)

@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	go_cypherdsl "github.com/mindstand/go-cypherdsl"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
@@ -73,7 +74,7 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 	ret := map[string]interface{}{}
 
 	for _, conf := range config.Fields {
-		if conf.Relationship != "" || conf.Name == "id" {
+		if conf.Relationship != "" || conf.Name == "id" || conf.Ignore {
 			continue
 		}
 
@@ -204,6 +205,84 @@ func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string, di
 	} else {
 		return nil, fmt.Errorf("config not found, %w", ErrInternal)
 	}
+}
+
+type validation struct {
+	Incoming []string
+	Outgoing []string
+	None []string
+	Both []string
+}
+
+func (r *relationConfigs) Validate() error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	checkMap := map[string]*validation{}
+
+	for title, confMap := range r.configs {
+		parts := strings.Split(title, "-")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid length for parts [%v] should be 2. Rel is [%s], %w", len(parts), title, ErrValidation)
+		}
+
+		//vType := parts[0]
+		relType := parts[1]
+
+		for field, configs := range confMap {
+			for _, config := range configs {
+				if _, ok := checkMap[relType]; !ok {
+					checkMap[relType] = &validation{
+						Incoming: []string{},
+						Outgoing: []string{},
+						None:     []string{},
+						Both:     []string{},
+					}
+				}
+
+				validate := checkMap[relType]
+
+				switch config.Direction {
+				case go_cypherdsl.DirectionIncoming:
+					validate.Incoming = append(validate.Incoming, field)
+					break
+				case go_cypherdsl.DirectionOutgoing:
+					validate.Outgoing = append(validate.Outgoing, field)
+					break
+				case go_cypherdsl.DirectionNone:
+					validate.None = append(validate.None, field)
+					break
+				case go_cypherdsl.DirectionBoth:
+					validate.Both = append(validate.Both, field)
+					break
+				default:
+					return fmt.Errorf("unrecognized direction [%s], %w", config.Direction.ToString(), ErrValidation)
+				}
+			}
+		}
+	}
+
+	for relType, validateConfig := range checkMap {
+		//check normal
+		if len(validateConfig.Outgoing) != len(validateConfig.Incoming){
+			return fmt.Errorf("invalid directional configuration on relationship [%s], %w", relType, ErrValidation)
+		}
+
+		//check both direction
+		if len(validateConfig.Both) != 0 {
+			if len(validateConfig.Both) % 2 != 0 {
+				return fmt.Errorf("invalid length for 'both' validation, %w", ErrValidation)
+			}
+		}
+
+		//check none direction
+		if len(validateConfig.None) != 0 {
+			if len(validateConfig.None) % 2 != 0 {
+				return fmt.Errorf("invalid length for 'both' validation, %w", ErrValidation)
+			}
+		}
+	}
+	return nil
 }
 
 //isDifferentType, differentType, error

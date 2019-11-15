@@ -180,7 +180,7 @@ type b struct {
 	TestField  string    `gogm:"name=test_field"`
 	TestTime   time.Time `gogm:"time;name=test_time"`
 	Single     *a        `gogm:"direction=outgoing;relationship=test_rel"`
-	ManyB      *a        `gogm:"direction=incoming;relationship=testm2o"`
+	ManyB      *a        `gogm:"direction=outgoing;relationship=testm2o"`
 	Multi      []*a      `gogm:"direction=outgoing;relationship=multib"`
 	SingleSpec *c        `gogm:"direction=incoming;relationship=special_single"`
 	MultiSpec  []*c      `gogm:"direction=incoming;relationship=special_multi"`

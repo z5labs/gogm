@@ -37,6 +37,7 @@ func (i *InvalidStructConfigError) Error() string {
 
 var ErrNotFound = errors.New("gogm: data not found")
 var ErrInternal = errors.New("gogm: internal error")
+var ErrValidation = errors.New("gogm: struct validation error")
 var ErrInvalidParams = errors.New("gogm: invalid params")
 var ErrConfiguration = errors.New("gogm: configuration was malformed")
 var ErrTransaction = errors.New("gogm: transaction error")

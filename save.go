@@ -24,6 +24,11 @@ type relCreateConf struct {
 	Direction     dsl.Direction
 }
 
+type relDelConf struct {
+	StartNodeUUID string
+	EndNodeUUID string
+}
+
 func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 	if sess == nil {
 		return errors.New("session can not be nil")
@@ -61,9 +66,11 @@ func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 	//signature is [LABEL] []{config}
 	relations := map[string][]relCreateConf{}
 
+	dels := []*relDelConf{}
+
 	rootVal := reflect.ValueOf(obj)
 
-	err := parseStruct("", "", false, 0, nil, &rootVal, 0, depth, &nodes, &relations)
+	err := parseStruct("", "", false, 0, nil, &rootVal, 0, depth, &nodes, &relations, dels)
 	if err != nil {
 		return err
 	}
@@ -78,7 +85,77 @@ func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 		return nil
 	}
 
+	if len(dels) != 0 {
+		err = removeRelations(sess, dels)
+		if err != nil {
+			return err
+		}
+	}
+
 	return relateNodes(sess, relations, ids)
+}
+
+func removeRelations(conn *driver.BoltConn, dels []*relDelConf) error {
+	if dels == nil || len(dels) == 0 {
+		return nil
+	}
+
+	if conn == nil {
+		return fmt.Errorf("connection can not be nil, %w", ErrInternal)
+	}
+
+	var params []interface{}
+
+	for _, delConf := range dels {
+		params = append(params, map[string]interface{}{
+			"startNodeId": delConf.StartNodeUUID,
+			"endNodeId":   delConf.EndNodeUUID,
+		})
+	}
+
+	startParams, err := dsl.ParamsFromMap(map[string]interface{}{
+		"uuid": dsl.ParamString("{row.startNodeId}"),
+	})
+	if err != nil {
+		return fmt.Errorf("%s, %w", err.Error(), ErrInternal)
+	}
+
+	endParams, err := dsl.ParamsFromMap(map[string]interface{}{
+		"uuid": dsl.ParamString("{row.endNodeId}"),
+	})
+	if err != nil {
+		return fmt.Errorf("%s, %w", err.Error(), ErrInternal)
+	}
+
+	res, err := dsl.QB().
+		Cypher("UNWIND {rows} as row").
+		Match(dsl.Path().
+			V(dsl.V{
+				Name: "start",
+				Params: startParams,
+			}).E(dsl.E{
+				Name: "e",
+			}).V(dsl.V{
+				Name: "end",
+				Params: endParams,
+			}).Build()).
+		Delete(false, "e").
+		WithNeo(conn).
+		Exec(map[string]interface{}{
+			"rows": params,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("%s, %w", err.Error(), ErrInternal)
+	}
+
+	if rows, err := res.RowsAffected(); err != nil {
+		return fmt.Errorf("%s, %w", err.Error(), ErrInternal)
+	} else if int(rows) != len(dels) {
+		return fmt.Errorf("sanity check failed, rows affected [%v] not equal to num deletions [%v], %w", rows, len(dels), ErrInternal)
+	} else {
+		return nil
+	}
 }
 
 func createNodes(conn *driver.BoltConn, crNodes map[string]map[string]nodeCreateConf) (map[string]int64, error) {
@@ -274,7 +351,7 @@ func parseValidate(currentDepth, maxDepth int, current *reflect.Value, nodesPtr 
 	return nil
 }
 
-func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, current *reflect.Value, currentDepth int, maxDepth int, nodesPtr *map[string]map[string]nodeCreateConf, relationsPtr *map[string][]relCreateConf) error {
+func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, current *reflect.Value, currentDepth int, maxDepth int, nodesPtr *map[string]map[string]nodeCreateConf, relationsPtr *map[string][]relCreateConf, dels []*relDelConf) error {
 	//check if its done
 	if currentDepth > maxDepth {
 		return nil
@@ -393,7 +470,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 					continue
 				}
 
-				err = parseStruct(newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr)
+				err = parseStruct(newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr, dels)
 				if err != nil {
 					return err
 				}
@@ -408,7 +485,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 				continue
 			}
 
-			err = parseStruct(newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr)
+			err = parseStruct(newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr, dels)
 			if err != nil {
 				return err
 			}

@@ -88,7 +88,10 @@ func Init(conf *Config, mapTypes ...interface{}) error {
 func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 	if isSetup && !isTest {
 		return errors.New("gogm has already been initialized")
+	} else if isTest && isSetup{
+		mappedRelations = &relationConfigs{}
 	}
+
 	if !isTest {
 		if conf == nil {
 			return errors.New("config can not be nil")
@@ -103,10 +106,14 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 			return err
 		}
 
-		log.Debugf("mapped type '%s'", name)
-
 		log.Infof("mapped type %s", name)
 		mappedTypes.Set(name, *dc)
+	}
+
+	log.Debug("validating edges")
+	if err := mappedRelations.Validate(); err != nil {
+		log.WithError(err).Error("failed to validate edges")
+		return err
 	}
 
 	if !isTest {

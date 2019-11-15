@@ -52,7 +52,7 @@ func parseO2O(req *require.Assertions) {
 
 	val := reflect.ValueOf(comp1)
 
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations)
+	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, nil)
 	req.Nil(err)
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
@@ -87,7 +87,7 @@ func parseM2O(req *require.Assertions) {
 
 	val := reflect.ValueOf(a1)
 
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations)
+	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, nil)
 	req.Nil(err)
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
@@ -124,7 +124,7 @@ func parseM2M(req *require.Assertions) {
 
 	val := reflect.ValueOf(a1)
 
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations)
+	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, nil)
 	req.Nil(err)
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
