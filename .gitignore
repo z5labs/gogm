@@ -12,5 +12,3 @@
 *.out
 .idea/
 vendor/
-# omit the generated file
-testing_/linking.go

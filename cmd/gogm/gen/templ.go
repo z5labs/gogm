@@ -4,7 +4,7 @@ package gen
 //expect .StructName .OtherStructName .StructField .OtherStructField .StructFieldIsMany .OtherStructFieldIsMany
 var linkSpec = `
 {{ define "linkSpec" }}
-func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}{{.OtherStructField}}(target *{{ .OtherStructName }}, edge *{{.SpecialEdgeType}}) error {
+func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}OnField{{.StructField}}(target *{{ .OtherStructName }}, edge *{{.SpecialEdgeType}}) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
@@ -33,7 +33,7 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}{{.OtherStructField}}(tar
 	}{{ end }}
 	{{if .StructFieldIsMany  }}
 	if l.{{ .StructField }} == nil {
-		l.{{ .StructField }} = make([]*{{ .SpecialEdgeType }}, 0, 1)
+		l.{{ .StructField }} = make([]*{{ .SpecialEdgeType }}, 1, 1)
 		l.{{ .StructField }}[0] = edge
 	} else {
 		l.{{ .StructField }} = append(l.{{ .StructField }}, edge)
@@ -41,7 +41,7 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}{{.OtherStructField}}(tar
 	l.{{ .StructField }} = edge{{ end }}
 	{{if .OtherStructFieldIsMany  }}
 	if target.{{ .OtherStructField }} == nil {
-		target.{{ .OtherStructField }} = make([]*{{ .SpecialEdgeType }}, 0, 1)
+		target.{{ .OtherStructField }} = make([]*{{ .SpecialEdgeType }}, 1, 1)
 		target.{{ .OtherStructField }}[0] = edge
 	} else {
 		target.{{ .OtherStructField }} = append(target.{{ .OtherStructField }}, edge)
@@ -53,13 +53,13 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}{{.OtherStructField}}(tar
 `
 
 var singleLink = `
-{{ define "linkSingle" }}func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}{{.OtherStructField}}(target *{{ .OtherStructName }}) error {
+{{ define "linkSingle" }}func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}OnField{{.StructField}}(target *{{ .OtherStructName }}) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
 	{{if .StructFieldIsMany  }}
 	if l.{{ .StructField }} == nil {
-		l.{{ .StructField }} = make([]*{{ .OtherStructName }}, 0, 1)
+		l.{{ .StructField }} = make([]*{{ .OtherStructName }}, 1, 1)
 		l.{{ .StructField }}[0] = target
 	} else {
 		l.{{ .StructField }} = append(l.{{ .StructField }}, target)
@@ -67,7 +67,7 @@ var singleLink = `
 	l.{{ .StructField }} = target{{ end }}
 	{{if .OtherStructFieldIsMany  }}
 	if target.{{ .OtherStructField }} == nil {
-		target.{{ .OtherStructField }} = make([]*{{ .StructName }}, 0, 1)
+		target.{{ .OtherStructField }} = make([]*{{ .StructName }}, 1, 1)
 		target.{{ .OtherStructField }}[0] = l
 	} else {
 		target.{{ .OtherStructField }} = append(target.{{ .OtherStructField }}, l)
@@ -80,7 +80,7 @@ var singleLink = `
 
 var linkMany = `
 {{ define "linkMany" }}
-func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}{{.OtherStructField}}(targets ...*{{ .OtherStructName }}) error {
+func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}OnField{{.StructField}}(targets ...*{{ .OtherStructName }}) error {
 	if targets == nil {
 		return errors.New("start and end can not be nil")
 	}
@@ -88,7 +88,7 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}{{.OtherStructField}}(tar
 	for _, target := range targets {
 		{{if .StructFieldIsMany  }}
 		if l.{{ .StructField }} == nil {
-			l.{{ .StructField }} = make([]*{{ .OtherStructName }}, 0, 1)
+			l.{{ .StructField }} = make([]*{{ .OtherStructName }}, 1, 1)
 			l.{{ .StructField }}[0] = target
 		} else {
 			l.{{ .StructField }} = append(l.{{ .StructField }}, target)
@@ -96,7 +96,7 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}{{.OtherStructField}}(tar
 		l.{{ .StructField }} = target{{ end }}
 		{{if .OtherStructFieldIsMany  }}
 		if target.{{ .OtherStructField }} == nil {
-			target.{{ .OtherStructField }} = make([]*{{ .StructName }}, 0, 1)
+			target.{{ .OtherStructField }} = make([]*{{ .StructName }}, 1, 1)
 			target.{{ .OtherStructField }}[0] = l
 		} else {
 			target.{{ .OtherStructField }} = append(target.{{ .OtherStructField }}, l)
@@ -109,7 +109,7 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}{{.OtherStructField}}(tar
 `
 
 var unlinkSingle = `
-{{ define "unlinkSingle" }}func(l *{{ .StructName }}) UnlinkFrom{{ .OtherStructName }}{{.OtherStructField}}(target *{{ .OtherStructName }}) error {
+{{ define "unlinkSingle" }}func(l *{{ .StructName }}) UnlinkFrom{{ .OtherStructName }}OnField{{.StructField}}(target *{{ .OtherStructName }}) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
@@ -117,23 +117,23 @@ var unlinkSingle = `
 	if l.{{ .StructField }} != nil {
 		for i, unlinkTarget := range l.{{ .StructField }} {
 			if unlinkTarget.UUID == target.UUID {
-				a := l.{{ .StructField }}
-				a[i] = a[len(a)-1]
-				a[len(a)-1] = nil
-				a = a[:len(a)-1]
+				a := &l.{{ .StructField }}
+				(*a)[i] = (*a)[len(*a)-1]
+				(*a)[len(*a)-1] = nil
+				*a = (*a)[:len(*a)-1]
 				break
 			}
 		}
 	}{{ else }}
 	l.{{ .StructField }} = nil{{ end }}
 	{{if .OtherStructFieldIsMany  }}
-	if target.{{ .OtherStructField }} == nil {
+	if target.{{ .OtherStructField }} != nil {
 		for i, unlinkTarget := range target.{{ .OtherStructField }} {
-			if unlinkTarget.UUID == target.UUID {
-				a := target.{{ .OtherStructField }}
-				a[i] = a[len(a)-1]
-				a[len(a)-1] = nil
-				a = a[:len(a)-1]
+			if unlinkTarget.UUID == l.UUID {
+				a := &target.{{ .OtherStructField }}
+				(*a)[i] = (*a)[len(*a)-1]
+				(*a)[len(*a)-1] = nil
+				*a = (*a)[:len(*a)-1]
 				break
 			}
 		}
@@ -145,7 +145,7 @@ var unlinkSingle = `
 `
 
 var unlinkMulti = `
-{{ define "unlinkMulti" }}func(l *{{ .StructName }}) UnlinkFrom{{ .OtherStructName }}{{.OtherStructField}}(targets ...*{{ .OtherStructName }}) error {
+{{ define "unlinkMulti" }}func(l *{{ .StructName }}) UnlinkFrom{{ .OtherStructName }}OnField{{.StructField}}(targets ...*{{ .OtherStructName }}) error {
 	if targets == nil {
 		return errors.New("start and end can not be nil")
 	}
@@ -155,23 +155,23 @@ var unlinkMulti = `
 		if l.{{ .StructField }} != nil {
 			for i, unlinkTarget := range l.{{ .StructField }} {
 				if unlinkTarget.UUID == target.UUID {
-					a := l.{{ .StructField }}
-					a[i] = a[len(a)-1]
-					a[len(a)-1] = nil
-					a = a[:len(a)-1]
+					a := &l.{{ .StructField }}
+					(*a)[i] = (*a)[len(*a)-1]
+					(*a)[len(*a)-1] = nil
+					*a = (*a)[:len(*a)-1]
 					break
 				}
 			}
 		}{{ else }}
 		l.{{ .StructField }} = nil{{ end }}
 		{{if .OtherStructFieldIsMany  }}
-		if target.{{ .OtherStructField }} == nil {
+		if target.{{ .OtherStructField }} != nil {
 			for i, unlinkTarget := range target.{{ .OtherStructField }} {
-				if unlinkTarget.UUID == target.UUID {
-					a := target.{{ .OtherStructField }}
-					a[i] = a[len(a)-1]
-					a[len(a)-1] = nil
-					a = a[:len(a)-1]
+				if unlinkTarget.UUID == l.UUID {
+					a := &target.{{ .OtherStructField }}
+					(*a)[i] = (*a)[len(*a)-1]
+					(*a)[len(*a)-1] = nil
+					*a = (*a)[:len(*a)-1]
 					break
 				}
 			}
@@ -184,7 +184,7 @@ var unlinkMulti = `
 `
 
 var unlinkSpec = `
-{{ define "unlinkSpec" }}func(l *{{ .StructName }}) UnlinkFrom{{ .OtherStructName }}{{.OtherStructField}}(target *{{ .OtherStructName }}) error {
+{{ define "unlinkSpec" }}func(l *{{ .StructName }}) UnlinkFrom{{ .OtherStructName }}OnField{{.StructField}}(target *{{ .OtherStructName }}) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
@@ -200,17 +200,17 @@ var unlinkSpec = `
 				return errors.New("unable to cast unlinkTarget to [{{ .OtherStructName }}]")
 			}
 			if checkObj.UUID == target.UUID {
-				a := l.{{ .StructField }}
-				a[i] = a[len(a)-1]
-				a[len(a)-1] = nil
-				a = a[:len(a)-1]
+				a := &l.{{ .StructField }}
+				(*a)[i] = (*a)[len(*a)-1]
+				(*a)[len(*a)-1] = nil
+				*a = (*a)[:len(*a)-1]
 				break
 			}
 		}
 	}{{ else }}
 	l.{{ .StructField }} = nil{{ end }}
 	{{if .OtherStructFieldIsMany  }}
-	if target.{{ .OtherStructField }} == nil {
+	if target.{{ .OtherStructField }} != nil {
 		for i, unlinkTarget := range target.{{ .OtherStructField }} {
 			{{ if .SpecialEdgeDirection }}
 			obj := unlinkTarget.GetStartNode(){{ else }}
@@ -220,11 +220,11 @@ var unlinkSpec = `
 			if !ok {
 				return errors.New("unable to cast unlinkTarget to [{{ .StructName }}]")
 			}
-			if checkObj.UUID == target.UUID {
-				a := target.{{ .OtherStructField }}
-				a[i] = a[len(a)-1]
-				a[len(a)-1] = nil
-				a = a[:len(a)-1]
+			if checkObj.UUID == l.UUID {
+				a := &target.{{ .OtherStructField }}
+				(*a)[i] = (*a)[len(*a)-1]
+				(*a)[len(*a)-1] = nil
+				*a = (*a)[:len(*a)-1]
 				break
 			}
 		}
