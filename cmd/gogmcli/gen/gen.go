@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/mindstand/gogm/cmd/gogm/util"
+	"github.com/mindstand/gogm/cmd/gogmcli/util"
 	"html/template"
 	"log"
 	"os"
@@ -20,12 +20,15 @@ func Generate(directory string) error {
 	packageName := ""
 
 	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+		if info == nil {
+			return errors.New("file info is nil")
+		}
+
 		if info.IsDir() {
 			return nil
 		}
 
 		if err != nil {
-			log.Println("failed here")
 			return err
 		}
 
@@ -203,7 +206,7 @@ func Generate(directory string) error {
 		return err
 	}
 
-	log.Println(lenBytes)
+	log.Printf("done after writing [%v] bytes!", lenBytes)
 
 	return f.Close()
 }
