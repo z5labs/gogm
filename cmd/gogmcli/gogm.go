@@ -9,11 +9,13 @@ import (
 )
 
 func main() {
+	var debug bool
+
 	app := &cli.App{
 		Name:                 "gogmcli",
 		HelpName:             "gogmcli",
 		Version:              "0.2.0",
-		Usage: "used for neo4j operations from gogm schema",
+		Usage:                "used for neo4j operations from gogm schema",
 		Description:          "cli for generating and executing migrations with gogm",
 		EnableBashCompletion: true,
 		Commands: []*cli.Command{
@@ -24,7 +26,7 @@ func main() {
 					"gen",
 				},
 				ArgsUsage: "directory to search and write to",
-				Usage: "to generate link and unlink functions for nodes",
+				Usage:     "to generate link and unlink functions for nodes",
 				Action: func(c *cli.Context) error {
 					directory := c.Args().Get(0)
 
@@ -32,9 +34,11 @@ func main() {
 						return errors.New("must specify directory")
 					}
 
-					log.Printf("generating link and unlink from directory [%s]", directory)
+					if debug {
+						log.Printf("generating link and unlink from directory [%s]", directory)
+					}
 
-					return gen.Generate(directory)
+					return gen.Generate(directory, debug)
 				},
 			},
 		},
@@ -48,8 +52,17 @@ func main() {
 				Email: "nikita@mindstand.com",
 			},
 		},
-		Copyright:              "© MindStand Technologies 2019",
+		Copyright:              "© MindStand Technologies, Inc 2019",
 		UseShortOptionHandling: true,
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:        "debug",
+				Aliases: []string{"d"},
+				Usage:       "execute in debug mode",
+				Value:       false,
+				Destination: &debug,
+			},
+		},
 	}
 
 	err := app.Run(os.Args)

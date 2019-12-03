@@ -27,13 +27,27 @@ func parseO2O(req *require.Assertions) {
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
 		BaseNode: BaseNode{
-			Id:   1,
+			Id:      1,
+			UUID:    "comp1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"SingleSpecA": {
+					Ids: []int64{2},
+					RelationType: Single,
+				},
+			},
 		},
 	}
 
 	b1 := &b{
 		BaseNode: BaseNode{
-			Id:   2,
+			Id:      2,
+			UUID:    "b1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"SingleSpec": {
+					Ids: []int64{1},
+					RelationType: Single,
+				},
+			},
 		},
 		TestField: "test",
 	}
@@ -49,15 +63,25 @@ func parseO2O(req *require.Assertions) {
 
 	nodes := map[string]map[string]nodeCreateConf{}
 	relations := map[string][]relCreateConf{}
+	oldRels := map[string]map[string]*RelationConfig{}
+	curRels := map[string]map[string]*RelationConfig{}
+	ids := []*string{}
 
 	val := reflect.ValueOf(comp1)
+	nodeRef := map[string]*reflect.Value{}
 
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, nil)
+	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &curRels, &oldRels, &ids, &nodeRef, -1, nil)
 	req.Nil(err)
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
 	req.Equal(1, len(relations))
+
+	req.Equal(2, len(oldRels))
+	req.Equal(2, len(curRels))
+	req.Equal(int64(2), curRels["comp1uuid"]["SingleSpecA"].Ids[0])
+	req.Equal(int64(1), curRels["b1uuid"]["SingleSpec"].Ids[0])
+	req.EqualValues(oldRels, curRels)
 }
 
 func parseM2O(req *require.Assertions) {
@@ -67,7 +91,14 @@ func parseM2O(req *require.Assertions) {
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
 		BaseNode: BaseNode{
-			Id:   1,
+			Id:      1,
+			UUID:    "a1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"ManyA": {
+					Ids: []int64{2},
+					RelationType: Multi,
+				},
+			},
 		},
 		ManyA:             []*b{},
 	}
@@ -75,7 +106,14 @@ func parseM2O(req *require.Assertions) {
 	b1 := &b{
 		TestField: "test",
 		BaseNode: BaseNode{
-			Id:   2,
+			Id:      2,
+			UUID:    "b1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"ManyB" : {
+					Ids: []int64{1},
+					RelationType: Single,
+				},
+			},
 		},
 	}
 
@@ -84,15 +122,19 @@ func parseM2O(req *require.Assertions) {
 
 	nodes := map[string]map[string]nodeCreateConf{}
 	relations := map[string][]relCreateConf{}
+	oldRels := map[string]map[string]*RelationConfig{}
+	curRels := map[string]map[string]*RelationConfig{}
+	ids := []*string{}
 
 	val := reflect.ValueOf(a1)
-
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, nil)
+	nodeRef := map[string]*reflect.Value{}
+	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &curRels, &oldRels, &ids, &nodeRef, -1, nil)
 	req.Nil(err)
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
 	req.Equal(1, len(relations))
+	req.EqualValues(oldRels, curRels)
 }
 
 func parseM2M(req *require.Assertions) {
@@ -102,7 +144,14 @@ func parseM2M(req *require.Assertions) {
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
 		BaseNode: BaseNode{
-			Id:   1,
+			Id:      1,
+			UUID:    "a1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"MultiA": {
+					Ids: []int64{2},
+					RelationType: Multi,
+				},
+			},
 		},
 		ManyA:             []*b{},
 		MultiA:            []*b{},
@@ -111,7 +160,14 @@ func parseM2M(req *require.Assertions) {
 	b1 := &b{
 		TestField: "test",
 		BaseNode: BaseNode{
-			Id:   2,
+			Id:      2,
+			UUID:    "b1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"Multi": {
+					Ids: []int64{1},
+					RelationType: Multi,
+				},
+			},
 		},
 		Multi:     []*a{},
 	}
@@ -121,46 +177,191 @@ func parseM2M(req *require.Assertions) {
 
 	nodes := map[string]map[string]nodeCreateConf{}
 	relations := map[string][]relCreateConf{}
+	oldRels := map[string]map[string]*RelationConfig{}
+	curRels := map[string]map[string]*RelationConfig{}
+	ids := []*string{}
+
+	nodeRef := map[string]*reflect.Value{}
 
 	val := reflect.ValueOf(a1)
 
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, nil)
+	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &curRels, &oldRels, &ids, &nodeRef, -1, nil)
 	req.Nil(err)
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
 	req.Equal(1, len(relations))
+	req.EqualValues(oldRels, curRels)
+}
+
+func TestCalculateDels(t *testing.T) {
+	req := require.New(t)
+
+	//test node removed
+	dels := calculateDels(map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids: []int64{2},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelField2": {
+				Ids: []int64{1},
+				RelationType: Single,
+			},
+		},
+	}, map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids: []int64{},
+				RelationType: Single,
+			},
+		},
+	})
+
+	req.EqualValues(map[string][]int64{
+		"node1": {2},
+	}, dels)
+
+	//test field removed
+	dels = calculateDels(map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids: []int64{2},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelField2": {
+				Ids: []int64{1},
+				RelationType: Single,
+			},
+		},
+	}, map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids: []int64{},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelFieldNew": {
+				Ids: []int64{},
+				RelationType: Single,
+			},
+		},
+	})
+
+	req.EqualValues(map[string][]int64{
+		"node1": {2},
+		"node2": {1},
+	}, dels)
+
+	//test field empty
+	dels = calculateDels(map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids: []int64{2},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelField2": {
+				Ids: []int64{1},
+				RelationType: Single,
+			},
+		},
+	}, map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids: []int64{},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelField2": {
+				Ids: []int64{},
+				RelationType: Single,
+			},
+		},
+	})
+
+	req.EqualValues(map[string][]int64{
+		"node1": {2},
+		"node2": {1},
+	}, dels)
+
+	//test nothing changed
+	dels = calculateDels(map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids: []int64{2},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelField2": {
+				Ids: []int64{1},
+				RelationType: Single,
+			},
+		},
+	}, map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids: []int64{2},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelField2": {
+				Ids: []int64{1},
+				RelationType: Single,
+			},
+		},
+	})
+
+	req.EqualValues(map[string][]int64{}, dels)
 }
 
 func TestSave(t *testing.T) {
-	t.Skip()
+	//t.Skip()
 	req := require.New(t)
 
-	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
+	conf := Config{
+		Username:      "neo4j",
+		Password:      "password",
+		Host:          "0.0.0.0",
+		Port:          7687,
+		PoolSize:      15,
+		IndexStrategy: IGNORE_INDEX,
+	}
 
-	comp2 := &a{
+	req.Nil(Init(&conf, &a{}, &b{}, &c{}))
+
+	a2 := &a{
 		TestField: "test",
-		BaseNode: BaseNode{
-			Id:   1,
-		},
 	}
 
 	b2 := &b{
 		TestField: "test",
 		TestTime:  time.Now().UTC(),
-		BaseNode: BaseNode{
-			Id:   2,
-		},
+	}
+
+	b3 := &b{
+		TestField: "dasdfasd",
 	}
 
 	c1 := &c{
-		Start: comp2,
+		Start: a2,
 		End:   b2,
 		Test:  "testing",
 	}
 
-	comp2.SingleSpecA = c1
+	a2.SingleSpecA = c1
+	a2.ManyA = []*b{b3}
 	b2.SingleSpec = c1
+	b3.ManyB = a2
 
 	conn, err := driverPool.Open(driver.ReadWriteMode)
 	if err != nil {
@@ -168,5 +369,36 @@ func TestSave(t *testing.T) {
 	}
 	defer driverPool.Reclaim(conn)
 
-	req.Nil(saveDepth(conn, comp2, defaultSaveDepth))
+	req.Nil(saveDepth(conn, a2, 5))
+	req.EqualValues(map[string]*RelationConfig{
+		"SingleSpecA": {
+			Ids: []int64{b2.Id},
+			UUIDs: []string{},
+			RelationType: Single,
+		},
+		"ManyA": {
+			Ids: []int64{b3.Id},
+			UUIDs: []string{},
+			RelationType: Multi,
+		},
+	}, a2.LoadMap)
+	req.EqualValues(map[string]*RelationConfig{
+		"SingleSpec": {
+			Ids: []int64{a2.Id},
+			UUIDs: []string{},
+			RelationType: Single,
+		},
+	}, b2.LoadMap)
+	req.EqualValues(map[string]*RelationConfig{
+		"ManyB": {
+			Ids: []int64{a2.Id},
+			UUIDs: []string{},
+			RelationType: Single,
+		},
+	}, b3.LoadMap)
+	a2.SingleSpecA = nil
+	b2.SingleSpec = nil
+
+	req.Nil(saveDepth(conn, a2, defaultSaveDepth))
+	log.Println("done")
 }

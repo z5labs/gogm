@@ -20,6 +20,15 @@ func int64SliceContains(s []int64, e int64) bool {
 	return false
 }
 
+func stringSliceContains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
 func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error) {
 	if val == nil {
 		return false, "", errors.New("value can not be nil")

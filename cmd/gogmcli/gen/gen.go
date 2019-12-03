@@ -13,30 +13,44 @@ import (
 	"strings"
 )
 
-func Generate(directory string) error {
+func Generate(directory string, debug bool) error {
 	confs := map[string][]*relConf{}
 	imps := map[string][]string{}
 	var edges []string
 	packageName := ""
 
 	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
-		if info == nil {
-			return errors.New("file info is nil")
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
 		if err != nil {
 			return err
 		}
 
+		if info == nil {
+			return errors.New("file info is nil")
+		}
+
+		if info.IsDir() && path != directory{
+			if debug {
+				log.Printf("skipping [%s] as it is a directory\n", path)
+			}
+			return filepath.SkipDir
+		}
+
 		if strings.Contains(path, ".go") {
+			if debug {
+				log.Printf("parsing go file [%s]\n", path)
+			}
 			err := parseFile(path, &confs, &edges, imps, &packageName)
 			if err != nil {
+				if debug {
+					log.Printf("failed to parse go file [%s] with error '%s'\n", path, err.Error())
+				}
 				return err
 			}
+			if debug {
+				log.Printf("successfully parsed go file [%s]\n", path)
+			}
+		} else if debug {
+			log.Printf("skipping non go file [%s]\n", path)
 		}
 
 		return nil
@@ -186,6 +200,15 @@ func Generate(directory string) error {
 		}
 	}
 
+	if debug {
+		log.Printf("packageName: [%s]\n", packageName)
+	}
+
+	if len(funcs) == 0 {
+		log.Printf("no functions to write, exiting")
+		return nil
+	}
+
 	buf := new(bytes.Buffer)
 	err = tpl.Execute(buf, templateConfig{
 		Imports:     imports,
@@ -206,7 +229,16 @@ func Generate(directory string) error {
 		return err
 	}
 
-	log.Printf("done after writing [%v] bytes!", lenBytes)
+	if debug {
+		log.Printf("done after writing [%v] bytes!", lenBytes)
+	}
 
-	return f.Close()
+	err = f.Close()
+	if err != nil {
+		return err
+	}
+
+	log.Printf("wrote link functions to file [%s/linking.go]", directory)
+
+	return nil
 }

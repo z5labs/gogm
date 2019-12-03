@@ -88,56 +88,61 @@ func parseGogmEdge(node *ast.File, label string) (bool, error) {
 			continue
 		}
 
-		if len(funcDecl.Recv.List) != 0 {
-			if len(funcDecl.Recv.List[0].Names) != 0 {
-				decl, ok := funcDecl.Recv.List[0].Names[0].Obj.Decl.(*ast.Field)
-				if !ok {
-					continue
-				}
+		if funcDecl != nil {
+			if funcDecl.Recv != nil {
+				if funcDecl.Recv.List != nil {
+					if len(funcDecl.Recv.List) != 0 {
+						if len(funcDecl.Recv.List[0].Names) != 0 {
+							decl, ok := funcDecl.Recv.List[0].Names[0].Obj.Decl.(*ast.Field)
+							if !ok {
+								continue
+							}
 
-				startType, ok := decl.Type.(*ast.StarExpr)
-				if !ok {
-					continue
-				}
+							startType, ok := decl.Type.(*ast.StarExpr)
+							if !ok {
+								continue
+							}
 
-				x, ok := startType.X.(*ast.Ident)
-				if !ok {
-					continue
-				}
+							x, ok := startType.X.(*ast.Ident)
+							if !ok {
+								continue
+							}
 
-				//check that the function is the right type
-				if x.Name != label {
-					continue
+							//check that the function is the right type
+							if x.Name != label {
+								continue
+							}
+						}
+					} else {
+						continue
+					}
+
+					switch funcDecl.Name.Name {
+					case "GetStartNode":
+						GetStartNode = true
+						break
+					case "GetStartNodeType":
+						GetStartNodeType = true
+						break
+					case "SetStartNode":
+						SetStartNode = true
+						break
+					case "GetEndNode":
+						GetEndNode = true
+						break
+					case "GetEndNodeType":
+						GetEndNodeType = true
+						break
+					case "SetEndNode":
+						SetEndNode = true
+						break
+					default:
+						continue
+					}
 				}
 			}
-		} else {
-			continue
-		}
-
-		switch funcDecl.Name.Name {
-		case "GetStartNode":
-			GetStartNode = true
-			break
-		case "GetStartNodeType":
-			GetStartNodeType = true
-			break
-		case "SetStartNode":
-			SetStartNode = true
-			break
-		case "GetEndNode":
-			GetEndNode = true
-			break
-		case "GetEndNodeType":
-			GetEndNodeType = true
-			break
-		case "SetEndNode":
-			SetEndNode = true
-			break
-		default:
-			continue
 		}
 	}
-
 	//check if its an edge node
 	if !GetStartNode || !GetStartNodeType || !SetStartNode || !GetEndNode || !GetEndNodeType || !SetEndNode {
 		return false, nil
@@ -164,7 +169,7 @@ func parseGogmNode(strType *ast.StructType, confs *map[string][]*relConf, label 
 						var relName string
 						for _, p := range gogmParts {
 							if strings.Contains(p, "direction") {
-								str := strings.ToLower(strings.Replace(strings.Replace(p, "direction=", "", -1), "\"", "", -1))
+								str := strings.ToLower(strings.Replace(strings.Replace(strings.Replace(p, "direction=", "", -1), "\"", "", -1), "`", "", -1))
 								switch str{
 								case "incoming":
 									dir = go_cypherdsl.DirectionIncoming

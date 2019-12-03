@@ -81,7 +81,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 		}
 	}
 	nodeLookup := make(map[int64]*reflect.Value)
-	relMaps := make(map[int64]map[string]*RelationLoad)
+	relMaps := make(map[int64]map[string]*RelationConfig)
 	var pks []int64
 	rels := make(map[int64]*neoEdgeConfig)
 	labelLookup := map[int64]string{}
@@ -147,8 +147,8 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 					rt = Single
 				}
 
-				newConf := &RelationLoad{
-					Ids: []int64{relationConfig.EndNodeId},
+				newConf := &RelationConfig{
+					Ids:          []int64{relationConfig.EndNodeId},
 					RelationType: rt,
 				}
 
@@ -169,8 +169,8 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 					rt = Single
 				}
 
-				newConf := &RelationLoad{
-					Ids: []int64{relationConfig.StartNodeId},
+				newConf := &RelationConfig{
+					Ids:          []int64{relationConfig.StartNodeId},
 					RelationType: rt,
 				}
 
@@ -335,7 +335,7 @@ func getPrimaryLabel(rt reflect.Type) string {
 	return rt.Name()
 }
 
-func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]string, nodeLookup *map[int64]*reflect.Value, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationLoad) error {
+func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]string, nodeLookup *map[int64]*reflect.Value, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
 	if isolatedNodes == nil {
 		return fmt.Errorf("isolatedNodes can not be nil, %w", ErrInternal)
 	}
@@ -354,7 +354,7 @@ func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]strin
 			}
 
 			(*nodeLookup)[node.NodeIdentity] = val
-			(*relMaps)[node.NodeIdentity] = map[string]*RelationLoad{}
+			(*relMaps)[node.NodeIdentity] = map[string]*RelationConfig{}
 
 			//primary to return
 			if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
@@ -407,7 +407,7 @@ func sortStrictRels(strictRels []*graph.Relationship, labelLookup *map[int64]str
 	return nil
 }
 
-func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationLoad) error {
+func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
 	if paths == nil {
 		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
 	}
@@ -431,7 +431,7 @@ func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *
 				}
 
 				(*nodeLookup)[node.NodeIdentity] = val
-				(*relMaps)[node.NodeIdentity] = map[string]*RelationLoad{}
+				(*relMaps)[node.NodeIdentity] = map[string]*RelationConfig{}
 
 				//primary to return
 				if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {

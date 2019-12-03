@@ -16,7 +16,7 @@ func TestLinking(t *testing.T) {
 		BaseNode: gogm.BaseNode{
 			Id:      0,
 			UUID:    id1,
-			LoadMap: map[string]*gogm.RelationLoad{},
+			LoadMap: map[string]*gogm.RelationConfig{},
 		},
 	}
 
@@ -24,7 +24,7 @@ func TestLinking(t *testing.T) {
 		BaseNode: gogm.BaseNode{
 			Id:      1,
 			UUID:    id2,
-			LoadMap: map[string]*gogm.RelationLoad{},
+			LoadMap: map[string]*gogm.RelationConfig{},
 		},
 	}
 
