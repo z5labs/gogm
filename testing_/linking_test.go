@@ -43,7 +43,7 @@ func TestLinking(t *testing.T) {
 	}
 
 	obj3 := &ExampleObject2{
-		BaseNode:  gogm.BaseNode{
+		BaseNode: gogm.BaseNode{
 			UUID: "adfadsfasd",
 		},
 	}

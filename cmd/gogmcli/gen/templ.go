@@ -1,6 +1,5 @@
 package gen
 
-
 //expect .StructName .OtherStructName .StructField .OtherStructField .StructFieldIsMany .OtherStructFieldIsMany
 var linkSpec = `
 {{ define "linkSpec" }}
@@ -255,18 +254,18 @@ import (
 `
 
 type templateConfig struct {
-	Imports []string
+	Imports     []string
 	PackageName string
 	// type: funcs
 	Funcs map[string][]*tplRelConf
 }
 
 type tplRelConf struct {
-	StructName string
-	StructField string
-	OtherStructField string
-	OtherStructName string
-	StructFieldIsMany bool
+	StructName             string
+	StructField            string
+	OtherStructField       string
+	OtherStructName        string
+	StructFieldIsMany      bool
 	OtherStructFieldIsMany bool
 
 	//stuff for special edges

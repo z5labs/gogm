@@ -88,7 +88,7 @@ func Init(conf *Config, mapTypes ...interface{}) error {
 func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 	if isSetup && !isTest {
 		return errors.New("gogm has already been initialized")
-	} else if isTest && isSetup{
+	} else if isTest && isSetup {
 		mappedRelations = &relationConfigs{}
 	}
 

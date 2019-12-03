@@ -13,12 +13,12 @@ import (
 )
 
 type relConf struct {
-	NodeName string
-	Field string
+	NodeName         string
+	Field            string
 	RelationshipName string
-	Type string
-	IsMany bool
-	Direction go_cypherdsl.Direction
+	Type             string
+	IsMany           bool
+	Direction        go_cypherdsl.Direction
 }
 
 func parseFile(filePath string, confs *map[string][]*relConf, edges *[]string, imports map[string][]string, packageName *string) error {
@@ -170,7 +170,7 @@ func parseGogmNode(strType *ast.StructType, confs *map[string][]*relConf, label 
 						for _, p := range gogmParts {
 							if strings.Contains(p, "direction") {
 								str := strings.ToLower(strings.Replace(strings.Replace(strings.Replace(p, "direction=", "", -1), "\"", "", -1), "`", "", -1))
-								switch str{
+								switch str {
 								case "incoming":
 									dir = go_cypherdsl.DirectionIncoming
 									break
@@ -202,12 +202,12 @@ func parseGogmNode(strType *ast.StructType, confs *map[string][]*relConf, label 
 						t := typeNameBuf.String()
 
 						(*confs)[label] = append((*confs)[label], &relConf{
-							Field:  field.Names[0].Name,
+							Field:            field.Names[0].Name,
 							RelationshipName: relName,
-							Type:   strings.Replace(strings.Replace(t, "[]", "", -1), "*", "", -1),
-							IsMany: strings.Contains(t, "[]"),
-							Direction: dir,
-							NodeName: label,
+							Type:             strings.Replace(strings.Replace(t, "[]", "", -1), "*", "", -1),
+							IsMany:           strings.Contains(t, "[]"),
+							Direction:        dir,
+							NodeName:         label,
 						})
 					}
 				}

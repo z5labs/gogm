@@ -140,9 +140,9 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 			if conf, ok := startMap[startConfig.FieldName]; ok {
 				conf.Ids = append(conf.Ids, relationConfig.EndNodeId)
 			} else {
- 				var rt RelationType
- 				if startConfig.ManyRelationship {
- 					rt = Multi
+				var rt RelationType
+				if startConfig.ManyRelationship {
+					rt = Multi
 				} else {
 					rt = Single
 				}

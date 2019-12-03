@@ -9,7 +9,7 @@ type SpecialEdge struct {
 	gogm.BaseNode
 
 	Start *ExampleObject
-	End *ExampleObject2
+	End   *ExampleObject2
 
 	SomeField string `gogm:"name=some_field"`
 }
@@ -39,5 +39,3 @@ func (s *SpecialEdge) SetEndNode(v interface{}) error {
 	s.End = v.(*ExampleObject2)
 	return nil
 }
-
-

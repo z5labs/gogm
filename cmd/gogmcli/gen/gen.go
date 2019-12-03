@@ -28,7 +28,7 @@ func Generate(directory string, debug bool) error {
 			return errors.New("file info is nil")
 		}
 
-		if info.IsDir() && path != directory{
+		if info.IsDir() && path != directory {
 			if debug {
 				log.Printf("skipping [%s] as it is a directory\n", path)
 			}
@@ -90,7 +90,7 @@ func Generate(directory string, debug bool) error {
 
 	// validate relationships (i.e even number)
 	for name, rel := range relations {
-		if len(rel) % 2 != 0 {
+		if len(rel)%2 != 0 {
 			return fmt.Errorf("relationship [%s] is invalid", name)
 		}
 	}
@@ -101,10 +101,10 @@ func Generate(directory string, debug bool) error {
 	for _, rels := range relations {
 		for _, rel := range rels {
 			tplRel := &tplRelConf{
-				StructName:             rel.NodeName,
-				StructField:            rel.Field,
-				OtherStructName:        rel.Type,
-				StructFieldIsMany:      rel.IsMany,
+				StructName:        rel.NodeName,
+				StructField:       rel.Field,
+				OtherStructName:   rel.Type,
+				StructFieldIsMany: rel.IsMany,
 			}
 
 			var isSpecialEdge bool
@@ -116,10 +116,10 @@ func Generate(directory string, debug bool) error {
 				isSpecialEdge = true
 			}
 
-			searchLoop:
+		searchLoop:
 			for _, lookup := range rels {
 				//check special edge
-				 if rel.Type != lookup.NodeName && !isSpecialEdge{
+				if rel.Type != lookup.NodeName && !isSpecialEdge {
 					continue
 				}
 

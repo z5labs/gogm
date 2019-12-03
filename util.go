@@ -219,8 +219,8 @@ func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string, di
 type validation struct {
 	Incoming []string
 	Outgoing []string
-	None []string
-	Both []string
+	None     []string
+	Both     []string
 }
 
 func (r *relationConfigs) Validate() error {
@@ -273,20 +273,20 @@ func (r *relationConfigs) Validate() error {
 
 	for relType, validateConfig := range checkMap {
 		//check normal
-		if len(validateConfig.Outgoing) != len(validateConfig.Incoming){
+		if len(validateConfig.Outgoing) != len(validateConfig.Incoming) {
 			return fmt.Errorf("invalid directional configuration on relationship [%s], %w", relType, ErrValidation)
 		}
 
 		//check both direction
 		if len(validateConfig.Both) != 0 {
-			if len(validateConfig.Both) % 2 != 0 {
+			if len(validateConfig.Both)%2 != 0 {
 				return fmt.Errorf("invalid length for 'both' validation, %w", ErrValidation)
 			}
 		}
 
 		//check none direction
 		if len(validateConfig.None) != 0 {
-			if len(validateConfig.None) % 2 != 0 {
+			if len(validateConfig.None)%2 != 0 {
 				return fmt.Errorf("invalid length for 'both' validation, %w", ErrValidation)
 			}
 		}

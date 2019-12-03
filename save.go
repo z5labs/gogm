@@ -27,7 +27,7 @@ type relCreateConf struct {
 
 type relDelConf struct {
 	StartNodeId string
-	EndNodeId int64
+	EndNodeId   int64
 }
 
 //todo optimize
@@ -148,7 +148,7 @@ func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 
 	wg.Wait()
 
-	if err1 != nil || err2 != nil || err3 != nil{
+	if err1 != nil || err2 != nil || err3 != nil {
 		return fmt.Errorf("delErr=(%v) | relErr=(%v) | reallocErr=(%v)", err1, err2, err3)
 	} else {
 		return nil
@@ -179,7 +179,7 @@ func calculateDels(oldRels, curRels map[string]map[string]*RelationConfig) map[s
 				}
 				for _, id := range oldConf.Ids {
 					//check if this id is new rels in the same location
-					if deleteAllRels || deleteAllRelsOnField{
+					if deleteAllRels || deleteAllRelsOnField {
 						if _, ok := dels[uuid]; !ok {
 							dels[uuid] = []int64{id}
 						} else {
@@ -216,7 +216,7 @@ func removeRelations(conn *driver.BoltConn, dels map[string][]int64) error {
 	for uuid, ids := range dels {
 		params = append(params, map[string]interface{}{
 			"startNodeId": uuid,
-			"endNodeIds": ids,
+			"endNodeIds":  ids,
 		})
 	}
 
@@ -231,20 +231,20 @@ func removeRelations(conn *driver.BoltConn, dels map[string][]int64) error {
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().
 			V(dsl.V{
-				Name: "start",
+				Name:   "start",
 				Params: startParams,
 			}).E(dsl.E{
-				Name: "e",
-			}).V(dsl.V{
-				Name: "end",
-			}).Build()).
+			Name: "e",
+		}).V(dsl.V{
+			Name: "end",
+		}).Build()).
 		Cypher("WHERE id(end) IN row.endNodeIds").
 		Delete(false, "e").
 		WithNeo(conn).
 		Exec(map[string]interface{}{
 			"rows": params,
 		},
-	)
+		)
 	if err != nil {
 		return fmt.Errorf("%s, %w", err.Error(), ErrInternal)
 	}
@@ -468,7 +468,7 @@ func parseValidate(currentDepth, maxDepth int, current *reflect.Value, nodesPtr 
 	return nil
 }
 
-func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxDepth int, curRels *map[string]map[string]*RelationConfig)  error {
+func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxDepth int, curRels *map[string]map[string]*RelationConfig) error {
 	if currentDepth > maxDepth {
 		return nil
 	}
@@ -541,7 +541,7 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 				//check the config is there for the specified field
 				if _, ok = (*curRels)[uuid][conf.FieldName]; !ok {
 					(*curRels)[uuid][conf.FieldName] = &RelationConfig{
-						Ids: []int64{},
+						Ids:          []int64{},
 						RelationType: Multi,
 					}
 				}
@@ -572,7 +572,7 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 			//check the config is there for the specified field
 			if _, ok = (*curRels)[uuid][conf.FieldName]; !ok {
 				(*curRels)[uuid][conf.FieldName] = &RelationConfig{
-					Ids: []int64{},
+					Ids:          []int64{},
 					RelationType: Single,
 				}
 			}
@@ -631,7 +631,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 	}
 
 	if !isNewNode {
-		if _, ok := (*oldRels)[id]; !ok{
+		if _, ok := (*oldRels)[id]; !ok {
 			iConf := reflect.Indirect(*current).FieldByName("LoadMap").Interface()
 
 			var relConf map[string]*RelationConfig
@@ -735,7 +735,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 				if skip {
 					continue
 				}
-				
+
 				err = parseStruct(newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr, oldRels, newNodes, nodeRef)
 				if err != nil {
 					return err

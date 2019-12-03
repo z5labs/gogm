@@ -307,8 +307,8 @@ func TestNewDecoratorConfig(t *testing.T) {
 //structs with decorators for testing
 
 type embedTest struct {
-	Id          int64                  `gogm:"name=id"`
-	UUID        string                 `gogm:"pk;name=uuid"`
+	Id   int64  `gogm:"name=id"`
+	UUID string `gogm:"pk;name=uuid"`
 }
 
 type validStruct struct {

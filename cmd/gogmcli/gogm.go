@@ -57,7 +57,7 @@ func main() {
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:        "debug",
-				Aliases: []string{"d"},
+				Aliases:     []string{"d"},
 				Usage:       "execute in debug mode",
 				Value:       false,
 				Destination: &debug,

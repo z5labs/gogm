@@ -27,11 +27,11 @@ func parseO2O(req *require.Assertions) {
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
 		BaseNode: BaseNode{
-			Id:      1,
-			UUID:    "comp1uuid",
+			Id:   1,
+			UUID: "comp1uuid",
 			LoadMap: map[string]*RelationConfig{
 				"SingleSpecA": {
-					Ids: []int64{2},
+					Ids:          []int64{2},
 					RelationType: Single,
 				},
 			},
@@ -40,11 +40,11 @@ func parseO2O(req *require.Assertions) {
 
 	b1 := &b{
 		BaseNode: BaseNode{
-			Id:      2,
-			UUID:    "b1uuid",
+			Id:   2,
+			UUID: "b1uuid",
 			LoadMap: map[string]*RelationConfig{
 				"SingleSpec": {
-					Ids: []int64{1},
+					Ids:          []int64{1},
 					RelationType: Single,
 				},
 			},
@@ -91,26 +91,26 @@ func parseM2O(req *require.Assertions) {
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
 		BaseNode: BaseNode{
-			Id:      1,
-			UUID:    "a1uuid",
+			Id:   1,
+			UUID: "a1uuid",
 			LoadMap: map[string]*RelationConfig{
 				"ManyA": {
-					Ids: []int64{2},
+					Ids:          []int64{2},
 					RelationType: Multi,
 				},
 			},
 		},
-		ManyA:             []*b{},
+		ManyA: []*b{},
 	}
 
 	b1 := &b{
 		TestField: "test",
 		BaseNode: BaseNode{
-			Id:      2,
-			UUID:    "b1uuid",
+			Id:   2,
+			UUID: "b1uuid",
 			LoadMap: map[string]*RelationConfig{
-				"ManyB" : {
-					Ids: []int64{1},
+				"ManyB": {
+					Ids:          []int64{1},
 					RelationType: Single,
 				},
 			},
@@ -144,32 +144,32 @@ func parseM2M(req *require.Assertions) {
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
 		BaseNode: BaseNode{
-			Id:      1,
-			UUID:    "a1uuid",
+			Id:   1,
+			UUID: "a1uuid",
 			LoadMap: map[string]*RelationConfig{
 				"MultiA": {
-					Ids: []int64{2},
+					Ids:          []int64{2},
 					RelationType: Multi,
 				},
 			},
 		},
-		ManyA:             []*b{},
-		MultiA:            []*b{},
+		ManyA:  []*b{},
+		MultiA: []*b{},
 	}
 
 	b1 := &b{
 		TestField: "test",
 		BaseNode: BaseNode{
-			Id:      2,
-			UUID:    "b1uuid",
+			Id:   2,
+			UUID: "b1uuid",
 			LoadMap: map[string]*RelationConfig{
 				"Multi": {
-					Ids: []int64{1},
+					Ids:          []int64{1},
 					RelationType: Multi,
 				},
 			},
 		},
-		Multi:     []*a{},
+		Multi: []*a{},
 	}
 
 	b1.Multi = append(b1.Multi, a1)
@@ -201,20 +201,20 @@ func TestCalculateDels(t *testing.T) {
 	dels := calculateDels(map[string]map[string]*RelationConfig{
 		"node1": {
 			"RelField": {
-				Ids: []int64{2},
+				Ids:          []int64{2},
 				RelationType: Single,
 			},
 		},
 		"node2": {
 			"RelField2": {
-				Ids: []int64{1},
+				Ids:          []int64{1},
 				RelationType: Single,
 			},
 		},
 	}, map[string]map[string]*RelationConfig{
 		"node1": {
 			"RelField": {
-				Ids: []int64{},
+				Ids:          []int64{},
 				RelationType: Single,
 			},
 		},
@@ -228,26 +228,26 @@ func TestCalculateDels(t *testing.T) {
 	dels = calculateDels(map[string]map[string]*RelationConfig{
 		"node1": {
 			"RelField": {
-				Ids: []int64{2},
+				Ids:          []int64{2},
 				RelationType: Single,
 			},
 		},
 		"node2": {
 			"RelField2": {
-				Ids: []int64{1},
+				Ids:          []int64{1},
 				RelationType: Single,
 			},
 		},
 	}, map[string]map[string]*RelationConfig{
 		"node1": {
 			"RelField": {
-				Ids: []int64{},
+				Ids:          []int64{},
 				RelationType: Single,
 			},
 		},
 		"node2": {
 			"RelFieldNew": {
-				Ids: []int64{},
+				Ids:          []int64{},
 				RelationType: Single,
 			},
 		},
@@ -262,26 +262,26 @@ func TestCalculateDels(t *testing.T) {
 	dels = calculateDels(map[string]map[string]*RelationConfig{
 		"node1": {
 			"RelField": {
-				Ids: []int64{2},
+				Ids:          []int64{2},
 				RelationType: Single,
 			},
 		},
 		"node2": {
 			"RelField2": {
-				Ids: []int64{1},
+				Ids:          []int64{1},
 				RelationType: Single,
 			},
 		},
 	}, map[string]map[string]*RelationConfig{
 		"node1": {
 			"RelField": {
-				Ids: []int64{},
+				Ids:          []int64{},
 				RelationType: Single,
 			},
 		},
 		"node2": {
 			"RelField2": {
-				Ids: []int64{},
+				Ids:          []int64{},
 				RelationType: Single,
 			},
 		},
@@ -296,26 +296,26 @@ func TestCalculateDels(t *testing.T) {
 	dels = calculateDels(map[string]map[string]*RelationConfig{
 		"node1": {
 			"RelField": {
-				Ids: []int64{2},
+				Ids:          []int64{2},
 				RelationType: Single,
 			},
 		},
 		"node2": {
 			"RelField2": {
-				Ids: []int64{1},
+				Ids:          []int64{1},
 				RelationType: Single,
 			},
 		},
 	}, map[string]map[string]*RelationConfig{
 		"node1": {
 			"RelField": {
-				Ids: []int64{2},
+				Ids:          []int64{2},
 				RelationType: Single,
 			},
 		},
 		"node2": {
 			"RelField2": {
-				Ids: []int64{1},
+				Ids:          []int64{1},
 				RelationType: Single,
 			},
 		},
@@ -372,23 +372,23 @@ func TestSave(t *testing.T) {
 	req.Nil(saveDepth(conn, a2, 5))
 	req.EqualValues(map[string]*RelationConfig{
 		"SingleSpecA": {
-			Ids: []int64{b2.Id},
+			Ids:          []int64{b2.Id},
 			RelationType: Single,
 		},
 		"ManyA": {
-			Ids: []int64{b3.Id},
+			Ids:          []int64{b3.Id},
 			RelationType: Multi,
 		},
 	}, a2.LoadMap)
 	req.EqualValues(map[string]*RelationConfig{
 		"SingleSpec": {
-			Ids: []int64{a2.Id},
+			Ids:          []int64{a2.Id},
 			RelationType: Single,
 		},
 	}, b2.LoadMap)
 	req.EqualValues(map[string]*RelationConfig{
 		"ManyB": {
-			Ids: []int64{a2.Id},
+			Ids:          []int64{a2.Id},
 			RelationType: Single,
 		},
 	}, b3.LoadMap)

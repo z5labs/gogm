@@ -4,9 +4,8 @@ package testing_
 import (
 	"errors"
 )
- 
 
-func(l *ExampleObject) LinkToExampleObject2OnFieldSpecial(target *ExampleObject2, edge *SpecialEdge) error {
+func (l *ExampleObject) LinkToExampleObject2OnFieldSpecial(target *ExampleObject2, edge *SpecialEdge) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
@@ -14,19 +13,19 @@ func(l *ExampleObject) LinkToExampleObject2OnFieldSpecial(target *ExampleObject2
 	if edge == nil {
 		return errors.New("edge can not be nil")
 	}
-	
+
 	err := edge.SetStartNode(l)
 	if err != nil {
 		return err
 	}
-	
+
 	err = edge.SetEndNode(target)
 	if err != nil {
 		return err
 	}
-	
+
 	l.Special = edge
-	
+
 	if target.Special == nil {
 		target.Special = make([]*SpecialEdge, 1, 1)
 		target.Special[0] = edge
@@ -37,16 +36,16 @@ func(l *ExampleObject) LinkToExampleObject2OnFieldSpecial(target *ExampleObject2
 	return nil
 }
 
-func(l *ExampleObject) UnlinkFromExampleObject2OnFieldSpecial(target *ExampleObject2) error {
+func (l *ExampleObject) UnlinkFromExampleObject2OnFieldSpecial(target *ExampleObject2) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
-	
+
 	l.Special = nil
-	
+
 	if target.Special != nil {
 		for i, unlinkTarget := range target.Special {
-			
+
 			obj := unlinkTarget.GetStartNode()
 
 			checkObj, ok := obj.(*ExampleObject)
@@ -64,35 +63,35 @@ func(l *ExampleObject) UnlinkFromExampleObject2OnFieldSpecial(target *ExampleObj
 	}
 
 	return nil
-}  
+}
 
-func(l *ExampleObject) LinkToExampleObjectOnFieldChildren(targets ...*ExampleObject) error {
+func (l *ExampleObject) LinkToExampleObjectOnFieldChildren(targets ...*ExampleObject) error {
 	if targets == nil {
 		return errors.New("start and end can not be nil")
 	}
 
 	for _, target := range targets {
-		
+
 		if l.Children == nil {
 			l.Children = make([]*ExampleObject, 1, 1)
 			l.Children[0] = target
 		} else {
 			l.Children = append(l.Children, target)
 		}
-		
+
 		target.Parents = l
 	}
 
 	return nil
 }
 
-func(l *ExampleObject) UnlinkFromExampleObjectOnFieldChildren(targets ...*ExampleObject) error {
+func (l *ExampleObject) UnlinkFromExampleObjectOnFieldChildren(targets ...*ExampleObject) error {
 	if targets == nil {
 		return errors.New("start and end can not be nil")
 	}
 
 	for _, target := range targets {
-		
+
 		if l.Children != nil {
 			for i, unlinkTarget := range l.Children {
 				if unlinkTarget.UUID == target.UUID {
@@ -104,19 +103,19 @@ func(l *ExampleObject) UnlinkFromExampleObjectOnFieldChildren(targets ...*Exampl
 				}
 			}
 		}
-		
+
 		target.Parents = nil
 	}
 
 	return nil
-}  
-func(l *ExampleObject) LinkToExampleObjectOnFieldParents(target *ExampleObject) error {
+}
+func (l *ExampleObject) LinkToExampleObjectOnFieldParents(target *ExampleObject) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
-	
+
 	l.Parents = target
-	
+
 	if target.Children == nil {
 		target.Children = make([]*ExampleObject, 1, 1)
 		target.Children[0] = l
@@ -127,13 +126,13 @@ func(l *ExampleObject) LinkToExampleObjectOnFieldParents(target *ExampleObject) 
 	return nil
 }
 
-func(l *ExampleObject) UnlinkFromExampleObjectOnFieldParents(target *ExampleObject) error {
+func (l *ExampleObject) UnlinkFromExampleObjectOnFieldParents(target *ExampleObject) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
-	
+
 	l.Parents = nil
-	
+
 	if target.Children != nil {
 		for i, unlinkTarget := range target.Children {
 			if unlinkTarget.UUID == l.UUID {
@@ -147,9 +146,9 @@ func(l *ExampleObject) UnlinkFromExampleObjectOnFieldParents(target *ExampleObje
 	}
 
 	return nil
-}   
+}
 
-func(l *ExampleObject2) LinkToExampleObjectOnFieldSpecial(target *ExampleObject, edge *SpecialEdge) error {
+func (l *ExampleObject2) LinkToExampleObjectOnFieldSpecial(target *ExampleObject, edge *SpecialEdge) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
@@ -157,37 +156,37 @@ func(l *ExampleObject2) LinkToExampleObjectOnFieldSpecial(target *ExampleObject,
 	if edge == nil {
 		return errors.New("edge can not be nil")
 	}
-	
+
 	err := edge.SetStartNode(target)
 	if err != nil {
 		return err
 	}
-	
+
 	err = edge.SetEndNode(l)
 	if err != nil {
 		return err
 	}
-	
+
 	if l.Special == nil {
 		l.Special = make([]*SpecialEdge, 1, 1)
 		l.Special[0] = edge
 	} else {
 		l.Special = append(l.Special, edge)
 	}
-	
+
 	target.Special = edge
 
 	return nil
 }
 
-func(l *ExampleObject2) UnlinkFromExampleObjectOnFieldSpecial(target *ExampleObject) error {
+func (l *ExampleObject2) UnlinkFromExampleObjectOnFieldSpecial(target *ExampleObject) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
-	
+
 	if l.Special != nil {
 		for i, unlinkTarget := range l.Special {
-			
+
 			obj := unlinkTarget.GetEndNode()
 
 			checkObj, ok := obj.(*ExampleObject)
@@ -203,39 +202,39 @@ func(l *ExampleObject2) UnlinkFromExampleObjectOnFieldSpecial(target *ExampleObj
 			}
 		}
 	}
-	
+
 	target.Special = nil
 
 	return nil
-}  
+}
 
-func(l *ExampleObject2) LinkToExampleObject2OnFieldChildren2(targets ...*ExampleObject2) error {
+func (l *ExampleObject2) LinkToExampleObject2OnFieldChildren2(targets ...*ExampleObject2) error {
 	if targets == nil {
 		return errors.New("start and end can not be nil")
 	}
 
 	for _, target := range targets {
-		
+
 		if l.Children2 == nil {
 			l.Children2 = make([]*ExampleObject2, 1, 1)
 			l.Children2[0] = target
 		} else {
 			l.Children2 = append(l.Children2, target)
 		}
-		
+
 		target.Parents2 = l
 	}
 
 	return nil
 }
 
-func(l *ExampleObject2) UnlinkFromExampleObject2OnFieldChildren2(targets ...*ExampleObject2) error {
+func (l *ExampleObject2) UnlinkFromExampleObject2OnFieldChildren2(targets ...*ExampleObject2) error {
 	if targets == nil {
 		return errors.New("start and end can not be nil")
 	}
 
 	for _, target := range targets {
-		
+
 		if l.Children2 != nil {
 			for i, unlinkTarget := range l.Children2 {
 				if unlinkTarget.UUID == target.UUID {
@@ -247,19 +246,19 @@ func(l *ExampleObject2) UnlinkFromExampleObject2OnFieldChildren2(targets ...*Exa
 				}
 			}
 		}
-		
+
 		target.Parents2 = nil
 	}
 
 	return nil
-}  
-func(l *ExampleObject2) LinkToExampleObject2OnFieldParents2(target *ExampleObject2) error {
+}
+func (l *ExampleObject2) LinkToExampleObject2OnFieldParents2(target *ExampleObject2) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
-	
+
 	l.Parents2 = target
-	
+
 	if target.Children2 == nil {
 		target.Children2 = make([]*ExampleObject2, 1, 1)
 		target.Children2[0] = l
@@ -270,13 +269,13 @@ func(l *ExampleObject2) LinkToExampleObject2OnFieldParents2(target *ExampleObjec
 	return nil
 }
 
-func(l *ExampleObject2) UnlinkFromExampleObject2OnFieldParents2(target *ExampleObject2) error {
+func (l *ExampleObject2) UnlinkFromExampleObject2OnFieldParents2(target *ExampleObject2) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
-	
+
 	l.Parents2 = nil
-	
+
 	if target.Children2 != nil {
 		for i, unlinkTarget := range target.Children2 {
 			if unlinkTarget.UUID == l.UUID {
@@ -290,4 +289,4 @@ func(l *ExampleObject2) UnlinkFromExampleObject2OnFieldParents2(target *ExampleO
 	}
 
 	return nil
-}   
+}

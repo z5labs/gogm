@@ -159,8 +159,8 @@ type tdInt int
 
 type f struct {
 	BaseNode
-	Parents  []*f   `gogm:"direction=outgoing;relationship=test"`
-	Children []*f   `gogm:"direction=incoming;relationship=test"`
+	Parents  []*f `gogm:"direction=outgoing;relationship=test"`
+	Children []*f `gogm:"direction=incoming;relationship=test"`
 }
 
 type a struct {
@@ -545,7 +545,7 @@ func TestDecoder(t *testing.T) {
 					Id:   2,
 					UUID: "dasdfas",
 				},
-				TestTime:  fTime,
+				TestTime: fTime,
 			},
 		},
 	}
@@ -613,7 +613,7 @@ func TestDecoder(t *testing.T) {
 			Id:   2,
 			UUID: "dasdfas",
 		},
-		TestTime:  fTime,
+		TestTime: fTime,
 	}
 
 	c4 := c{

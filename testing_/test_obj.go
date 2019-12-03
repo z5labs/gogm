@@ -6,6 +6,6 @@ type ExampleObject struct {
 	gogm.BaseNode
 
 	Children []*ExampleObject `gogm:"direction=incoming;relationship=test" json:"children"`
-	Parents *ExampleObject `gogm:"direction=outgoing;relationship=test" json:"parents"`
-	Special *SpecialEdge `gogm:"direction=incoming;relationship=special" json:"special"`
+	Parents  *ExampleObject   `gogm:"direction=outgoing;relationship=test" json:"parents"`
+	Special  *SpecialEdge     `gogm:"direction=incoming;relationship=special" json:"special"`
 }

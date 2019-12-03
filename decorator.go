@@ -471,7 +471,7 @@ func getFields(val reflect.Type) []*reflect.StructField {
 
 	for i := 0; i < val.NumField(); i++ {
 		tempField := val.Field(i)
-		if tempField.Anonymous && tempField.Type.Kind() == reflect.Struct{
+		if tempField.Anonymous && tempField.Type.Kind() == reflect.Struct {
 			fields = append(fields, getFields(tempField.Type)...)
 		} else {
 			fields = append(fields, &tempField)
