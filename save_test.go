@@ -325,7 +325,7 @@ func TestCalculateDels(t *testing.T) {
 }
 
 func TestSave(t *testing.T) {
-	//t.Skip()
+	t.Skip()
 	req := require.New(t)
 
 	conf := Config{
