@@ -18,7 +18,5 @@ const (
 
 type RelationConfig struct {
 	Ids          []int64      `json:"-" gomg:"-"`
-	//used to replace for new nodes
-	UUIDs []string `json:"-"`
 	RelationType RelationType `json:"-"  gomg:"-"`
 }

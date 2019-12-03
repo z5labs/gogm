@@ -70,7 +70,7 @@ func parseO2O(req *require.Assertions) {
 	val := reflect.ValueOf(comp1)
 	nodeRef := map[string]*reflect.Value{}
 
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &curRels, &oldRels, &ids, &nodeRef, -1, nil)
+	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef)
 	req.Nil(err)
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
@@ -128,7 +128,7 @@ func parseM2O(req *require.Assertions) {
 
 	val := reflect.ValueOf(a1)
 	nodeRef := map[string]*reflect.Value{}
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &curRels, &oldRels, &ids, &nodeRef, -1, nil)
+	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef)
 	req.Nil(err)
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
@@ -185,7 +185,7 @@ func parseM2M(req *require.Assertions) {
 
 	val := reflect.ValueOf(a1)
 
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &curRels, &oldRels, &ids, &nodeRef, -1, nil)
+	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef)
 	req.Nil(err)
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
@@ -373,32 +373,28 @@ func TestSave(t *testing.T) {
 	req.EqualValues(map[string]*RelationConfig{
 		"SingleSpecA": {
 			Ids: []int64{b2.Id},
-			UUIDs: []string{},
 			RelationType: Single,
 		},
 		"ManyA": {
 			Ids: []int64{b3.Id},
-			UUIDs: []string{},
 			RelationType: Multi,
 		},
 	}, a2.LoadMap)
 	req.EqualValues(map[string]*RelationConfig{
 		"SingleSpec": {
 			Ids: []int64{a2.Id},
-			UUIDs: []string{},
 			RelationType: Single,
 		},
 	}, b2.LoadMap)
 	req.EqualValues(map[string]*RelationConfig{
 		"ManyB": {
 			Ids: []int64{a2.Id},
-			UUIDs: []string{},
 			RelationType: Single,
 		},
 	}, b3.LoadMap)
 	a2.SingleSpecA = nil
 	b2.SingleSpec = nil
 
-	req.Nil(saveDepth(conn, a2, defaultSaveDepth))
+	req.Nil(saveDepth(conn, a2, 5))
 	log.Println("done")
 }
