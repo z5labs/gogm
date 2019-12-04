@@ -26,7 +26,7 @@ jobs:
       run: go test ./... -short
     - name: Start Neo4j Docker
       run: |
-        docker-compose up -d
+        docker-compose -f .github/docker-compose.yaml up -d
     - name: Wait for neo4j to be ready
       run: |
         end="$((SECONDS+60))"
