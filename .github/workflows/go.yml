@@ -29,17 +29,10 @@ jobs:
         docker-compose -f .github/docker-compose.yaml up -d
     - name: Wait for neo4j to be ready
       run: |
-        end="$((SECONDS+60))"
-        while true; do
-            nc -w 2 localhost 7687 && break
-            [[ "${SECONDS}" -ge "${end}" ]] && exit 1
-            sleep 1
-        done
-        docker ps
         sleep 5
     - name: Run Integration Test
       run: go test ./... -run Integration
     - name: Stop Neo4j Docker
       run: |
-        docker-compose down
+        docker-compose -f .github/docker-compose.yaml down
 
