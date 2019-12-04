@@ -35,6 +35,8 @@ jobs:
             [[ "${SECONDS}" -ge "${end}" ]] && exit 1
             sleep 1
         done
+        docker ps
+        docker logs github_neo_1
     - name: Run Integration Test
       run: go test ./... -run Integration
     - name: Stop Neo4j Docker
