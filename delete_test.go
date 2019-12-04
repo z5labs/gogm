@@ -3,7 +3,6 @@ package gogm
 import (
 	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/stretchr/testify/require"
-
 )
 
 func testDelete(req *require.Assertions) {

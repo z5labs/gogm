@@ -320,5 +320,3 @@ func TestCalculateDels(t *testing.T) {
 
 	req.EqualValues(map[string][]int64{}, dels)
 }
-
-
