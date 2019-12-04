@@ -29,21 +29,62 @@ const (
 )
 
 type decoratorConfig struct {
-	Type             reflect.Type
-	Name             string
-	FieldName        string
-	Relationship     string
-	Direction        dsl.Direction
-	Unique           bool
-	Index            bool
-	ManyRelationship bool
-	UsesEdgeNode     bool
-	PrimaryKey       bool
-	Properties       bool
-	IsTime           bool
-	IsTypeDef        bool
-	TypedefActual    reflect.Type
-	Ignore           bool
+	Type             reflect.Type  `json:"-"`
+	Name             string        `json:"name"`
+	FieldName        string        `json:"field_name"`
+	Relationship     string        `json:"relationship"`
+	Direction        dsl.Direction `json:"direction"`
+	Unique           bool          `json:"unique"`
+	Index            bool          `json:"index"`
+	ManyRelationship bool          `json:"many_relationship"`
+	UsesEdgeNode     bool          `json:"uses_edge_node"`
+	PrimaryKey       bool          `json:"primary_key"`
+	Properties       bool          `json:"properties"`
+	IsTime           bool          `json:"is_time"`
+	IsTypeDef        bool          `json:"is_type_def"`
+	TypedefActual    reflect.Type  `json:"-"`
+	Ignore           bool          `json:"ignore"`
+}
+
+func (d *decoratorConfig) Equals(comp *decoratorConfig) bool {
+	if comp == nil {
+		return false
+	}
+
+	return d.Name == comp.Name && d.FieldName == comp.FieldName && d.Relationship == comp.Relationship &&
+		d.Direction == comp.Direction && d.Unique == comp.Unique && d.Index == comp.Index && d.ManyRelationship == comp.ManyRelationship &&
+		d.UsesEdgeNode == comp.UsesEdgeNode && d.PrimaryKey == comp.PrimaryKey && d.Properties == comp.Properties && d.IsTime == comp.IsTime &&
+		d.IsTypeDef == comp.IsTypeDef && d.Ignore == comp.Ignore
+}
+
+type structDecoratorConfig struct {
+	// field name : decorator configuration
+	Fields   map[string]decoratorConfig `json:"fields"`
+	Label    string                     `json:"label"`
+	IsVertex bool                       `json:"is_vertex"`
+	Type     reflect.Type               `json:"-"`
+}
+
+func (s *structDecoratorConfig) Equals(comp *structDecoratorConfig) bool {
+	if comp == nil {
+		return false
+	}
+
+	if comp.Fields != nil && s.Fields != nil {
+		for field, decConfig := range s.Fields {
+			if compConfig, ok := comp.Fields[field]; ok {
+				if !compConfig.Equals(&decConfig) {
+					return false
+				}
+			} else {
+				return false
+			}
+		}
+	} else {
+		return false
+	}
+
+	return s.IsVertex == comp.IsVertex && s.Label == comp.Label
 }
 
 //have struct validate itself
@@ -296,14 +337,6 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 	}
 
 	return &toReturn, nil
-}
-
-type structDecoratorConfig struct {
-	// field name : decorator configuration
-	Fields   map[string]decoratorConfig
-	Label    string
-	IsVertex bool
-	Type     reflect.Type
 }
 
 //validates struct configuration

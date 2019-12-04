@@ -25,11 +25,6 @@ type relCreateConf struct {
 	Direction     dsl.Direction
 }
 
-type relDelConf struct {
-	StartNodeId string
-	EndNodeId   int64
-}
-
 //todo optimize
 func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 	if sess == nil {
