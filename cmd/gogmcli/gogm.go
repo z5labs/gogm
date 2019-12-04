@@ -14,7 +14,7 @@ func main() {
 	app := &cli.App{
 		Name:                 "gogmcli",
 		HelpName:             "gogmcli",
-		Version:              "0.2.0",
+		Version:              "1.0.0",
 		Usage:                "used for neo4j operations from gogm schema",
 		Description:          "cli for generating and executing migrations with gogm",
 		EnableBashCompletion: true,
