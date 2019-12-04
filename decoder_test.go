@@ -3,58 +3,12 @@ package gogm
 import (
 	"errors"
 	"github.com/cornelk/hashmap"
-	dsl "github.com/mindstand/go-cypherdsl"
-	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/mindstand/golang-neo4j-bolt-driver/structures/graph"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 	"time"
 )
-
-func TestDecode(t *testing.T) {
-	if !testing.Short() {
-		t.Skip()
-		return
-	}
-
-	req := require.New(t)
-
-	req.Nil(setupInit(false, &Config{
-		Host:          "0.0.0.0",
-		Port:          7687,
-		IsCluster:     false,
-		Username:      "neo4j",
-		Password:      "password",
-		PoolSize:      50,
-		IndexStrategy: IGNORE_INDEX,
-	}, &a{}, &b{}, &c{}))
-
-	req.EqualValues(3, mappedTypes.Len())
-
-	query := `match p=(n:a{uuid:'d5c56567-da8e-429f-9cea-300e722195e0'})-[*0..4]-() return p`
-
-	conn, err := driverPool.Open(driver.ReadWriteMode)
-	if err != nil {
-		require.Nil(t, err)
-	}
-	defer driverPool.Reclaim(conn)
-
-	rows, err := dsl.QB().WithNeo(conn).Cypher(query).Query(nil)
-	require.Nil(t, err)
-	require.NotNil(t, rows)
-
-	var stuff a
-	require.Nil(t, decodeNeoRows(rows, &stuff))
-	t.Log(stuff.Id)
-	t.Log(stuff.UUID)
-	t.Log(stuff)
-	req.NotNil(stuff.SingleSpecA)
-	req.NotNil(stuff.SingleSpecA.End.Single)
-	//t.Log(stuff.MultiSpecA[0].End.Id)
-	//req.NotEqual(0, stuff.Id)
-	//req.True(len(stuff.MultiSpecA) > 0)
-}
 
 type TestStruct struct {
 	Id         int64

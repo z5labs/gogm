@@ -1,72 +1,15 @@
 package gogm
 
 import (
-	dsl "github.com/mindstand/go-cypherdsl"
 	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/stretchr/testify/require"
 	"reflect"
-	"testing"
 )
 
-func TestDropAllIndexesAndConstraints(t *testing.T) {
-	//requires connection
-	if !testing.Short() {
-		t.SkipNow()
-		return
-	}
-
-	conn, err := driverPool.Open(driver.ReadWriteMode)
-	if err != nil {
-		require.Nil(t, err)
-	}
-	defer driverPool.Reclaim(conn)
-	require.Nil(t, err)
-
-	err = dropAllIndexesAndConstraints()
-	require.Nil(t, err)
-
-	constraintRows, err := dsl.QB().WithNeo(conn).Cypher("CALL db.constraints").Query(nil)
-	require.Nil(t, err)
-
-	found, _, err := constraintRows.All()
-	require.Nil(t, err)
-
-	require.Equal(t, 0, len(found))
-
-	indexRows, err := dsl.QB().WithNeo(conn).Cypher("CALL db.indexes()").Query(nil)
-	require.Nil(t, err)
-
-	iFound, _, err := indexRows.All()
-	require.Nil(t, err)
-
-	require.Equal(t, 0, len(iFound))
-}
-
-func TestIndexManagement(t *testing.T) {
-	//requires connection
-	if !testing.Short() {
-		t.SkipNow()
-		return
-	}
-
-	req := require.New(t)
-
-	var err error
-
-	conf := Config{
-		Username: "neo4j",
-		Password: "password",
-		Host:     "0.0.0.0",
-		Port:     7687,
-		PoolSize: 15,
-	}
-
-	driverPool, err = driver.NewClosableDriverPool(conf.ConnectionString(), conf.PoolSize)
-	req.Nil(err)
-
+func testIndexManagement(req *require.Assertions) {
 	//init
 	conn, err := driverPool.Open(driver.ReadWriteMode)
-	require.Nil(t, err)
+	req.Nil(err)
 
 	defer driverPool.Reclaim(conn)
 	req.Nil(err)
@@ -123,7 +66,7 @@ func TestIndexManagement(t *testing.T) {
 	//create stuff
 	req.Nil(createAllIndexesAndConstraints(mapp))
 
-	t.Log("created indices and constraints")
+	log.Println("created indices and constraints")
 
 	//validate
 	req.Nil(verifyAllIndexesAndConstraints(mapp))

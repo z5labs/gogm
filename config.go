@@ -85,6 +85,12 @@ func Init(conf *Config, mapTypes ...interface{}) error {
 	return setupInit(false, conf, mapTypes...)
 }
 
+func Reset() {
+	mappedTypes = &hashmap.HashMap{}
+	mappedRelations = &relationConfigs{}
+	isSetup = false
+}
+
 func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 	if isSetup && !isTest {
 		return errors.New("gogm has already been initialized")

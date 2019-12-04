@@ -3,17 +3,13 @@ package gogm
 import (
 	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/stretchr/testify/require"
-	"testing"
+
 )
 
-func TestDelete(t *testing.T) {
-	if !testing.Short() {
-		t.Skip()
-		return
-	}
+func testDelete(req *require.Assertions) {
 	conn, err := driverPool.Open(driver.ReadWriteMode)
 	if err != nil {
-		require.Nil(t, err)
+		req.Nil(err)
 	}
 	defer driverPool.Reclaim(conn)
 
@@ -25,5 +21,5 @@ func TestDelete(t *testing.T) {
 	}
 
 	err = deleteNode(conn, &del)
-	require.Nil(t, err)
+	req.Nil(err)
 }

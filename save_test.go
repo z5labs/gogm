@@ -1,11 +1,9 @@
 package gogm
 
 import (
-	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
-	"time"
 )
 
 func TestParseStruct(t *testing.T) {
@@ -70,13 +68,12 @@ func parseO2O(req *require.Assertions) {
 	val := reflect.ValueOf(comp1)
 	nodeRef := map[string]*reflect.Value{}
 
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef)
-	req.Nil(err)
+	req.Nil(parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef))
+	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
 	req.Equal(1, len(relations))
-
 	req.Equal(2, len(oldRels))
 	req.Equal(2, len(curRels))
 	req.Equal(int64(2), curRels["comp1uuid"]["SingleSpecA"].Ids[0])
@@ -128,8 +125,8 @@ func parseM2O(req *require.Assertions) {
 
 	val := reflect.ValueOf(a1)
 	nodeRef := map[string]*reflect.Value{}
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef)
-	req.Nil(err)
+	req.Nil(parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef))
+	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
@@ -185,8 +182,8 @@ func parseM2M(req *require.Assertions) {
 
 	val := reflect.ValueOf(a1)
 
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef)
-	req.Nil(err)
+	req.Nil(parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef))
+	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
@@ -324,77 +321,4 @@ func TestCalculateDels(t *testing.T) {
 	req.EqualValues(map[string][]int64{}, dels)
 }
 
-func TestSave(t *testing.T) {
-	t.Skip()
-	req := require.New(t)
 
-	conf := Config{
-		Username:      "neo4j",
-		Password:      "password",
-		Host:          "0.0.0.0",
-		Port:          7687,
-		PoolSize:      15,
-		IndexStrategy: IGNORE_INDEX,
-	}
-
-	req.Nil(Init(&conf, &a{}, &b{}, &c{}))
-
-	a2 := &a{
-		TestField: "test",
-	}
-
-	b2 := &b{
-		TestField: "test",
-		TestTime:  time.Now().UTC(),
-	}
-
-	b3 := &b{
-		TestField: "dasdfasd",
-	}
-
-	c1 := &c{
-		Start: a2,
-		End:   b2,
-		Test:  "testing",
-	}
-
-	a2.SingleSpecA = c1
-	a2.ManyA = []*b{b3}
-	b2.SingleSpec = c1
-	b3.ManyB = a2
-
-	conn, err := driverPool.Open(driver.ReadWriteMode)
-	if err != nil {
-		require.Nil(t, err)
-	}
-	defer driverPool.Reclaim(conn)
-
-	req.Nil(saveDepth(conn, a2, 5))
-	req.EqualValues(map[string]*RelationConfig{
-		"SingleSpecA": {
-			Ids:          []int64{b2.Id},
-			RelationType: Single,
-		},
-		"ManyA": {
-			Ids:          []int64{b3.Id},
-			RelationType: Multi,
-		},
-	}, a2.LoadMap)
-	req.EqualValues(map[string]*RelationConfig{
-		"SingleSpec": {
-			Ids:          []int64{a2.Id},
-			RelationType: Single,
-		},
-	}, b2.LoadMap)
-	req.EqualValues(map[string]*RelationConfig{
-		"ManyB": {
-			Ids:          []int64{a2.Id},
-			RelationType: Single,
-		},
-	}, b3.LoadMap)
-	a2.SingleSpecA = nil
-	b2.SingleSpec = nil
-
-	req.Nil(saveDepth(conn, a2, 5))
-	log.Println("done")
-}
