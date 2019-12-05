@@ -198,9 +198,6 @@ Inspiration came from the Java OGM implementation by Neo4j.
 - TLS Support
 - Documentation (obviously)
 
-## Credits
-- [adam hannah's arrayOperations](https://github.com/adam-hanna/arrayOperations)
-
 ## How you can help
 - Report Bugs
 - Fix bugs
