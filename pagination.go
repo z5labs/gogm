@@ -24,15 +24,15 @@ import "errors"
 // pagination configuration
 type Pagination struct {
 	// specifies which page number to load
-	PageNumber     int
+	PageNumber int
 	// limits how many records per page
-	LimitPerPage   int
+	LimitPerPage int
 	// specifies variable to order by
 	OrderByVarName string
 	// specifies field to order by on
-	OrderByField   string
+	OrderByField string
 	// specifies whether orderby is desc or asc
-	OrderByDesc    bool
+	OrderByDesc bool
 }
 
 func (p *Pagination) Validate() error {

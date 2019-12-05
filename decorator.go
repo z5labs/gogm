@@ -38,7 +38,7 @@ var timeType = reflect.TypeOf(time.Time{})
 const (
 	// specifies the name in neo4j
 	//requires assignment (if specified)
-	paramNameField        = "name"
+	paramNameField = "name"
 
 	// specifies the name of the relationship
 	//requires assignment (if edge field)
@@ -46,65 +46,65 @@ const (
 
 	//specifies direction, can only be (incoming|outgoing|both|none)
 	//requires assignment (if edge field)
-	directionField        = "direction"
+	directionField = "direction"
 
 	//specifies if the field contains time representation
-	timeField             = "time"
+	timeField = "time"
 
 	//specifies if the field is to be indexed
-	indexField            = "index"
+	indexField = "index"
 
 	//specifies if the field is unique
-	uniqueField           = "unique"
+	uniqueField = "unique"
 
 	//specifies is the field is a primary key
-	primaryKeyField       = "pk"
+	primaryKeyField = "pk"
 
 	//specifies if the field is map of type `map[string]interface{}`
-	propertiesField       = "properties"
+	propertiesField = "properties"
 
 	//specifies if the field is to be ignored
-	ignoreField           = "-"
+	ignoreField = "-"
 
 	//specifies deliminator between GoGM tags
-	deliminator           = ";"
+	deliminator = ";"
 
 	//assignment operator for GoGM tags
-	assignmentOperator    = "="
+	assignmentOperator = "="
 )
 
 //decorator config defines configuration of GoGM field
 type decoratorConfig struct {
 	// holds reflect type for the field
-	Type             reflect.Type  `json:"-"`
+	Type reflect.Type `json:"-"`
 	// holds the name of the field for neo4j
-	Name             string        `json:"name"`
+	Name string `json:"name"`
 	// holds the name of the field in the struct
-	FieldName        string        `json:"field_name"`
+	FieldName string `json:"field_name"`
 	// holds the name of the relationship
-	Relationship     string        `json:"relationship"`
+	Relationship string `json:"relationship"`
 	// holds the direction
-	Direction        dsl.Direction `json:"direction"`
+	Direction dsl.Direction `json:"direction"`
 	// specifies if field is to be unique
-	Unique           bool          `json:"unique"`
+	Unique bool `json:"unique"`
 	// specifies if field is to be indexed
-	Index            bool          `json:"index"`
+	Index bool `json:"index"`
 	// specifies if field represents many relationship
-	ManyRelationship bool          `json:"many_relationship"`
+	ManyRelationship bool `json:"many_relationship"`
 	// uses edge specifies if the edge is a special node
-	UsesEdgeNode     bool          `json:"uses_edge_node"`
+	UsesEdgeNode bool `json:"uses_edge_node"`
 	// specifies whether the field is the nodes primary key
-	PrimaryKey       bool          `json:"primary_key"`
+	PrimaryKey bool `json:"primary_key"`
 	// specify if the field holds properties
-	Properties       bool          `json:"properties"`
+	Properties bool `json:"properties"`
 	// specifies if the field contains time value
-	IsTime           bool          `json:"is_time"`
+	IsTime bool `json:"is_time"`
 	// specifies if the field contains a typedef of another type
-	IsTypeDef        bool          `json:"is_type_def"`
+	IsTypeDef bool `json:"is_type_def"`
 	// holds the reflect type of the root type if typedefed
-	TypedefActual    reflect.Type  `json:"-"`
+	TypedefActual reflect.Type `json:"-"`
 	// specifies whether to ignore the field
-	Ignore           bool          `json:"ignore"`
+	Ignore bool `json:"ignore"`
 }
 
 // Equals checks equality of decorator configs
@@ -123,13 +123,13 @@ func (d *decoratorConfig) Equals(comp *decoratorConfig) bool {
 type structDecoratorConfig struct {
 	// Holds fields -> their configurations
 	// field name : decorator configuration
-	Fields   map[string]decoratorConfig `json:"fields"`
+	Fields map[string]decoratorConfig `json:"fields"`
 	// holds label for the node, maps to struct name
-	Label    string                     `json:"label"`
+	Label string `json:"label"`
 	// specifies if the node is a vertex or an edge (if true, its a vertex)
-	IsVertex bool                       `json:"is_vertex"`
+	IsVertex bool `json:"is_vertex"`
 	// holds the reflect type of the struct
-	Type     reflect.Type               `json:"-"`
+	Type reflect.Type `json:"-"`
 }
 
 // Equals checks equality of structDecoratorConfigs

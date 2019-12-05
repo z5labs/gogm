@@ -24,7 +24,7 @@ const loadMapField = "LoadMap"
 // BaseNode contains fields that ALL GoGM nodes are required to have
 type BaseNode struct {
 	// Id is the GraphId that neo4j uses internally
-	Id   int64  `json:"-" gogm:"name=id"`
+	Id int64 `json:"-" gogm:"name=id"`
 	// UUID is the unique identifier GoGM uses as a primary key
 	UUID string `json:"uuid" gogm:"pk;name=uuid"`
 
@@ -42,13 +42,13 @@ const (
 	Single RelationType = 0
 
 	// Side of relationship can point to 0+ other nodes
-	Multi  RelationType = 1
+	Multi RelationType = 1
 )
 
 // RelationConfig specifies how relationships are loaded
 type RelationConfig struct {
 	// stores graph ids
-	Ids          []int64      `json:"-" gomg:"-"`
+	Ids []int64 `json:"-" gomg:"-"`
 	// specifies relationship type
 	RelationType RelationType `json:"-"  gomg:"-"`
 }

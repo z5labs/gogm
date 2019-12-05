@@ -57,7 +57,7 @@ type Config struct {
 	// Host is the neo4j host
 	Host string `yaml:"host" json:"host"`
 	// Port is the neo4j port
-	Port int    `yaml:"port" json:"port"`
+	Port int `yaml:"port" json:"port"`
 
 	// IsCluster specifies whether GoGM is connecting to a casual cluster or not
 	IsCluster bool `yaml:"is_cluster" json:"is_cluster"`
@@ -92,11 +92,11 @@ type IndexStrategy int
 
 const (
 	// Assert Index ensures that all indices are set and sets them if they are not there
-	ASSERT_INDEX   IndexStrategy = 0
+	ASSERT_INDEX IndexStrategy = 0
 	// Validate Index ensures that all indices are set
 	VALIDATE_INDEX IndexStrategy = 1
 	// Ignore Index skips the index step of setup
-	IGNORE_INDEX   IndexStrategy = 2
+	IGNORE_INDEX IndexStrategy = 2
 )
 
 //holds mapped types

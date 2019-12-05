@@ -37,9 +37,9 @@ type nodeCreateConf struct {
 	// params to save
 	Params map[string]interface{}
 	// type to save by
-	Type   reflect.Type
+	Type reflect.Type
 	// whether the node is new or not
-	IsNew  bool
+	IsNew bool
 }
 
 // relCreateConf holds configuration for nodes to link together
@@ -47,11 +47,11 @@ type relCreateConf struct {
 	// start uuid of relationship
 	StartNodeUUID string
 	// end uuid of relationship
-	EndNodeUUID   string
+	EndNodeUUID string
 	// any data to store in edge
-	Params        map[string]interface{}
+	Params map[string]interface{}
 	// holds direction of the edge
-	Direction     dsl.Direction
+	Direction dsl.Direction
 }
 
 // saves target node and connected node to specified depth
