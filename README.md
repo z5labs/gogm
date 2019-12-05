@@ -1,6 +1,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mindstand/gogm)](https://goreportcard.com/report/github.com/mindstand/gogm)
 [![Actions Status](https://github.com/mindstand/gogm/workflows/Go/badge.svg)](https://github.com/mindstand/gogm/actions)
-[![](https://godoc.org/github.com/nathany/looper?status.svg)](http://godoc.org/github.com/mindstand/gogm)
+[![GoDoc](https://godoc.org/github.com/mindstand/gogm?status.svg)](https://godoc.org/github.com/mindstand/gogm)
 # GoGM Golang Object Graph Mapper
 
 ```
