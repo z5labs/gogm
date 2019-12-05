@@ -48,7 +48,7 @@ jobs:
         docker-compose -f .github/docker-compose.yaml up -d
     - name: Wait for neo4j to be ready
       run: |
-        sleep 5
+        sleep 6
     - name: Run Integration Test
       run: go test ./... -run Integration
     - name: Stop Neo4j Docker
