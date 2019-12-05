@@ -1,60 +1,33 @@
+// Copyright (c) 2019 MindStand Technologies, Inc
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 package gogm
 
 import (
 	"errors"
 	"github.com/cornelk/hashmap"
-	dsl "github.com/mindstand/go-cypherdsl"
-	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/mindstand/golang-neo4j-bolt-driver/structures/graph"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 	"time"
 )
-
-func TestDecode(t *testing.T) {
-	if !testing.Short() {
-		t.Skip()
-		return
-	}
-
-	req := require.New(t)
-
-	req.Nil(setupInit(false, &Config{
-		Host:          "0.0.0.0",
-		Port:          7687,
-		IsCluster:     false,
-		Username:      "neo4j",
-		Password:      "password",
-		PoolSize:      50,
-		IndexStrategy: IGNORE_INDEX,
-	}, &a{}, &b{}, &c{}))
-
-	req.EqualValues(3, mappedTypes.Len())
-
-	query := `match p=(n:a{uuid:'d5c56567-da8e-429f-9cea-300e722195e0'})-[*0..4]-() return p`
-
-	conn, err := driverPool.Open(driver.ReadWriteMode)
-	if err != nil {
-		require.Nil(t, err)
-	}
-	defer driverPool.Reclaim(conn)
-
-	rows, err := dsl.QB().WithNeo(conn).Cypher(query).Query(nil)
-	require.Nil(t, err)
-	require.NotNil(t, rows)
-
-	var stuff a
-	require.Nil(t, decodeNeoRows(rows, &stuff))
-	t.Log(stuff.Id)
-	t.Log(stuff.UUID)
-	t.Log(stuff)
-	req.NotNil(stuff.SingleSpecA)
-	req.NotNil(stuff.SingleSpecA.End.Single)
-	//t.Log(stuff.MultiSpecA[0].End.Id)
-	//req.NotEqual(0, stuff.Id)
-	//req.True(len(stuff.MultiSpecA) > 0)
-}
 
 type TestStruct struct {
 	Id         int64
@@ -158,13 +131,13 @@ type tdString string
 type tdInt int
 
 type f struct {
-	embedTest
-	Parents  []*f   `gogm:"direction=outgoing;relationship=test"`
-	Children []*f   `gogm:"direction=incoming;relationship=test"`
+	BaseNode
+	Parents  []*f `gogm:"direction=outgoing;relationship=test"`
+	Children []*f `gogm:"direction=incoming;relationship=test"`
 }
 
 type a struct {
-	embedTest
+	BaseNode
 	TestField         string   `gogm:"name=test_field"`
 	TestTypeDefString tdString `gogm:"name=test_type_def_string"`
 	TestTypeDefInt    tdInt    `gogm:"name=test_type_def_int"`
@@ -176,18 +149,18 @@ type a struct {
 }
 
 type b struct {
-	embedTest
+	BaseNode
 	TestField  string    `gogm:"name=test_field"`
 	TestTime   time.Time `gogm:"time;name=test_time"`
 	Single     *a        `gogm:"direction=outgoing;relationship=test_rel"`
-	ManyB      *a        `gogm:"direction=incoming;relationship=testm2o"`
+	ManyB      *a        `gogm:"direction=outgoing;relationship=testm2o"`
 	Multi      []*a      `gogm:"direction=outgoing;relationship=multib"`
 	SingleSpec *c        `gogm:"direction=incoming;relationship=special_single"`
 	MultiSpec  []*c      `gogm:"direction=incoming;relationship=special_multi"`
 }
 
 type c struct {
-	embedTest
+	BaseNode
 	Start *a
 	End   *b
 	Test  string `gogm:"name=test"`
@@ -284,21 +257,21 @@ func TestDecoder(t *testing.T) {
 	}
 
 	f0 := f{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   0,
 			UUID: "0",
 		},
 	}
 
 	f1 := f{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 			UUID: "1",
 		},
 	}
 
 	f2 := f{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 			UUID: "2",
 		},
@@ -315,13 +288,17 @@ func TestDecoder(t *testing.T) {
 	for _, r := range readin10 {
 		if r.Id == 0 {
 			req.True(len(r.Parents) == 1)
+			req.True(r.LoadMap["Parents"].Ids[0] == 1)
 			req.True(len(r.Children) == 0)
 		} else if r.Id == 1 {
 			req.True(len(r.Parents) == 1)
+			req.True(r.LoadMap["Parents"].Ids[0] == 2)
 			req.True(len(r.Children) == 1)
+			req.True(r.LoadMap["Children"].Ids[0] == 0)
 		} else if r.Id == 2 {
 			req.True(len(r.Parents) == 0)
 			req.True(len(r.Children) == 1)
+			req.True(r.LoadMap["Children"].Ids[0] == 1)
 		} else {
 			t.FailNow()
 		}
@@ -366,7 +343,7 @@ func TestDecoder(t *testing.T) {
 	var readin a
 
 	comp := &a{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 			UUID: "dasdfasd",
 		},
@@ -376,7 +353,7 @@ func TestDecoder(t *testing.T) {
 	}
 
 	comp22 := &b{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 			UUID: "dasdfas",
 		},
@@ -455,7 +432,7 @@ func TestDecoder(t *testing.T) {
 	var readin2 a
 
 	comp2 := &a{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 			UUID: "dasdfasd",
 		},
@@ -463,7 +440,7 @@ func TestDecoder(t *testing.T) {
 	}
 
 	b2 := &b{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 			UUID: "dasdfas",
 		},
@@ -472,7 +449,7 @@ func TestDecoder(t *testing.T) {
 	}
 
 	c1 := &c{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   34,
 			UUID: "asdfasdafsd",
 		},
@@ -529,7 +506,7 @@ func TestDecoder(t *testing.T) {
 	var readin3 a
 
 	comp3 := a{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 			UUID: "dasdfasd",
 		},
@@ -537,11 +514,11 @@ func TestDecoder(t *testing.T) {
 		MultiA: []*b{
 			{
 				TestField: "test",
-				embedTest: embedTest{
+				BaseNode: BaseNode{
 					Id:   2,
 					UUID: "dasdfas",
 				},
-				TestTime:  fTime,
+				TestTime: fTime,
 			},
 		},
 	}
@@ -597,7 +574,7 @@ func TestDecoder(t *testing.T) {
 
 	comp4 := &a{
 		TestField: "test",
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
 			UUID: "dasdfasd",
 		},
@@ -605,15 +582,15 @@ func TestDecoder(t *testing.T) {
 
 	b3 := &b{
 		TestField: "test",
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
 			UUID: "dasdfas",
 		},
-		TestTime:  fTime,
+		TestTime: fTime,
 	}
 
 	c4 := c{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			UUID: "asdfasdafsd",
 		},
 		Start: comp4,

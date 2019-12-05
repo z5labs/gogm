@@ -17,4 +17,14 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package gogm
+package testing_
+
+import "github.com/mindstand/gogm"
+
+type ExampleObject struct {
+	gogm.BaseNode
+
+	Children []*ExampleObject `gogm:"direction=incoming;relationship=test" json:"children"`
+	Parents  *ExampleObject   `gogm:"direction=outgoing;relationship=test" json:"parents"`
+	Special  *SpecialEdge     `gogm:"direction=incoming;relationship=special" json:"special"`
+}

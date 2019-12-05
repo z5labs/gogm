@@ -17,27 +17,61 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package gogm
+package testing_
 
 import (
-	driver "github.com/mindstand/golang-neo4j-bolt-driver"
+	"github.com/mindstand/gogm"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
-func testDelete(req *require.Assertions) {
-	conn, err := driverPool.Open(driver.ReadWriteMode)
-	if err != nil {
-		req.Nil(err)
-	}
-	defer driverPool.Reclaim(conn)
+func TestLinking(t *testing.T) {
+	req := require.New(t)
 
-	del := a{
-		BaseNode: BaseNode{
-			Id:   0,
-			UUID: "5334ee8c-6231-40fd-83e5-16c8016ccde6",
+	id1 := "SDFdasasdf"
+	id2 := "aasdfasdfa"
+
+	obj1 := &ExampleObject{
+		BaseNode: gogm.BaseNode{
+			Id:      0,
+			UUID:    id1,
+			LoadMap: map[string]*gogm.RelationConfig{},
 		},
 	}
 
-	err = deleteNode(conn, &del)
-	req.Nil(err)
+	obj2 := &ExampleObject{
+		BaseNode: gogm.BaseNode{
+			Id:      1,
+			UUID:    id2,
+			LoadMap: map[string]*gogm.RelationConfig{},
+		},
+	}
+
+	req.Nil(obj1.LinkToExampleObjectOnFieldParents(obj2))
+
+	req.Equal(1, len(obj2.Children))
+	req.NotNil(obj1.Parents)
+
+	req.Nil(obj1.UnlinkFromExampleObjectOnFieldParents(obj2))
+	req.Equal(0, len(obj2.Children))
+	req.Nil(obj1.Parents)
+
+	// test special edge
+	specEdge := &SpecialEdge{
+		SomeField: "asdfad",
+	}
+
+	obj3 := &ExampleObject2{
+		BaseNode: gogm.BaseNode{
+			UUID: "adfadsfasd",
+		},
+	}
+
+	req.Nil(obj3.LinkToExampleObjectOnFieldSpecial(obj1, specEdge))
+	req.Equal(obj1.Special.End.UUID, obj3.UUID)
+	req.Equal(1, len(obj3.Special))
+
+	req.Nil(obj1.UnlinkFromExampleObject2OnFieldSpecial(obj3))
+	req.Nil(obj1.Special)
+	req.Equal(0, len(obj3.Special))
 }

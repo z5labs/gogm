@@ -1,11 +1,28 @@
+// Copyright (c) 2019 MindStand Technologies, Inc
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 package gogm
 
 import (
-	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
-	"time"
 )
 
 func TestParseStruct(t *testing.T) {
@@ -26,14 +43,28 @@ func parseO2O(req *require.Assertions) {
 		TestField:         "test",
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
+			UUID: "comp1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"SingleSpecA": {
+					Ids:          []int64{2},
+					RelationType: Single,
+				},
+			},
 		},
 	}
 
 	b1 := &b{
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
+			UUID: "b1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"SingleSpec": {
+					Ids:          []int64{1},
+					RelationType: Single,
+				},
+			},
 		},
 		TestField: "test",
 	}
@@ -49,15 +80,24 @@ func parseO2O(req *require.Assertions) {
 
 	nodes := map[string]map[string]nodeCreateConf{}
 	relations := map[string][]relCreateConf{}
+	oldRels := map[string]map[string]*RelationConfig{}
+	curRels := map[string]map[string]*RelationConfig{}
+	ids := []*string{}
 
 	val := reflect.ValueOf(comp1)
+	nodeRef := map[string]*reflect.Value{}
 
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations)
-	req.Nil(err)
+	req.Nil(parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef))
+	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
 	req.Equal(1, len(relations))
+	req.Equal(2, len(oldRels))
+	req.Equal(2, len(curRels))
+	req.Equal(int64(2), curRels["comp1uuid"]["SingleSpecA"].Ids[0])
+	req.Equal(int64(1), curRels["b1uuid"]["SingleSpec"].Ids[0])
+	req.EqualValues(oldRels, curRels)
 }
 
 func parseM2O(req *require.Assertions) {
@@ -66,16 +106,30 @@ func parseM2O(req *require.Assertions) {
 		TestField:         "test",
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
+			UUID: "a1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"ManyA": {
+					Ids:          []int64{2},
+					RelationType: Multi,
+				},
+			},
 		},
-		ManyA:             []*b{},
+		ManyA: []*b{},
 	}
 
 	b1 := &b{
 		TestField: "test",
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
+			UUID: "b1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"ManyB": {
+					Ids:          []int64{1},
+					RelationType: Single,
+				},
+			},
 		},
 	}
 
@@ -84,15 +138,19 @@ func parseM2O(req *require.Assertions) {
 
 	nodes := map[string]map[string]nodeCreateConf{}
 	relations := map[string][]relCreateConf{}
+	oldRels := map[string]map[string]*RelationConfig{}
+	curRels := map[string]map[string]*RelationConfig{}
+	ids := []*string{}
 
 	val := reflect.ValueOf(a1)
-
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations)
-	req.Nil(err)
+	nodeRef := map[string]*reflect.Value{}
+	req.Nil(parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef))
+	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
 	req.Equal(1, len(relations))
+	req.EqualValues(oldRels, curRels)
 }
 
 func parseM2M(req *require.Assertions) {
@@ -101,19 +159,33 @@ func parseM2M(req *require.Assertions) {
 		TestField:         "test",
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   1,
+			UUID: "a1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"MultiA": {
+					Ids:          []int64{2},
+					RelationType: Multi,
+				},
+			},
 		},
-		ManyA:             []*b{},
-		MultiA:            []*b{},
+		ManyA:  []*b{},
+		MultiA: []*b{},
 	}
 
 	b1 := &b{
 		TestField: "test",
-		embedTest: embedTest{
+		BaseNode: BaseNode{
 			Id:   2,
+			UUID: "b1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"Multi": {
+					Ids:          []int64{1},
+					RelationType: Multi,
+				},
+			},
 		},
-		Multi:     []*a{},
+		Multi: []*a{},
 	}
 
 	b1.Multi = append(b1.Multi, a1)
@@ -121,52 +193,149 @@ func parseM2M(req *require.Assertions) {
 
 	nodes := map[string]map[string]nodeCreateConf{}
 	relations := map[string][]relCreateConf{}
+	oldRels := map[string]map[string]*RelationConfig{}
+	curRels := map[string]map[string]*RelationConfig{}
+	ids := []*string{}
+
+	nodeRef := map[string]*reflect.Value{}
 
 	val := reflect.ValueOf(a1)
 
-	err := parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations)
-	req.Nil(err)
+	req.Nil(parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef))
+	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
 	req.Equal(1, len(relations))
+	req.EqualValues(oldRels, curRels)
 }
 
-func TestSave(t *testing.T) {
-	t.Skip()
+func TestCalculateDels(t *testing.T) {
 	req := require.New(t)
 
-	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
-
-	comp2 := &a{
-		TestField: "test",
-		embedTest: embedTest{
-			Id:   1,
+	//test node removed
+	dels := calculateDels(map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids:          []int64{2},
+				RelationType: Single,
+			},
 		},
-	}
-
-	b2 := &b{
-		TestField: "test",
-		TestTime:  time.Now().UTC(),
-		embedTest: embedTest{
-			Id:   2,
+		"node2": {
+			"RelField2": {
+				Ids:          []int64{1},
+				RelationType: Single,
+			},
 		},
-	}
+	}, map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids:          []int64{},
+				RelationType: Single,
+			},
+		},
+	})
 
-	c1 := &c{
-		Start: comp2,
-		End:   b2,
-		Test:  "testing",
-	}
+	req.EqualValues(map[string][]int64{
+		"node1": {2},
+	}, dels)
 
-	comp2.SingleSpecA = c1
-	b2.SingleSpec = c1
+	//test field removed
+	dels = calculateDels(map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids:          []int64{2},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelField2": {
+				Ids:          []int64{1},
+				RelationType: Single,
+			},
+		},
+	}, map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids:          []int64{},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelFieldNew": {
+				Ids:          []int64{},
+				RelationType: Single,
+			},
+		},
+	})
 
-	conn, err := driverPool.Open(driver.ReadWriteMode)
-	if err != nil {
-		require.Nil(t, err)
-	}
-	defer driverPool.Reclaim(conn)
+	req.EqualValues(map[string][]int64{
+		"node1": {2},
+		"node2": {1},
+	}, dels)
 
-	req.Nil(saveDepth(conn, comp2, defaultSaveDepth))
+	//test field empty
+	dels = calculateDels(map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids:          []int64{2},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelField2": {
+				Ids:          []int64{1},
+				RelationType: Single,
+			},
+		},
+	}, map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids:          []int64{},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelField2": {
+				Ids:          []int64{},
+				RelationType: Single,
+			},
+		},
+	})
+
+	req.EqualValues(map[string][]int64{
+		"node1": {2},
+		"node2": {1},
+	}, dels)
+
+	//test nothing changed
+	dels = calculateDels(map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids:          []int64{2},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelField2": {
+				Ids:          []int64{1},
+				RelationType: Single,
+			},
+		},
+	}, map[string]map[string]*RelationConfig{
+		"node1": {
+			"RelField": {
+				Ids:          []int64{2},
+				RelationType: Single,
+			},
+		},
+		"node2": {
+			"RelField2": {
+				Ids:          []int64{1},
+				RelationType: Single,
+			},
+		},
+	})
+
+	req.EqualValues(map[string][]int64{}, dels)
 }

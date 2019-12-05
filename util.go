@@ -1,3 +1,22 @@
+// Copyright (c) 2019 MindStand Technologies, Inc
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 package gogm
 
 import (
@@ -6,10 +25,12 @@ import (
 	"github.com/google/uuid"
 	go_cypherdsl "github.com/mindstand/go-cypherdsl"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
 
+// checks if integer is in slice
 func int64SliceContains(s []int64, e int64) bool {
 	for _, a := range s {
 		if a == e {
@@ -19,6 +40,17 @@ func int64SliceContains(s []int64, e int64) bool {
 	return false
 }
 
+// checks if string is in slice
+func stringSliceContains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+// sets uuid for stuct if uuid field is empty
 func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error) {
 	if val == nil {
 		return false, "", errors.New("value can not be nil")
@@ -39,6 +71,7 @@ func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error)
 	return true, newUuid, nil
 }
 
+// gets the type name from reflect type
 func getTypeName(val reflect.Type) (string, error) {
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -58,6 +91,7 @@ func getTypeName(val reflect.Type) (string, error) {
 	}
 }
 
+// converts struct fields to map that cypher can use
 func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[string]interface{}, error) {
 	var err error
 	defer func() {
@@ -73,7 +107,7 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 	ret := map[string]interface{}{}
 
 	for _, conf := range config.Fields {
-		if conf.Relationship != "" || conf.Name == "id" {
+		if conf.Relationship != "" || conf.Name == "id" || conf.Ignore {
 			continue
 		}
 
@@ -204,6 +238,84 @@ func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string, di
 	} else {
 		return nil, fmt.Errorf("config not found, %w", ErrInternal)
 	}
+}
+
+type validation struct {
+	Incoming []string
+	Outgoing []string
+	None     []string
+	Both     []string
+}
+
+func (r *relationConfigs) Validate() error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	checkMap := map[string]*validation{}
+
+	for title, confMap := range r.configs {
+		parts := strings.Split(title, "-")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid length for parts [%v] should be 2. Rel is [%s], %w", len(parts), title, ErrValidation)
+		}
+
+		//vType := parts[0]
+		relType := parts[1]
+
+		for field, configs := range confMap {
+			for _, config := range configs {
+				if _, ok := checkMap[relType]; !ok {
+					checkMap[relType] = &validation{
+						Incoming: []string{},
+						Outgoing: []string{},
+						None:     []string{},
+						Both:     []string{},
+					}
+				}
+
+				validate := checkMap[relType]
+
+				switch config.Direction {
+				case go_cypherdsl.DirectionIncoming:
+					validate.Incoming = append(validate.Incoming, field)
+					break
+				case go_cypherdsl.DirectionOutgoing:
+					validate.Outgoing = append(validate.Outgoing, field)
+					break
+				case go_cypherdsl.DirectionNone:
+					validate.None = append(validate.None, field)
+					break
+				case go_cypherdsl.DirectionBoth:
+					validate.Both = append(validate.Both, field)
+					break
+				default:
+					return fmt.Errorf("unrecognized direction [%s], %w", config.Direction.ToString(), ErrValidation)
+				}
+			}
+		}
+	}
+
+	for relType, validateConfig := range checkMap {
+		//check normal
+		if len(validateConfig.Outgoing) != len(validateConfig.Incoming) {
+			return fmt.Errorf("invalid directional configuration on relationship [%s], %w", relType, ErrValidation)
+		}
+
+		//check both direction
+		if len(validateConfig.Both) != 0 {
+			if len(validateConfig.Both)%2 != 0 {
+				return fmt.Errorf("invalid length for 'both' validation, %w", ErrValidation)
+			}
+		}
+
+		//check none direction
+		if len(validateConfig.None) != 0 {
+			if len(validateConfig.None)%2 != 0 {
+				return fmt.Errorf("invalid length for 'both' validation, %w", ErrValidation)
+			}
+		}
+	}
+	return nil
 }
 
 //isDifferentType, differentType, error

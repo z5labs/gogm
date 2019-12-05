@@ -17,41 +17,13 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-name: Go
-on: [push]
-jobs:
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.13
-      id: go
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        if [ -f Gopkg.toml ]; then
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-            dep ensure
-        fi
-    - name: Build
-      run: go build -v .
-    - name: Run Unit Tests
-      run: go test ./... -short
-    - name: Start Neo4j Docker
-      run: |
-        docker-compose -f .github/docker-compose.yaml up -d
-    - name: Wait for neo4j to be ready
-      run: |
-        sleep 5
-    - name: Run Integration Test
-      run: go test ./... -run Integration
-    - name: Stop Neo4j Docker
-      run: |
-        docker-compose -f .github/docker-compose.yaml down
-
+version: "3.6"
+services:
+  neo:
+    image: neo4j:enterprise
+    environment:
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+      - NEO4J_AUTH=neo4j/password
+    ports:
+      - "7474:7474"
+      - "7687:7687"

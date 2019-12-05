@@ -1,5 +1,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mindstand/gogm)](https://goreportcard.com/report/github.com/mindstand/gogm)
 [![Actions Status](https://github.com/mindstand/gogm/workflows/Go/badge.svg)](https://github.com/mindstand/gogm/actions)
+[![](https://godoc.org/github.com/nathany/looper?status.svg)](http://godoc.org/github.com/mindstand/gogm)
 # GoGM Golang Object Graph Mapper
 
 ```
@@ -15,6 +16,7 @@ go get -u github.com/mindstand/gogm
 - Support for HA Clusters using `bolt+routing` through [MindStand's fork](https://github.com/mindstand/golang-neo4j-bolt-driver) of [@johnnadratowski's golang bolt driver](https://github.com/johnnadratowski/golang-neo4j-bolt-driver)
 - Custom queries in addition to built in functionality
 - Builder pattern cypher queries using [MindStand's cypher dsl package](https://github.com/mindstand/go-cypherdsl)
+- CLI to generate link and unlink functions for gogm structs.
 
 ## Usage
 
@@ -160,20 +162,42 @@ func main(){
 
 ```
 
+### GoGM CLI
+
+## CLI Installation
+```
+go get -u github.com/mindstand/gogm/cli/gogmcli
+```
+
+## CLI Usage
+```
+NAME:
+   gogmcli - used for neo4j operations from gogm schema
+
+USAGE:
+   gogmcli [global options] command [command options] [arguments...]
+
+VERSION:
+   1.0.0
+
+COMMANDS:
+   generate, g, gen  to generate link and unlink functions for nodes
+   help, h           Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --debug, -d    execute in debug mode (default: false)
+   --help, -h     show help (default: false)
+   --version, -v  print the version (default: false)
+```
+
 ## Inspiration
 Inspiration came from the Java OGM implementation by Neo4j.
 
 ## Road Map
-- More validation (refer to issues #2, #8)
 - Schema Migration
-- Generation CLI for link functions
 - Errors overhaul using go 1.13 error wrapping
 - TLS Support
 - Documentation (obviously)
-- More to come as we find more bugs!
-
-## Credits
-- [adam hannah's arrayOperations](https://github.com/adam-hanna/arrayOperations)
 
 ## How you can help
 - Report Bugs

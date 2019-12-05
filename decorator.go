@@ -1,3 +1,22 @@
+// Copyright (c) 2019 MindStand Technologies, Inc
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 package gogm
 
 import (
@@ -9,44 +28,134 @@ import (
 	"time"
 )
 
+// defined the decorator name for struct tag
 const decoratorName = "gogm"
 
+// reflect type for go time.Time
 var timeType = reflect.TypeOf(time.Time{})
 
 //sub fields of the decorator
 const (
-	paramNameField        = "name"         //requires assignment
-	relationshipNameField = "relationship" //requires assignment
-	directionField        = "direction"    //requires assignment
-	timeField             = "time"
-	indexField            = "index"
-	uniqueField           = "unique"
-	primaryKeyField       = "pk"
-	propertiesField       = "properties"
-	ignoreField           = "-"
-	deliminator           = ";"
-	assignmentOperator    = "="
+	// specifies the name in neo4j
+	//requires assignment (if specified)
+	paramNameField = "name"
+
+	// specifies the name of the relationship
+	//requires assignment (if edge field)
+	relationshipNameField = "relationship"
+
+	//specifies direction, can only be (incoming|outgoing|both|none)
+	//requires assignment (if edge field)
+	directionField = "direction"
+
+	//specifies if the field contains time representation
+	timeField = "time"
+
+	//specifies if the field is to be indexed
+	indexField = "index"
+
+	//specifies if the field is unique
+	uniqueField = "unique"
+
+	//specifies is the field is a primary key
+	primaryKeyField = "pk"
+
+	//specifies if the field is map of type `map[string]interface{}`
+	propertiesField = "properties"
+
+	//specifies if the field is to be ignored
+	ignoreField = "-"
+
+	//specifies deliminator between GoGM tags
+	deliminator = ";"
+
+	//assignment operator for GoGM tags
+	assignmentOperator = "="
 )
 
+//decorator config defines configuration of GoGM field
 type decoratorConfig struct {
-	Type             reflect.Type
-	Name             string
-	FieldName        string
-	Relationship     string
-	Direction        dsl.Direction
-	Unique           bool
-	Index            bool
-	ManyRelationship bool
-	UsesEdgeNode     bool
-	PrimaryKey       bool
-	Properties       bool
-	IsTime           bool
-	IsTypeDef        bool
-	TypedefActual    reflect.Type
-	Ignore           bool
+	// holds reflect type for the field
+	Type reflect.Type `json:"-"`
+	// holds the name of the field for neo4j
+	Name string `json:"name"`
+	// holds the name of the field in the struct
+	FieldName string `json:"field_name"`
+	// holds the name of the relationship
+	Relationship string `json:"relationship"`
+	// holds the direction
+	Direction dsl.Direction `json:"direction"`
+	// specifies if field is to be unique
+	Unique bool `json:"unique"`
+	// specifies if field is to be indexed
+	Index bool `json:"index"`
+	// specifies if field represents many relationship
+	ManyRelationship bool `json:"many_relationship"`
+	// uses edge specifies if the edge is a special node
+	UsesEdgeNode bool `json:"uses_edge_node"`
+	// specifies whether the field is the nodes primary key
+	PrimaryKey bool `json:"primary_key"`
+	// specify if the field holds properties
+	Properties bool `json:"properties"`
+	// specifies if the field contains time value
+	IsTime bool `json:"is_time"`
+	// specifies if the field contains a typedef of another type
+	IsTypeDef bool `json:"is_type_def"`
+	// holds the reflect type of the root type if typedefed
+	TypedefActual reflect.Type `json:"-"`
+	// specifies whether to ignore the field
+	Ignore bool `json:"ignore"`
 }
 
-//have struct validate itself
+// Equals checks equality of decorator configs
+func (d *decoratorConfig) Equals(comp *decoratorConfig) bool {
+	if comp == nil {
+		return false
+	}
+
+	return d.Name == comp.Name && d.FieldName == comp.FieldName && d.Relationship == comp.Relationship &&
+		d.Direction == comp.Direction && d.Unique == comp.Unique && d.Index == comp.Index && d.ManyRelationship == comp.ManyRelationship &&
+		d.UsesEdgeNode == comp.UsesEdgeNode && d.PrimaryKey == comp.PrimaryKey && d.Properties == comp.Properties && d.IsTime == comp.IsTime &&
+		d.IsTypeDef == comp.IsTypeDef && d.Ignore == comp.Ignore
+}
+
+// specifies configuration on GoGM node
+type structDecoratorConfig struct {
+	// Holds fields -> their configurations
+	// field name : decorator configuration
+	Fields map[string]decoratorConfig `json:"fields"`
+	// holds label for the node, maps to struct name
+	Label string `json:"label"`
+	// specifies if the node is a vertex or an edge (if true, its a vertex)
+	IsVertex bool `json:"is_vertex"`
+	// holds the reflect type of the struct
+	Type reflect.Type `json:"-"`
+}
+
+// Equals checks equality of structDecoratorConfigs
+func (s *structDecoratorConfig) Equals(comp *structDecoratorConfig) bool {
+	if comp == nil {
+		return false
+	}
+
+	if comp.Fields != nil && s.Fields != nil {
+		for field, decConfig := range s.Fields {
+			if compConfig, ok := comp.Fields[field]; ok {
+				if !compConfig.Equals(&decConfig) {
+					return false
+				}
+			} else {
+				return false
+			}
+		}
+	} else {
+		return false
+	}
+
+	return s.IsVertex == comp.IsVertex && s.Label == comp.Label
+}
+
+// Validate checks if the configuration is valid
 func (d *decoratorConfig) Validate() error {
 	if d.Ignore {
 		if d.Relationship != "" || d.Unique || d.Index || d.ManyRelationship || d.UsesEdgeNode ||
@@ -166,6 +275,8 @@ func (d *decoratorConfig) Validate() error {
 
 var edgeType = reflect.TypeOf(new(IEdge)).Elem()
 
+// newDecoratorConfig generates decorator config for field
+// takes in the raw tag, name of the field and reflect type
 func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decoratorConfig, error) {
 	fields := strings.Split(decorator, deliminator)
 
@@ -298,15 +409,7 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 	return &toReturn, nil
 }
 
-type structDecoratorConfig struct {
-	// field name : decorator configuration
-	Fields   map[string]decoratorConfig
-	Label    string
-	IsVertex bool
-	Type     reflect.Type
-}
-
-//validates struct configuration
+//validates if struct decorator is valid
 func (s *structDecoratorConfig) Validate() error {
 	if s.Fields == nil {
 		return errors.New("no fields defined")
@@ -342,6 +445,7 @@ func (s *structDecoratorConfig) Validate() error {
 	return nil
 }
 
+// getStructDecoratorConfig generates structDecoratorConfig for struct
 func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (*structDecoratorConfig, error) {
 	toReturn := &structDecoratorConfig{}
 
@@ -463,6 +567,7 @@ func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (
 	return toReturn, nil
 }
 
+// getFields gets all fields in a struct, specifically also gets fields from embedded structs
 func getFields(val reflect.Type) []*reflect.StructField {
 	var fields []*reflect.StructField
 	if val.Kind() == reflect.Ptr {
@@ -471,7 +576,7 @@ func getFields(val reflect.Type) []*reflect.StructField {
 
 	for i := 0; i < val.NumField(); i++ {
 		tempField := val.Field(i)
-		if tempField.Anonymous && tempField.Type.Kind() == reflect.Struct{
+		if tempField.Anonymous && tempField.Type.Kind() == reflect.Struct {
 			fields = append(fields, getFields(tempField.Type)...)
 		} else {
 			fields = append(fields, &tempField)
