@@ -21,6 +21,7 @@ type relConf struct {
 	Direction        go_cypherdsl.Direction
 }
 
+// parses each file using ast
 func parseFile(filePath string, confs *map[string][]*relConf, edges *[]string, imports map[string][]string, packageName *string) error {
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
@@ -58,6 +59,7 @@ func parseFile(filePath string, confs *map[string][]*relConf, edges *[]string, i
 					return err
 				}
 
+				// if its not an edge, parse it as a gogm struct
 				if !isEdge {
 					(*confs)[label] = []*relConf{}
 					err = parseGogmNode(strType, confs, label, fset)
@@ -144,11 +146,7 @@ func parseGogmEdge(node *ast.File, label string) (bool, error) {
 		}
 	}
 	//check if its an edge node
-	if !GetStartNode || !GetStartNodeType || !SetStartNode || !GetEndNode || !GetEndNodeType || !SetEndNode {
-		return false, nil
-	}
-
-	return true, nil
+	return !GetStartNode || !GetStartNodeType || !SetStartNode || !GetEndNode || !GetEndNodeType || !SetEndNode, nil
 }
 
 func parseGogmNode(strType *ast.StructType, confs *map[string][]*relConf, label string, fset *token.FileSet) error {

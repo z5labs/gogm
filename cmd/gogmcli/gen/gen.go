@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -19,7 +20,7 @@ func Generate(directory string, debug bool) error {
 	var edges []string
 	packageName := ""
 
-	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(directory, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -28,29 +29,29 @@ func Generate(directory string, debug bool) error {
 			return errors.New("file info is nil")
 		}
 
-		if info.IsDir() && path != directory {
+		if info.IsDir() && filePath != directory {
 			if debug {
-				log.Printf("skipping [%s] as it is a directory\n", path)
+				log.Printf("skipping [%s] as it is a directory\n", filePath)
 			}
 			return filepath.SkipDir
 		}
 
-		if strings.Contains(path, ".go") {
+		if path.Ext(filePath) == ".go" {
 			if debug {
-				log.Printf("parsing go file [%s]\n", path)
+				log.Printf("parsing go file [%s]\n", filePath)
 			}
-			err := parseFile(path, &confs, &edges, imps, &packageName)
+			err := parseFile(filePath, &confs, &edges, imps, &packageName)
 			if err != nil {
 				if debug {
-					log.Printf("failed to parse go file [%s] with error '%s'\n", path, err.Error())
+					log.Printf("failed to parse go file [%s] with error '%s'\n", filePath, err.Error())
 				}
 				return err
 			}
 			if debug {
-				log.Printf("successfully parsed go file [%s]\n", path)
+				log.Printf("successfully parsed go file [%s]\n", filePath)
 			}
 		} else if debug {
-			log.Printf("skipping non go file [%s]\n", path)
+			log.Printf("skipping non go file [%s]\n", filePath)
 		}
 
 		return nil
@@ -65,7 +66,7 @@ func Generate(directory string, debug bool) error {
 		imports = append(imports, imp...)
 	}
 
-	imports = util.SliceUniqMap(imports)
+	imports = util.RemoveDuplicates(imports)
 
 	for i := 0; i < len(imports); i++ {
 		imports[i] = strings.Replace(imports[i], "\"", "", -1)
@@ -116,65 +117,9 @@ func Generate(directory string, debug bool) error {
 				isSpecialEdge = true
 			}
 
-		searchLoop:
-			for _, lookup := range rels {
-				//check special edge
-				if rel.Type != lookup.NodeName && !isSpecialEdge {
-					continue
-				}
-
-				switch rel.Direction {
-				case dsl.DirectionOutgoing:
-					if lookup.Direction == dsl.DirectionIncoming {
-						tplRel.OtherStructField = lookup.Field
-						tplRel.OtherStructFieldIsMany = lookup.IsMany
-						if isSpecialEdge {
-							tplRel.OtherStructName = lookup.NodeName
-						}
-						break searchLoop
-					} else {
-						continue
-					}
-
-				case dsl.DirectionIncoming:
-					if lookup.Direction == dsl.DirectionOutgoing {
-						tplRel.OtherStructField = lookup.Field
-						tplRel.OtherStructFieldIsMany = lookup.IsMany
-						if isSpecialEdge {
-							tplRel.OtherStructName = lookup.NodeName
-						}
-						break searchLoop
-					} else {
-						continue
-					}
-
-				case dsl.DirectionNone:
-					if lookup.Direction == dsl.DirectionNone {
-						tplRel.OtherStructField = lookup.Field
-						tplRel.OtherStructFieldIsMany = lookup.IsMany
-						if isSpecialEdge {
-							tplRel.OtherStructName = lookup.NodeName
-						}
-						break searchLoop
-					} else {
-						continue
-					}
-
-				case dsl.DirectionBoth:
-					if lookup.Direction == dsl.DirectionBoth {
-						tplRel.OtherStructField = lookup.Field
-						tplRel.OtherStructFieldIsMany = lookup.IsMany
-						if isSpecialEdge {
-							tplRel.OtherStructName = lookup.NodeName
-						}
-						break searchLoop
-					} else {
-						continue
-					}
-
-				default:
-					return fmt.Errorf("invalid direction [%v]", rel.Direction)
-				}
+			err = parseDirection(rel, rels, tplRel, isSpecialEdge)
+			if err != nil {
+				return err
 			}
 
 			if tplRel.OtherStructField == "" {
@@ -219,7 +164,7 @@ func Generate(directory string, debug bool) error {
 		return err
 	}
 
-	f, err := os.Create(fmt.Sprintf("%s/linking.go", directory))
+	f, err := os.Create(path.Join(directory, "linking.go"))
 	if err != nil {
 		return err
 	}
@@ -239,6 +184,70 @@ func Generate(directory string, debug bool) error {
 	}
 
 	log.Printf("wrote link functions to file [%s/linking.go]", directory)
+
+	return nil
+}
+
+func parseDirection(rel *relConf, rels []*relConf, tplRel *tplRelConf, isSpecialEdge bool) error {
+	for _, lookup := range rels {
+		//check special edge
+		if rel.Type != lookup.NodeName && !isSpecialEdge {
+			continue
+		}
+
+		switch rel.Direction {
+		case dsl.DirectionOutgoing:
+			if lookup.Direction == dsl.DirectionIncoming {
+				tplRel.OtherStructField = lookup.Field
+				tplRel.OtherStructFieldIsMany = lookup.IsMany
+				if isSpecialEdge {
+					tplRel.OtherStructName = lookup.NodeName
+				}
+				return nil
+			} else {
+				continue
+			}
+
+		case dsl.DirectionIncoming:
+			if lookup.Direction == dsl.DirectionOutgoing {
+				tplRel.OtherStructField = lookup.Field
+				tplRel.OtherStructFieldIsMany = lookup.IsMany
+				if isSpecialEdge {
+					tplRel.OtherStructName = lookup.NodeName
+				}
+				return nil
+			} else {
+				continue
+			}
+
+		case dsl.DirectionNone:
+			if lookup.Direction == dsl.DirectionNone {
+				tplRel.OtherStructField = lookup.Field
+				tplRel.OtherStructFieldIsMany = lookup.IsMany
+				if isSpecialEdge {
+					tplRel.OtherStructName = lookup.NodeName
+				}
+				return nil
+			} else {
+				continue
+			}
+
+		case dsl.DirectionBoth:
+			if lookup.Direction == dsl.DirectionBoth {
+				tplRel.OtherStructField = lookup.Field
+				tplRel.OtherStructFieldIsMany = lookup.IsMany
+				if isSpecialEdge {
+					tplRel.OtherStructName = lookup.NodeName
+				}
+				return nil
+			} else {
+				continue
+			}
+
+		default:
+			return fmt.Errorf("invalid direction [%v]", rel.Direction)
+		}
+	}
 
 	return nil
 }

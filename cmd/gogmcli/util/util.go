@@ -1,6 +1,6 @@
 package util
 
-func SliceUniqMap(s []string) []string {
+func RemoveDuplicates(s []string) []string {
 	if s == nil {
 		return []string{}
 	}
