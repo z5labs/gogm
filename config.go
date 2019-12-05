@@ -1,3 +1,22 @@
+// Copyright (c) 2019 MindStand Technologies, Inc
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 package gogm
 
 import (
@@ -24,6 +43,7 @@ func getLogger() *logrus.Entry {
 	return externalLog
 }
 
+// SetLogger sets logrus logger
 func SetLogger(logger *logrus.Entry) error {
 	if logger == nil {
 		return errors.New("logger can not be nil")
@@ -32,20 +52,29 @@ func SetLogger(logger *logrus.Entry) error {
 	return nil
 }
 
+// Config Defined GoGM config
 type Config struct {
+	// Host is the neo4j host
 	Host string `yaml:"host" json:"host"`
+	// Port is the neo4j port
 	Port int    `yaml:"port" json:"port"`
 
+	// IsCluster specifies whether GoGM is connecting to a casual cluster or not
 	IsCluster bool `yaml:"is_cluster" json:"is_cluster"`
 
+	// Username is the GoGM username
 	Username string `yaml:"username" json:"username"`
+	// Password is the GoGM password
 	Password string `yaml:"password" json:"password"`
 
+	// PoolSize is the size of the connection pool for GoGM
 	PoolSize int `yaml:"pool_size" json:"pool_size"`
 
+	// Index Strategy defines the index strategy for GoGM
 	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy"`
 }
 
+// ConnectionString builds the neo4j bolt/bolt+routing connection string
 func (c *Config) ConnectionString() string {
 	var protocol string
 
@@ -58,15 +87,19 @@ func (c *Config) ConnectionString() string {
 	return fmt.Sprintf("%s://%s:%s@%s:%v", protocol, c.Username, c.Password, c.Host, c.Port)
 }
 
+// Index Strategy typedefs int to define different index approaches
 type IndexStrategy int
 
 const (
+	// Assert Index ensures that all indices are set and sets them if they are not there
 	ASSERT_INDEX   IndexStrategy = 0
+	// Validate Index ensures that all indices are set
 	VALIDATE_INDEX IndexStrategy = 1
+	// Ignore Index skips the index step of setup
 	IGNORE_INDEX   IndexStrategy = 2
 )
 
-//convert these into concurrent hashmap
+//holds mapped types
 var mappedTypes = &hashmap.HashMap{}
 
 //thread pool
@@ -81,16 +114,20 @@ func makeRelMapKey(start, edge, direction, rel string) string {
 
 var isSetup = false
 
+// Init sets up gogm. Takes in config object and variadic slice of gogm nodes to map.
+// Note: Must pass pointers to nodes!
 func Init(conf *Config, mapTypes ...interface{}) error {
 	return setupInit(false, conf, mapTypes...)
 }
 
+// Resets GoGM configuration
 func Reset() {
 	mappedTypes = &hashmap.HashMap{}
 	mappedRelations = &relationConfigs{}
 	isSetup = false
 }
 
+// internal setup logic for gogm
 func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 	if isSetup && !isTest {
 		return errors.New("gogm has already been initialized")

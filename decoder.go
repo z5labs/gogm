@@ -1,3 +1,22 @@
+// Copyright (c) 2019 MindStand Technologies, Inc
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 package gogm
 
 import (
@@ -11,6 +30,7 @@ import (
 	"time"
 )
 
+// decodes neo4j rows and writes the response to generic interface
 func decodeNeoRows(rows neo.Rows, respObj interface{}) error {
 	defer rows.Close()
 
@@ -22,8 +42,8 @@ func decodeNeoRows(rows neo.Rows, respObj interface{}) error {
 	return decode(arr, respObj)
 }
 
-//example query `match p=(n)-[*0..5]-() return p`
 //decodes raw path response from driver
+//example query `match p=(n)-[*0..5]-() return p`
 func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 	//check nil params
 	if rawArr == nil {
@@ -321,6 +341,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 	}
 }
 
+// getPrimaryLabel gets the label from a reflect type
 func getPrimaryLabel(rt reflect.Type) string {
 	//assume its already a pointer
 	rt = rt.Elem()
@@ -335,6 +356,7 @@ func getPrimaryLabel(rt reflect.Type) string {
 	return rt.Name()
 }
 
+// sortIsolatedNodes process nodes that are returned individually from bolt driver
 func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]string, nodeLookup *map[int64]*reflect.Value, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
 	if isolatedNodes == nil {
 		return fmt.Errorf("isolatedNodes can not be nil, %w", ErrInternal)
@@ -371,6 +393,7 @@ func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]strin
 	return nil
 }
 
+// sortStrictRels sorts relationships that are strictly defined (i.e direction is pre defined) from the bolt driver
 func sortStrictRels(strictRels []*graph.Relationship, labelLookup *map[int64]string, rels *map[int64]*neoEdgeConfig) error {
 	if strictRels == nil {
 		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
@@ -407,6 +430,7 @@ func sortStrictRels(strictRels []*graph.Relationship, labelLookup *map[int64]str
 	return nil
 }
 
+// sortPaths sorts nodes and relationships from bolt driver that dont specify the direction explicitly, instead uses the bolt spec to determine direction
 func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
 	if paths == nil {
 		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
@@ -489,6 +513,7 @@ func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *
 	return nil
 }
 
+// getValueAndConfig returns reflect value of specific node and the configuration for the node
 func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) (val *reflect.Value, conf structDecoratorConfig, err error) {
 	var ok bool
 
@@ -513,6 +538,7 @@ func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) 
 var sliceOfEmptyInterface []interface{}
 var emptyInterfaceType = reflect.TypeOf(sliceOfEmptyInterface).Elem()
 
+// convertToValue converts properties map from neo4j to golang reflect value
 func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]interface{}, rtype reflect.Type) (valss *reflect.Value, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -625,6 +651,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 	return &val, err
 }
 
+// convertNodeToValue converts raw bolt node to reflect value
 func convertNodeToValue(boltNode graph.Node) (*reflect.Value, error) {
 
 	if boltNode.Labels == nil || len(boltNode.Labels) == 0 {

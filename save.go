@@ -1,3 +1,22 @@
+// Copyright (c) 2019 MindStand Technologies, Inc
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 package gogm
 
 import (
@@ -9,23 +28,33 @@ import (
 	"sync"
 )
 
+// maximum supported depth
 const maxSaveDepth = 10
 const defaultSaveDepth = 1
 
+// nodeCreateConf holds configuration for creating new nodes
 type nodeCreateConf struct {
+	// params to save
 	Params map[string]interface{}
+	// type to save by
 	Type   reflect.Type
+	// whether the node is new or not
 	IsNew  bool
 }
 
+// relCreateConf holds configuration for nodes to link together
 type relCreateConf struct {
+	// start uuid of relationship
 	StartNodeUUID string
+	// end uuid of relationship
 	EndNodeUUID   string
+	// any data to store in edge
 	Params        map[string]interface{}
+	// holds direction of the edge
 	Direction     dsl.Direction
 }
 
-//todo optimize
+// saves target node and connected node to specified depth
 func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 	if sess == nil {
 		return errors.New("session can not be nil")
@@ -150,6 +179,7 @@ func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 	}
 }
 
+// calculates which relationships to delete
 func calculateDels(oldRels, curRels map[string]map[string]*RelationConfig) map[string][]int64 {
 	if len(oldRels) == 0 {
 		return map[string][]int64{}
@@ -197,6 +227,7 @@ func calculateDels(oldRels, curRels map[string]map[string]*RelationConfig) map[s
 	return dels
 }
 
+// removes relationships between specified nodes
 func removeRelations(conn *driver.BoltConn, dels map[string][]int64) error {
 	if dels == nil || len(dels) == 0 {
 		return nil
@@ -253,6 +284,7 @@ func removeRelations(conn *driver.BoltConn, dels map[string][]int64) error {
 	}
 }
 
+// creates nodes
 func createNodes(conn *driver.BoltConn, crNodes map[string]map[string]nodeCreateConf, nodeRef *map[string]*reflect.Value) (map[string]int64, error) {
 	idMap := map[string]int64{}
 
@@ -347,6 +379,7 @@ func createNodes(conn *driver.BoltConn, crNodes map[string]map[string]nodeCreate
 	return idMap, nil
 }
 
+// relateNodes connects nodes together using edge config
 func relateNodes(conn *driver.BoltConn, relations map[string][]relCreateConf, ids map[string]int64) error {
 	if relations == nil || len(relations) == 0 {
 		return errors.New("relations can not be nil or empty")
@@ -447,6 +480,7 @@ func relateNodes(conn *driver.BoltConn, relations map[string][]relCreateConf, id
 	return nil
 }
 
+// validates data used by parse struct
 func parseValidate(currentDepth, maxDepth int, current *reflect.Value, nodesPtr *map[string]map[string]nodeCreateConf, relationsPtr *map[string][]relCreateConf) error {
 	if currentDepth > maxDepth {
 		return nil
@@ -463,6 +497,7 @@ func parseValidate(currentDepth, maxDepth int, current *reflect.Value, nodesPtr 
 	return nil
 }
 
+// generates load map for updated structs
 func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxDepth int, curRels *map[string]map[string]*RelationConfig) error {
 	if currentDepth > maxDepth {
 		return nil
@@ -477,8 +512,6 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 		//this node has already been seen
 		return nil
 	}
-
-	//id := reflect.Indirect(*current).FieldByName("UUID").Interface().(int64)
 
 	//get the type
 	tString, err := getTypeName(current.Type())
@@ -585,6 +618,7 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 	return nil
 }
 
+// parses tree of structs
 func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, current *reflect.Value,
 	currentDepth, maxDepth int, nodesPtr *map[string]map[string]nodeCreateConf, relationsPtr *map[string][]relCreateConf, oldRels *map[string]map[string]*RelationConfig,
 	newNodes *[]*string, nodeRef *map[string]*reflect.Value) error {
@@ -756,6 +790,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 	return nil
 }
 
+// processStruct generates configuration for individual struct for saving
 func processStruct(fieldConf decoratorConfig, relVal *reflect.Value, id, oldParentId string) (parentId, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, followVal *reflect.Value, followId int64, skip bool, err error) {
 	edgeLabel = fieldConf.Relationship
 

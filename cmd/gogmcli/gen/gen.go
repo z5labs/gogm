@@ -1,3 +1,23 @@
+// Copyright (c) 2019 MindStand Technologies, Inc
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// gen provides code to generate link and unlink functions for gogm structs
 package gen
 
 import (
@@ -14,6 +34,9 @@ import (
 	"strings"
 )
 
+// Generate searches for all go source files, then generates link and unlink functions for all gogm structs
+// takes in root directory and whether to log in debug mode
+// note: Generate is not recursive, it only looks in the target directory
 func Generate(directory string, debug bool) error {
 	confs := map[string][]*relConf{}
 	imps := map[string][]string{}
@@ -188,6 +211,7 @@ func Generate(directory string, debug bool) error {
 	return nil
 }
 
+// parseDirection parses gogm struct tags and writes to a holder struct
 func parseDirection(rel *relConf, rels []*relConf, tplRel *tplRelConf, isSpecialEdge bool) error {
 	for _, lookup := range rels {
 		//check special edge
