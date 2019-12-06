@@ -41,7 +41,7 @@ type relConf struct {
 }
 
 // parses each file using ast looking for nodes to handle
-func parseFile(filePath string, confs *map[string][]*relConf, edges *[]string, imports map[string][]string, packageName *string) error {
+func parseFile(filePath string, confs *map[string][]*relConf, edges *[]string, imports map[string][]string, packageName *string, debug bool) error {
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
 	if err != nil {
@@ -52,6 +52,7 @@ func parseFile(filePath string, confs *map[string][]*relConf, edges *[]string, i
 		*packageName = node.Name.Name
 		if node.Scope.Objects != nil && len(node.Scope.Objects) != 0 {
 			for label, config := range node.Scope.Objects {
+				log.Println("checking ", label)
 				tSpec, ok := config.Decl.(*ast.TypeSpec)
 				if !ok {
 					continue
@@ -76,6 +77,10 @@ func parseFile(filePath string, confs *map[string][]*relConf, edges *[]string, i
 				isEdge, err := parseGogmEdge(node, label)
 				if err != nil {
 					return err
+				}
+
+				if debug {
+					log.Printf("node [%s] is edge [%v]", label, isEdge)
 				}
 
 				// if its not an edge, parse it as a gogm struct
@@ -166,7 +171,7 @@ func parseGogmEdge(node *ast.File, label string) (bool, error) {
 		}
 	}
 	//check if its an edge node
-	return !GetStartNode || !GetStartNodeType || !SetStartNode || !GetEndNode || !GetEndNodeType || !SetEndNode, nil
+	return GetStartNode && GetStartNodeType && SetStartNode && GetEndNode && GetEndNodeType && SetEndNode, nil
 }
 
 // parseGogmNode generates configuration for GoGM struct

@@ -26,6 +26,7 @@ import (
 	"fmt"
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/mindstand/gogm/cmd/gogmcli/util"
+	"go/format"
 	"html/template"
 	"log"
 	"os"
@@ -63,7 +64,7 @@ func Generate(directory string, debug bool) error {
 			if debug {
 				log.Printf("parsing go file [%s]\n", filePath)
 			}
-			err := parseFile(filePath, &confs, &edges, imps, &packageName)
+			err := parseFile(filePath, &confs, &edges, imps, &packageName, debug)
 			if err != nil {
 				if debug {
 					log.Printf("failed to parse go file [%s] with error '%s'\n", filePath, err.Error())
@@ -83,6 +84,10 @@ func Generate(directory string, debug bool) error {
 		return err
 	}
 
+	if debug {
+		log.Printf("found [%v] confs and [%v] rels", len(confs), len(edges))
+	}
+
 	var imports []string
 
 	for _, imp := range imps {
@@ -97,11 +102,22 @@ func Generate(directory string, debug bool) error {
 
 	relations := make(map[string][]*relConf)
 
+	if debug {
+		log.Println("sorting relationships")
+	}
+
 	// sort out relationships
-	for _, fields := range confs {
+	for node, fields := range confs {
+		if debug {
+			log.Printf("sorting relationships for node [%s] with [%v] fields", node, len(fields))
+		}
 		for _, field := range fields {
 			if field == nil {
 				return errors.New("field can not be nil")
+			}
+
+			if debug {
+				log.Printf("adding relationship [%s] from field [%s]", field.RelationshipName, field.Field)
 			}
 
 			if _, ok := relations[field.RelationshipName]; ok {
@@ -110,6 +126,10 @@ func Generate(directory string, debug bool) error {
 				relations[field.RelationshipName] = []*relConf{field}
 			}
 		}
+	}
+
+	if debug {
+		log.Printf("there are [%v] relations\n", len(relations))
 	}
 
 	// validate relationships (i.e even number)
@@ -140,13 +160,17 @@ func Generate(directory string, debug bool) error {
 				isSpecialEdge = true
 			}
 
-			err = parseDirection(rel, rels, tplRel, isSpecialEdge)
+			err = parseDirection(rel, &rels, tplRel, isSpecialEdge)
 			if err != nil {
 				return err
 			}
 
 			if tplRel.OtherStructField == "" {
 				return fmt.Errorf("oposite side not found for node [%s]", rel.NodeName)
+			}
+
+			if debug {
+				log.Printf("adding function to node [%s]", rel.NodeName)
 			}
 
 			if _, ok := funcs[rel.NodeName]; ok {
@@ -187,12 +211,20 @@ func Generate(directory string, debug bool) error {
 		return err
 	}
 
+	// format generated code
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	// create the file
 	f, err := os.Create(path.Join(directory, "linking.go"))
 	if err != nil {
 		return err
 	}
 
-	lenBytes, err := f.Write(buf.Bytes())
+	// write code to the file
+	lenBytes, err := f.Write(formatted)
 	if err != nil {
 		return err
 	}
@@ -201,6 +233,7 @@ func Generate(directory string, debug bool) error {
 		log.Printf("done after writing [%v] bytes!", lenBytes)
 	}
 
+	// close the buffer
 	err = f.Close()
 	if err != nil {
 		return err
@@ -212,8 +245,8 @@ func Generate(directory string, debug bool) error {
 }
 
 // parseDirection parses gogm struct tags and writes to a holder struct
-func parseDirection(rel *relConf, rels []*relConf, tplRel *tplRelConf, isSpecialEdge bool) error {
-	for _, lookup := range rels {
+func parseDirection(rel *relConf, rels *[]*relConf, tplRel *tplRelConf, isSpecialEdge bool) error {
+	for _, lookup := range *rels {
 		//check special edge
 		if rel.Type != lookup.NodeName && !isSpecialEdge {
 			continue
