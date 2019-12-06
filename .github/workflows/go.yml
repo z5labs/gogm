@@ -44,9 +44,10 @@ jobs:
         export ROOTDIR=`pwd`
         rm testing_/linking.go
         cd cmd/gogmcli
-        go install .
+        go build .
+        mv gogmcli $ROOTDIR/testing_/gogmcli
         cd $ROOTDIR/testing_
-        gogmcli gen .
+        ./gogmcli gen .
         cd $ROOTDIR
     - name: Build
       run: go build -v .
