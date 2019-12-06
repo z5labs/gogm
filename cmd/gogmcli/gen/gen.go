@@ -160,13 +160,13 @@ func Generate(directory string, debug bool) error {
 				isSpecialEdge = true
 			}
 
-			err = parseDirection(rel, &rels, tplRel, isSpecialEdge)
+			err = parseDirection(rel, &rels, tplRel, isSpecialEdge, debug)
 			if err != nil {
 				return err
 			}
 
 			if tplRel.OtherStructField == "" {
-				return fmt.Errorf("oposite side not found for node [%s]", rel.NodeName)
+				return fmt.Errorf("oposite side not found for node [%s] on relationship [%s] and field [%s]", rel.NodeName, rel.RelationshipName, rel.Field)
 			}
 
 			if debug {
@@ -245,11 +245,23 @@ func Generate(directory string, debug bool) error {
 }
 
 // parseDirection parses gogm struct tags and writes to a holder struct
-func parseDirection(rel *relConf, rels *[]*relConf, tplRel *tplRelConf, isSpecialEdge bool) error {
+func parseDirection(rel *relConf, rels *[]*relConf, tplRel *tplRelConf, isSpecialEdge, debug bool) error {
 	for _, lookup := range *rels {
-		//check special edge
-		if rel.Type != lookup.NodeName && !isSpecialEdge {
-			continue
+		// validate that these edges can point to each other
+		if isSpecialEdge {
+			if rel.Type != lookup.Type || lookup.RelationshipName != rel.RelationshipName {
+				continue
+			}
+		} else {
+			if rel.Type != lookup.NodeName || lookup.Type != rel.NodeName || lookup.RelationshipName != rel.RelationshipName {
+				continue
+			}
+		}
+
+		if debug {
+			log.Printf("[%s]->[%s]", rel.Type, lookup.NodeName)
+			log.Printf("[%s]<-[%s]", lookup.Type, rel.NodeName)
+			log.Printf("[%s] and [%s]", lookup.RelationshipName, rel.RelationshipName)
 		}
 
 		switch rel.Direction {
