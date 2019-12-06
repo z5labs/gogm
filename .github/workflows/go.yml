@@ -39,6 +39,16 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
+    - name: Setup gogmcli test
+      run: |
+        export ROOTDIR=`pwd`
+        rm testing_/linking.go
+        cd cmd/gogmcli
+        go build .
+        mv gogmcli $ROOTDIR/testing_/gogmcli
+        cd $ROOTDIR/testing_
+        ./gogmcli gen .
+        cd $ROOTDIR
     - name: Build
       run: go build -v .
     - name: Run Unit Tests

@@ -5,6 +5,70 @@ import (
 	"errors"
 )
 
+// LinkToExampleObject2OnFieldSpecial links ExampleObject to ExampleObject2 on the fields ExampleObject.Special and ExampleObject2.Special.
+// note this uses the special edge SpecialEdge
+func (l *ExampleObject) LinkToExampleObject2OnFieldSpecial(target *ExampleObject2, edge *SpecialEdge) error {
+	if target == nil {
+		return errors.New("start and end can not be nil")
+	}
+
+	if edge == nil {
+		return errors.New("edge can not be nil")
+	}
+
+	err := edge.SetStartNode(l)
+	if err != nil {
+		return err
+	}
+
+	err = edge.SetEndNode(target)
+	if err != nil {
+		return err
+	}
+
+	l.Special = edge
+
+	if target.Special == nil {
+		target.Special = make([]*SpecialEdge, 1, 1)
+		target.Special[0] = edge
+	} else {
+		target.Special = append(target.Special, edge)
+	}
+
+	return nil
+}
+
+// UnlinkFromExampleObject2OnFieldSpecial unlinks ExampleObject from ExampleObject2 on the fields ExampleObject.Special and ExampleObject2.Special.
+// also note this uses the special edge SpecialEdge
+func (l *ExampleObject) UnlinkFromExampleObject2OnFieldSpecial(target *ExampleObject2) error {
+	if target == nil {
+		return errors.New("start and end can not be nil")
+	}
+
+	l.Special = nil
+
+	if target.Special != nil {
+		for i, unlinkTarget := range target.Special {
+
+			obj := unlinkTarget.GetStartNode()
+
+			checkObj, ok := obj.(*ExampleObject)
+			if !ok {
+				return errors.New("unable to cast unlinkTarget to [ExampleObject]")
+			}
+			if checkObj.UUID == l.UUID {
+				a := &target.Special
+				(*a)[i] = (*a)[len(*a)-1]
+				(*a)[len(*a)-1] = nil
+				*a = (*a)[:len(*a)-1]
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // LinkToExampleObjectOnFieldChildren links ExampleObject to ExampleObject on the fields ExampleObject.Children and ExampleObject.Parents
 func (l *ExampleObject) LinkToExampleObjectOnFieldChildren(targets ...*ExampleObject) error {
 	if targets == nil {
@@ -93,9 +157,9 @@ func (l *ExampleObject) UnlinkFromExampleObjectOnFieldParents(target *ExampleObj
 	return nil
 }
 
-// LinkToExampleObject2OnFieldSpecial links ExampleObject to ExampleObject2 on the fields ExampleObject.Special and ExampleObject2.Special.
+// LinkToExampleObjectOnFieldSpecial links ExampleObject2 to ExampleObject on the fields ExampleObject2.Special and ExampleObject.Special.
 // note this uses the special edge SpecialEdge
-func (l *ExampleObject) LinkToExampleObject2OnFieldSpecial(target *ExampleObject2, edge *SpecialEdge) error {
+func (l *ExampleObject2) LinkToExampleObjectOnFieldSpecial(target *ExampleObject, edge *SpecialEdge) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
@@ -104,48 +168,46 @@ func (l *ExampleObject) LinkToExampleObject2OnFieldSpecial(target *ExampleObject
 		return errors.New("edge can not be nil")
 	}
 
-	err := edge.SetStartNode(l)
+	err := edge.SetStartNode(target)
 	if err != nil {
 		return err
 	}
 
-	err = edge.SetEndNode(target)
+	err = edge.SetEndNode(l)
 	if err != nil {
 		return err
 	}
 
-	l.Special = edge
-
-	if target.Special == nil {
-		target.Special = make([]*SpecialEdge, 1, 1)
-		target.Special[0] = edge
+	if l.Special == nil {
+		l.Special = make([]*SpecialEdge, 1, 1)
+		l.Special[0] = edge
 	} else {
-		target.Special = append(target.Special, edge)
+		l.Special = append(l.Special, edge)
 	}
+
+	target.Special = edge
 
 	return nil
 }
 
-// UnlinkFromExampleObject2OnFieldSpecial unlinks ExampleObject from ExampleObject2 on the fields ExampleObject.Special and ExampleObject2.Special.
+// UnlinkFromExampleObjectOnFieldSpecial unlinks ExampleObject2 from ExampleObject on the fields ExampleObject2.Special and ExampleObject.Special.
 // also note this uses the special edge SpecialEdge
-func (l *ExampleObject) UnlinkFromExampleObject2OnFieldSpecial(target *ExampleObject2) error {
+func (l *ExampleObject2) UnlinkFromExampleObjectOnFieldSpecial(target *ExampleObject) error {
 	if target == nil {
 		return errors.New("start and end can not be nil")
 	}
 
-	l.Special = nil
+	if l.Special != nil {
+		for i, unlinkTarget := range l.Special {
 
-	if target.Special != nil {
-		for i, unlinkTarget := range target.Special {
-
-			obj := unlinkTarget.GetStartNode()
+			obj := unlinkTarget.GetEndNode()
 
 			checkObj, ok := obj.(*ExampleObject)
 			if !ok {
 				return errors.New("unable to cast unlinkTarget to [ExampleObject]")
 			}
-			if checkObj.UUID == l.UUID {
-				a := &target.Special
+			if checkObj.UUID == target.UUID {
+				a := &l.Special
 				(*a)[i] = (*a)[len(*a)-1]
 				(*a)[len(*a)-1] = nil
 				*a = (*a)[:len(*a)-1]
@@ -153,6 +215,8 @@ func (l *ExampleObject) UnlinkFromExampleObject2OnFieldSpecial(target *ExampleOb
 			}
 		}
 	}
+
+	target.Special = nil
 
 	return nil
 }
@@ -241,70 +305,6 @@ func (l *ExampleObject2) UnlinkFromExampleObject2OnFieldParents2(target *Example
 			}
 		}
 	}
-
-	return nil
-}
-
-// LinkToExampleObjectOnFieldSpecial links ExampleObject2 to ExampleObject on the fields ExampleObject2.Special and ExampleObject.Special.
-// note this uses the special edge SpecialEdge
-func (l *ExampleObject2) LinkToExampleObjectOnFieldSpecial(target *ExampleObject, edge *SpecialEdge) error {
-	if target == nil {
-		return errors.New("start and end can not be nil")
-	}
-
-	if edge == nil {
-		return errors.New("edge can not be nil")
-	}
-
-	err := edge.SetStartNode(target)
-	if err != nil {
-		return err
-	}
-
-	err = edge.SetEndNode(l)
-	if err != nil {
-		return err
-	}
-
-	if l.Special == nil {
-		l.Special = make([]*SpecialEdge, 1, 1)
-		l.Special[0] = edge
-	} else {
-		l.Special = append(l.Special, edge)
-	}
-
-	target.Special = edge
-
-	return nil
-}
-
-// UnlinkFromExampleObjectOnFieldSpecial unlinks ExampleObject2 from ExampleObject on the fields ExampleObject2.Special and ExampleObject.Special.
-// also note this uses the special edge SpecialEdge
-func (l *ExampleObject2) UnlinkFromExampleObjectOnFieldSpecial(target *ExampleObject) error {
-	if target == nil {
-		return errors.New("start and end can not be nil")
-	}
-
-	if l.Special != nil {
-		for i, unlinkTarget := range l.Special {
-
-			obj := unlinkTarget.GetEndNode()
-
-			checkObj, ok := obj.(*ExampleObject)
-			if !ok {
-				return errors.New("unable to cast unlinkTarget to [ExampleObject]")
-			}
-			if checkObj.UUID == target.UUID {
-				a := &l.Special
-				(*a)[i] = (*a)[len(*a)-1]
-				(*a)[len(*a)-1] = nil
-				*a = (*a)[:len(*a)-1]
-				break
-			}
-		}
-	}
-
-	target.Special = nil
 
 	return nil
 }

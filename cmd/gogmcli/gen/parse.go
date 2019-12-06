@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"errors"
 	go_cypherdsl "github.com/mindstand/go-cypherdsl"
+	"github.com/mindstand/gogm/cmd/gogmcli/util"
 	"go/ast"
 	"go/parser"
 	"go/printer"
@@ -185,7 +186,7 @@ func parseGogmNode(strType *ast.StructType, confs *map[string][]*relConf, label 
 					if !strings.Contains(part, "gogm") {
 						continue
 					}
-					part = strings.Replace(strings.Replace(part, "`gogm:", "", -1), "\"", "", -1)
+					part = util.RemoveFromString(part, "gogm:", "\"", "`")
 					if strings.Contains(part, "relationship") && strings.Contains(part, "direction") {
 						gogmParts := strings.Split(part, ";")
 
@@ -193,7 +194,7 @@ func parseGogmNode(strType *ast.StructType, confs *map[string][]*relConf, label 
 						var relName string
 						for _, p := range gogmParts {
 							if strings.Contains(p, "direction") {
-								str := strings.ToLower(strings.Replace(strings.Replace(strings.Replace(p, "direction=", "", -1), "\"", "", -1), "`", "", -1))
+								str := util.RemoveFromString(p, "direction=", "\"")
 								switch str {
 								case "incoming":
 									dir = go_cypherdsl.DirectionIncoming
@@ -212,7 +213,7 @@ func parseGogmNode(strType *ast.StructType, confs *map[string][]*relConf, label 
 									continue fieldLoop
 								}
 							} else if strings.Contains(part, "relationship") {
-								relName = strings.ToLower(strings.Replace(strings.Replace(p, "relationship=", "", -1), "\"", "", -1))
+								relName = strings.ToLower(util.RemoveFromString(p, "relationship=", "\"", "`"))
 							}
 						}
 
