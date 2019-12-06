@@ -19,6 +19,8 @@
 
 package util
 
+import "strings"
+
 // RemoveDuplicates removes duplicates from string slice
 func RemoveDuplicates(s []string) []string {
 	if s == nil {
@@ -36,6 +38,14 @@ func RemoveDuplicates(s []string) []string {
 		j++
 	}
 	return s[:j]
+}
+
+func RemoveFromString(original string, removals ...string) string {
+	for _, r := range removals {
+		original = strings.Replace(original, r, "", -1)
+	}
+
+	return original
 }
 
 func StringSliceContains(s []string, e string) bool {

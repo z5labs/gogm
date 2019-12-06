@@ -24,7 +24,7 @@ import "github.com/mindstand/gogm"
 type ExampleObject struct {
 	gogm.BaseNode
 
-	Children []*ExampleObject `gogm:"direction=incoming;relationship=test" json:"children"`
+	Children []*ExampleObject `json:"children" gogm:"direction=incoming;relationship=test"`
 	Parents  *ExampleObject   `gogm:"direction=outgoing;relationship=test" json:"parents"`
 	Special  *SpecialEdge     `gogm:"direction=incoming;relationship=special" json:"special"`
 }
