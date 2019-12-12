@@ -210,7 +210,6 @@ func parseM2M(req *require.Assertions) {
 	req.EqualValues(oldRels, curRels)
 }
 
-
 func TestCalculateCurRels(t *testing.T) {
 	req := require.New(t)
 
