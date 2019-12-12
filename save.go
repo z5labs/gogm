@@ -511,6 +511,9 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 	if _, ok := (*curRels)[uuid]; ok {
 		//this node has already been seen
 		return nil
+	} else {
+		//create the record for it
+		(*curRels)[uuid] = map[string]*RelationConfig{}
 	}
 
 	//get the type
@@ -556,16 +559,6 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 					return err
 				}
 
-				//makes us go backwards
-				//if skip {
-				//	continue
-				//}
-
-				//check that the map is there for this id
-				if _, ok := (*curRels)[uuid]; !ok {
-					(*curRels)[uuid] = map[string]*RelationConfig{}
-				}
-
 				//check the config is there for the specified field
 				if _, ok = (*curRels)[uuid][conf.FieldName]; !ok {
 					(*curRels)[uuid][conf.FieldName] = &RelationConfig{
@@ -585,16 +578,6 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 			newParentId, _, _, _, _, followVal, followId, _, err := processStruct(conf, &relField, uuid, parentId)
 			if err != nil {
 				return err
-			}
-
-			//makes us go backwards
-			//if skip {
-			//	continue
-			//}
-
-			//check that the map is there for this id
-			if _, ok := (*curRels)[uuid]; !ok {
-				(*curRels)[uuid] = map[string]*RelationConfig{}
 			}
 
 			//check the config is there for the specified field

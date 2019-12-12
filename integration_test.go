@@ -117,4 +117,18 @@ func testSave(sess *Session, req *require.Assertions) {
 	req.Nil(sess.Commit())
 	req.Nil(a2.SingleSpecA)
 	req.Nil(b2.SingleSpec)
+
+
+	//test save something that isn't connected to anything
+	singleSave := &a{
+		TestField:         "test",
+		TestTypeDefString: "dasdfas",
+		TestTypeDefInt:    600,
+		ManyA:  []*b{},
+		MultiA: []*b{},
+	}
+
+	req.Nil(sess.Begin())
+	req.Nil(sess.SaveDepth(singleSave, 1))
+	req.Nil(sess.Commit())
 }

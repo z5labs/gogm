@@ -210,6 +210,64 @@ func parseM2M(req *require.Assertions) {
 	req.EqualValues(oldRels, curRels)
 }
 
+
+func TestCalculateCurRels(t *testing.T) {
+	req := require.New(t)
+
+	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
+
+	//test single save
+	a1 := &a{
+		TestField:         "test",
+		TestTypeDefString: "dasdfas",
+		TestTypeDefInt:    600,
+		BaseNode: BaseNode{
+			Id:   1,
+			UUID: "a1uuid",
+			LoadMap: map[string]*RelationConfig{
+				"MultiA": {
+					Ids:          []int64{2},
+					RelationType: Multi,
+				},
+			},
+		},
+		ManyA:  []*b{},
+		MultiA: []*b{},
+	}
+
+	//b1 := &b{
+	//	TestField: "test",
+	//	BaseNode: BaseNode{
+	//		Id:   2,
+	//		UUID: "b1uuid",
+	//		LoadMap: map[string]*RelationConfig{
+	//			"Multi": {
+	//				Ids:          []int64{1},
+	//				RelationType: Multi,
+	//			},
+	//		},
+	//	},
+	//	Multi: []*a{},
+	//}
+
+	//b1.Multi = append(b1.Multi, a1)
+	//a1.MultiA = append(a1.MultiA, b1)
+
+	nodes := map[string]map[string]nodeCreateConf{}
+	relations := map[string][]relCreateConf{}
+	oldRels := map[string]map[string]*RelationConfig{}
+	curRels := map[string]map[string]*RelationConfig{}
+	ids := []*string{}
+
+	nodeRef := map[string]*reflect.Value{}
+
+	val := reflect.ValueOf(a1)
+
+	req.Nil(parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef))
+	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
+	req.Equal(1, len(curRels))
+}
+
 func TestCalculateDels(t *testing.T) {
 	req := require.New(t)
 
