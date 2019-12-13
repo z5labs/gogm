@@ -71,7 +71,7 @@ func TestLinking(t *testing.T) {
 	req.Equal(obj1.Special.Start.UUID, obj3.UUID)
 	req.Equal(1, len(obj3.Special))
 
-	req.Nil(obj1.UnlinkFromExampleObject2OnFieldSpecial(obj3))
+	req.Nil(obj3.UnlinkFromExampleObjectOnFieldSpecial(obj1))
 	req.Nil(obj1.Special)
 	req.Equal(0, len(obj3.Special))
 }

@@ -142,7 +142,7 @@ func (l *ExampleObject) UnlinkFromExampleObject2OnFieldSpecial(target *ExampleOb
 
 			checkObj, ok := obj.(*ExampleObject)
 			if !ok {
-				return errors.New("unable to cast unlinkTarget to [ExampleObject]")
+				return errors.New("unable to cast unlinkTarget to [*ExampleObject]")
 			}
 			if checkObj.UUID == l.UUID {
 				a := &target.Special
@@ -288,11 +288,11 @@ func (l *ExampleObject2) UnlinkFromExampleObjectOnFieldSpecial(target *ExampleOb
 	if l.Special != nil {
 		for i, unlinkTarget := range l.Special {
 
-			obj := unlinkTarget.GetStartNode()
+			obj := unlinkTarget.GetEndNode()
 
 			checkObj, ok := obj.(*ExampleObject)
 			if !ok {
-				return errors.New("unable to cast unlinkTarget to [ExampleObject]")
+				return errors.New("unable to cast unlinkTarget to [*ExampleObject]")
 			}
 			if checkObj.UUID == target.UUID {
 				a := &l.Special

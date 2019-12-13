@@ -216,12 +216,12 @@ func(l *{{ .StructName }}) UnlinkFrom{{ .OtherStructName }}OnField{{.StructField
 	if l.{{ .StructField }} != nil {
 		for i, unlinkTarget := range l.{{ .StructField }} {
 			{{ if .SpecialEdgeDirection }}
-			obj := unlinkTarget.GetStartNode(){{ else }}
-			obj := unlinkTarget.GetEndNode(){{end}}
+			obj := unlinkTarget.GetEndNode(){{ else }}
+			obj := unlinkTarget.GetStartNode(){{end}}
 
 			checkObj, ok := obj.(*{{ .OtherStructName }})
 			if !ok {
-				return errors.New("unable to cast unlinkTarget to [{{ .OtherStructName }}]")
+				return errors.New("unable to cast unlinkTarget to [*{{ .OtherStructName }}]")
 			}
 			if checkObj.UUID == target.UUID {
 				a := &l.{{ .StructField }}
@@ -242,7 +242,7 @@ func(l *{{ .StructName }}) UnlinkFrom{{ .OtherStructName }}OnField{{.StructField
 
 			checkObj, ok := obj.(*{{ .StructName }})
 			if !ok {
-				return errors.New("unable to cast unlinkTarget to [{{ .StructName }}]")
+				return errors.New("unable to cast unlinkTarget to [*{{ .StructName }}]")
 			}
 			if checkObj.UUID == l.UUID {
 				a := &target.{{ .OtherStructField }}
