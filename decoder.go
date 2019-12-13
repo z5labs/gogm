@@ -156,6 +156,7 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 			return err
 		}
 
+		// handle from start side of edge
 		if startMap, ok := relMaps[relationConfig.StartNodeId]; ok {
 			if conf, ok := startMap[startConfig.FieldName]; ok {
 				conf.Ids = append(conf.Ids, relationConfig.EndNodeId)
@@ -178,9 +179,10 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 			return fmt.Errorf("relation config not found for id [%v]", relationConfig.StartNodeId)
 		}
 
+		// handle from end side of edge
 		if endMap, ok := relMaps[relationConfig.EndNodeId]; ok {
 			if conf, ok := endMap[endConfig.FieldName]; ok {
-				conf.Ids = append(conf.Ids, relationConfig.EndNodeId)
+				conf.Ids = append(conf.Ids, relationConfig.StartNodeId)
 			} else {
 				var rt RelationType
 				if endConfig.ManyRelationship {
