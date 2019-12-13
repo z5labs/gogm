@@ -156,7 +156,7 @@ func Generate(directory string, debug bool) error {
 			if util.StringSliceContains(edges, rel.Type) {
 				tplRel.UsesSpecialEdge = true
 				tplRel.SpecialEdgeType = rel.Type
-				tplRel.SpecialEdgeDirection = rel.Direction == dsl.DirectionIncoming
+				tplRel.SpecialEdgeDirection = rel.Direction == dsl.DirectionOutgoing
 				isSpecialEdge = true
 			}
 
