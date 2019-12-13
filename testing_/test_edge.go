@@ -27,8 +27,8 @@ import (
 type SpecialEdge struct {
 	gogm.BaseNode
 
-	Start *ExampleObject
-	End   *ExampleObject2
+	Start *ExampleObject2
+	End   *ExampleObject
 
 	SomeField string `gogm:"name=some_field"`
 }
@@ -38,11 +38,11 @@ func (s *SpecialEdge) GetStartNode() interface{} {
 }
 
 func (s *SpecialEdge) GetStartNodeType() reflect.Type {
-	return reflect.TypeOf(&ExampleObject{})
+	return reflect.TypeOf(&ExampleObject2{})
 }
 
 func (s *SpecialEdge) SetStartNode(v interface{}) error {
-	s.Start = v.(*ExampleObject)
+	s.Start = v.(*ExampleObject2)
 	return nil
 }
 
@@ -51,10 +51,10 @@ func (s *SpecialEdge) GetEndNode() interface{} {
 }
 
 func (s *SpecialEdge) GetEndNodeType() reflect.Type {
-	return reflect.TypeOf(&ExampleObject2{})
+	return reflect.TypeOf(&ExampleObject{})
 }
 
 func (s *SpecialEdge) SetEndNode(v interface{}) error {
-	s.End = v.(*ExampleObject2)
+	s.End = v.(*ExampleObject)
 	return nil
 }
