@@ -637,24 +637,13 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 	}
 
 	//set this to the actual field name later
-	isNewNode, id, err := setUuidIfNeeded(current, "UUID")
+	isNewNode, id, relConf, err := handleNodeState(current, "UUID")
 	if err != nil {
 		return err
 	}
 
 	if !isNewNode {
 		if _, ok := (*oldRels)[id]; !ok {
-			iConf := reflect.Indirect(*current).FieldByName("LoadMap").Interface()
-
-			var relConf map[string]*RelationConfig
-
-			if iConf != nil {
-				relConf, ok = iConf.(map[string]*RelationConfig)
-				if !ok {
-					relConf = map[string]*RelationConfig{}
-				}
-			}
-
 			(*oldRels)[id] = relConf
 		}
 	} else {

@@ -51,24 +51,44 @@ func stringSliceContains(s []string, e string) bool {
 }
 
 // sets uuid for stuct if uuid field is empty
-func setUuidIfNeeded(val *reflect.Value, fieldName string) (bool, string, error) {
+func handleNodeState(val *reflect.Value, fieldName string) (bool, string, map[string]*RelationConfig, error) {
 	if val == nil {
-		return false, "", errors.New("value can not be nil")
+		return false, "", nil, errors.New("value can not be nil")
 	}
 
 	if reflect.TypeOf(*val).Kind() == reflect.Ptr {
 		*val = val.Elem()
 	}
 
-	checkUuid := reflect.Indirect(*val).FieldByName(fieldName).Interface().(string)
-	if checkUuid != "" {
-		return false, checkUuid, nil
+	checkUuid := reflect.Indirect(*val).FieldByName(fieldName).String()
+
+	loadVal := reflect.Indirect(*val).FieldByName("LoadMap")
+
+	iConf := loadVal.Interface()
+
+	if iConf != nil && loadVal.Len() != 0 && checkUuid != ""{
+		// node is not new
+		relConf, ok := iConf.(map[string]*RelationConfig)
+		if !ok {
+			return false, "", nil, fmt.Errorf("unable to cast conf to [map[string]*RelationConfig], %w", ErrInternal)
+		}
+
+		return false, checkUuid, relConf, nil
+	} else {
+		// definitely new
+		var newUuid string
+
+		if checkUuid == "" {
+			newUuid = uuid.New().String()
+		} else {
+			newUuid = checkUuid
+		}
+
+		reflect.Indirect(*val).FieldByName(fieldName).Set(reflect.ValueOf(newUuid))
+
+		return true, newUuid, map[string]*RelationConfig{}, nil
+
 	}
-
-	newUuid := uuid.New().String()
-
-	reflect.Indirect(*val).FieldByName(fieldName).Set(reflect.ValueOf(newUuid))
-	return true, newUuid, nil
 }
 
 // gets the type name from reflect type

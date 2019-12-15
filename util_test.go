@@ -28,20 +28,50 @@ import (
 func TestSetUuidIfNeeded(t *testing.T) {
 	val := &a{}
 
-	_, _, err := setUuidIfNeeded(nil, "UUID")
+	_, _, _, err := handleNodeState(nil, "UUID")
 	require.NotNil(t, err)
 
 	v := reflect.ValueOf(val)
-	isCreated, _, err := setUuidIfNeeded(&v, "UUID")
+	isNew, _, _, err := handleNodeState(&v, "UUID")
 	require.Nil(t, err)
-	require.True(t, isCreated)
+	require.True(t, isNew)
 
 	val.UUID = "dasdfasd"
 
 	v = reflect.ValueOf(val)
-	isCreated, _, err = setUuidIfNeeded(&v, "UUID")
+	isNew, _, _, err = handleNodeState(&v, "UUID")
 	require.Nil(t, err)
-	require.False(t, isCreated)
+	require.True(t, isNew)
+
+	val.UUID = "dasdfasd"
+	val.LoadMap = map[string]*RelationConfig{}
+
+	v = reflect.ValueOf(val)
+	isNew, _, _, err = handleNodeState(&v, "UUID")
+	require.Nil(t, err)
+	require.True(t, isNew)
+
+	val.UUID = "dasdfasd"
+	val.LoadMap = nil
+
+	v = reflect.ValueOf(val)
+	isNew, _, _, err = handleNodeState(&v, "UUID")
+	require.Nil(t, err)
+	require.True(t, isNew)
+
+	val.UUID = "dasdfasd"
+	val.LoadMap = map[string]*RelationConfig{
+		"dasdfasd": {
+			Ids: []int64{69},
+			RelationType: Single,
+		},
+	}
+
+	v = reflect.ValueOf(val)
+	isNew, _, _, err = handleNodeState(&v, "UUID")
+	require.Nil(t, err)
+	require.False(t, isNew)
+
 }
 
 func TestGetTypeName(t *testing.T) {
