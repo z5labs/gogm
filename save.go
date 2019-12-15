@@ -644,32 +644,53 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 	}
 
 	//set edge
-	if parentId != "" && parentIsStart {
+	if parentId != "" {
 		if _, ok := (*relationsPtr)[edgeLabel]; !ok {
 			(*relationsPtr)[edgeLabel] = []relCreateConf{}
 		}
 
 		start := ""
 		end := ""
+		curDir := direction
 
-		//if parentIsStart {
-		start = parentId
-		end = id
-		//} else {
-		//	start = id
-		//	end = parentId
-		//}
+		if parentIsStart {
+			start = parentId
+			end = id
+		} else {
+			start = id
+			end = parentId
+
+			if curDir == dsl.DirectionIncoming {
+				curDir = dsl.DirectionOutgoing
+			} else if curDir == dsl.DirectionOutgoing {
+				curDir = dsl.DirectionIncoming
+			}
+		}
 
 		if edgeParams == nil {
 			edgeParams = map[string]interface{}{}
 		}
 
-		(*relationsPtr)[edgeLabel] = append((*relationsPtr)[edgeLabel], relCreateConf{
-			Direction:     direction,
-			Params:        edgeParams,
-			StartNodeUUID: start,
-			EndNodeUUID:   end,
-		})
+		found := false
+
+		//check if this edge is already here
+		if len((*relationsPtr)[edgeLabel]) != 0 {
+			for _, conf := range (*relationsPtr)[edgeLabel] {
+				if conf.StartNodeUUID == start && conf.EndNodeUUID == end {
+					found = true
+				}
+			}
+		}
+
+		if !found {
+			(*relationsPtr)[edgeLabel] = append((*relationsPtr)[edgeLabel], relCreateConf{
+				Direction:     curDir,
+				Params:        edgeParams,
+				StartNodeUUID: start,
+				EndNodeUUID:   end,
+			})
+		}
+
 	}
 
 	//check if this has been visited yet, do this after edge is intentional
