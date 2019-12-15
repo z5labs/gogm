@@ -20,6 +20,7 @@
 package gogm
 
 import (
+	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
@@ -87,7 +88,7 @@ func parseO2O(req *require.Assertions) {
 	val := reflect.ValueOf(comp1)
 	nodeRef := map[string]*reflect.Value{}
 
-	req.Nil(parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef))
+	req.Nil(parseStruct("", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
 	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
@@ -144,7 +145,7 @@ func parseM2O(req *require.Assertions) {
 
 	val := reflect.ValueOf(a1)
 	nodeRef := map[string]*reflect.Value{}
-	req.Nil(parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef))
+	req.Nil(parseStruct("", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
 	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
@@ -201,7 +202,7 @@ func parseM2M(req *require.Assertions) {
 
 	val := reflect.ValueOf(a1)
 
-	req.Nil(parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef))
+	req.Nil(parseStruct("", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
 	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
@@ -262,7 +263,7 @@ func TestCalculateCurRels(t *testing.T) {
 
 	val := reflect.ValueOf(a1)
 
-	req.Nil(parseStruct("", "", false, 0, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef))
+	req.Nil(parseStruct("", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
 	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
 	req.Equal(1, len(curRels))
 }

@@ -100,10 +100,11 @@ func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 	nodeRef := map[string]*reflect.Value{}
 
 	newNodes := []*string{}
+	visited := []string{}
 
 	rootVal := reflect.ValueOf(obj)
 
-	err := parseStruct("", "", false, 0, nil, &rootVal, 0, depth, &nodes, &relations, &oldRels, &newNodes, &nodeRef)
+	err := parseStruct("", "", false, dsl.DirectionBoth, nil, &rootVal, 0, depth, &nodes, &relations, &oldRels, &newNodes, &nodeRef, &visited)
 	if err != nil {
 		return err
 	}
@@ -604,7 +605,7 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 // parses tree of structs
 func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, current *reflect.Value,
 	currentDepth, maxDepth int, nodesPtr *map[string]map[string]nodeCreateConf, relationsPtr *map[string][]relCreateConf, oldRels *map[string]map[string]*RelationConfig,
-	newNodes *[]*string, nodeRef *map[string]*reflect.Value) error {
+	newNodes *[]*string, nodeRef *map[string]*reflect.Value, visited *[]string) error {
 	//check if its done
 	if currentDepth > maxDepth {
 		return nil
@@ -642,6 +643,42 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 		return err
 	}
 
+	//set edge
+	if parentId != "" && parentIsStart {
+		if _, ok := (*relationsPtr)[edgeLabel]; !ok {
+			(*relationsPtr)[edgeLabel] = []relCreateConf{}
+		}
+
+		start := ""
+		end := ""
+
+		//if parentIsStart {
+		start = parentId
+		end = id
+		//} else {
+		//	start = id
+		//	end = parentId
+		//}
+
+		if edgeParams == nil {
+			edgeParams = map[string]interface{}{}
+		}
+
+		(*relationsPtr)[edgeLabel] = append((*relationsPtr)[edgeLabel], relCreateConf{
+			Direction:     direction,
+			Params:        edgeParams,
+			StartNodeUUID: start,
+			EndNodeUUID:   end,
+		})
+	}
+
+	//check if this has been visited yet, do this after edge is intentional
+	if stringSliceContains(*visited, id) {
+		return nil
+	} else {
+		*visited = append(*visited, id)
+	}
+
 	if !isNewNode {
 		if _, ok := (*oldRels)[id]; !ok {
 			(*oldRels)[id] = relConf
@@ -677,35 +714,6 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 		Params: params,
 	}
 
-	//set edge
-	if parentId != "" {
-		if _, ok := (*relationsPtr)[edgeLabel]; !ok {
-			(*relationsPtr)[edgeLabel] = []relCreateConf{}
-		}
-
-		start := ""
-		end := ""
-
-		if parentIsStart {
-			start = parentId
-			end = id
-		} else {
-			start = id
-			end = parentId
-		}
-
-		if edgeParams == nil {
-			edgeParams = map[string]interface{}{}
-		}
-
-		(*relationsPtr)[edgeLabel] = append((*relationsPtr)[edgeLabel], relCreateConf{
-			Direction:     direction,
-			Params:        edgeParams,
-			StartNodeUUID: start,
-			EndNodeUUID:   end,
-		})
-	}
-
 	for _, conf := range currentConf.Fields {
 		if conf.Relationship == "" {
 			continue
@@ -727,32 +735,32 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 			for i := 0; i < slLen; i++ {
 				relVal := relField.Index(i)
 
-				newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, _, skip, err := processStruct(conf, &relVal, id, parentId)
+				newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, _, _, err := processStruct(conf, &relVal, id, parentId)
 				if err != nil {
 					return err
 				}
 
-				//makes us go backwards
-				if skip {
-					continue
-				}
+				////makes us go backwards
+				//if skip {
+				//	continue
+				//}
 
-				err = parseStruct(newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr, oldRels, newNodes, nodeRef)
+				err = parseStruct(newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr, oldRels, newNodes, nodeRef, visited)
 				if err != nil {
 					return err
 				}
 			}
 		} else {
-			newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, _, skip, err := processStruct(conf, &relField, id, parentId)
+			newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, _, _, err := processStruct(conf, &relField, id, parentId)
 			if err != nil {
 				return err
 			}
 
-			if skip {
-				continue
-			}
+			//if skip {
+			//	continue
+			//}
 
-			err = parseStruct(newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr, oldRels, newNodes, nodeRef)
+			err = parseStruct(newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr, oldRels, newNodes, nodeRef, visited)
 			if err != nil {
 				return err
 			}

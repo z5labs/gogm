@@ -66,7 +66,7 @@ func handleNodeState(val *reflect.Value, fieldName string) (bool, string, map[st
 
 	iConf := loadVal.Interface()
 
-	if iConf != nil && loadVal.Len() != 0 && checkUuid != ""{
+	if iConf != nil && loadVal.Len() != 0 && checkUuid != "" {
 		// node is not new
 		relConf, ok := iConf.(map[string]*RelationConfig)
 		if !ok {
