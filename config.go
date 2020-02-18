@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cornelk/hashmap"
-	driver "github.com/mindstand/golang-neo4j-bolt-driver"
+	goBolt "github.com/mindstand/go-bolt"
 	"github.com/sirupsen/logrus"
 	"reflect"
 )
@@ -103,7 +103,7 @@ const (
 var mappedTypes = &hashmap.HashMap{}
 
 //thread pool
-var driverPool driver.DriverPool
+var driverPool goBolt.IDriverPool
 
 //relationship + label
 var mappedRelations = &relationConfigs{}
@@ -162,8 +162,12 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 	if !isTest {
 		log.Debug("opening connection to neo4j")
 
-		var err error
-		driverPool, err = driver.NewClosableDriverPool(conf.ConnectionString(), conf.PoolSize)
+		client, err := goBolt.NewClient(goBolt.WithConnectionString(conf.ConnectionString()))
+		if err != nil {
+			return err
+		}
+
+		driverPool, err = client.NewDriverPool(conf.PoolSize)
 		if err != nil {
 			return err
 		}

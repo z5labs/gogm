@@ -22,16 +22,16 @@ package gogm
 import (
 	"errors"
 	"fmt"
+	"github.com/mindstand/go-bolt/connection"
+	"github.com/mindstand/go-bolt/structures/graph"
 	dsl "github.com/mindstand/go-cypherdsl"
-	neo "github.com/mindstand/golang-neo4j-bolt-driver"
-	"github.com/mindstand/golang-neo4j-bolt-driver/structures/graph"
 	"reflect"
 	"strings"
 	"time"
 )
 
 // decodes neo4j rows and writes the response to generic interface
-func decodeNeoRows(rows neo.Rows, respObj interface{}) error {
+func decodeNeoRows(rows connection.IRows, respObj interface{}) error {
 	defer rows.Close()
 
 	arr, err := dsl.RowsTo2DInterfaceArray(rows)

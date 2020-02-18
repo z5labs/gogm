@@ -22,8 +22,8 @@ package gogm
 import (
 	"errors"
 	"fmt"
+	"github.com/mindstand/go-bolt/connection"
 	dsl "github.com/mindstand/go-cypherdsl"
-	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"reflect"
 	"sync"
 )
@@ -55,7 +55,7 @@ type relCreateConf struct {
 }
 
 // saves target node and connected node to specified depth
-func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
+func saveDepth(sess connection.IConnection, obj interface{}, depth int) error {
 	if sess == nil {
 		return errors.New("session can not be nil")
 	}
@@ -151,7 +151,7 @@ func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 	if len(dels) != 0 {
 		wg.Add(1)
 
-		go func(wg *sync.WaitGroup, _dels map[string][]int64, _conn *driver.BoltConn, _err *error) {
+		go func(wg *sync.WaitGroup, _dels map[string][]int64, _conn connection.IConnection, _err *error) {
 			err := removeRelations(_conn, _dels)
 			if err != nil {
 				*_err = err
@@ -162,7 +162,7 @@ func saveDepth(sess *driver.BoltConn, obj interface{}, depth int) error {
 
 	if len(relations) != 0 {
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, _conn *driver.BoltConn, _relations map[string][]relCreateConf, _ids map[string]int64, _err *error) {
+		go func(wg *sync.WaitGroup, _conn connection.IConnection, _relations map[string][]relCreateConf, _ids map[string]int64, _err *error) {
 			err := relateNodes(_conn, _relations, _ids)
 			if err != nil {
 				*_err = err
@@ -229,7 +229,7 @@ func calculateDels(oldRels, curRels map[string]map[string]*RelationConfig) map[s
 }
 
 // removes relationships between specified nodes
-func removeRelations(conn *driver.BoltConn, dels map[string][]int64) error {
+func removeRelations(conn connection.IConnection, dels map[string][]int64) error {
 	if dels == nil || len(dels) == 0 {
 		return nil
 	}
@@ -254,7 +254,7 @@ func removeRelations(conn *driver.BoltConn, dels map[string][]int64) error {
 		return fmt.Errorf("%s, %w", err.Error(), ErrInternal)
 	}
 
-	res, err := dsl.QB().
+	_, err = dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().
 			V(dsl.V{
@@ -276,17 +276,13 @@ func removeRelations(conn *driver.BoltConn, dels map[string][]int64) error {
 		return fmt.Errorf("%s, %w", err.Error(), ErrInternal)
 	}
 
-	if rows, err := res.RowsAffected(); err != nil {
-		return fmt.Errorf("%s, %w", err.Error(), ErrInternal)
-	} else if int(rows) != len(dels) {
-		return fmt.Errorf("sanity check failed, rows affected [%v] not equal to num deletions [%v], %w", rows, len(dels), ErrInternal)
-	} else {
-		return nil
-	}
+	//todo sanity check to make sure the affects worked
+
+	return nil
 }
 
 // creates nodes
-func createNodes(conn *driver.BoltConn, crNodes map[string]map[string]nodeCreateConf, nodeRef *map[string]*reflect.Value) (map[string]int64, error) {
+func createNodes(conn connection.IConnection, crNodes map[string]map[string]nodeCreateConf, nodeRef *map[string]*reflect.Value) (map[string]int64, error) {
 	idMap := map[string]int64{}
 
 	for label, nodes := range crNodes {
@@ -381,7 +377,7 @@ func createNodes(conn *driver.BoltConn, crNodes map[string]map[string]nodeCreate
 }
 
 // relateNodes connects nodes together using edge config
-func relateNodes(conn *driver.BoltConn, relations map[string][]relCreateConf, ids map[string]int64) error {
+func relateNodes(conn connection.IConnection, relations map[string][]relCreateConf, ids map[string]int64) error {
 	if relations == nil || len(relations) == 0 {
 		return errors.New("relations can not be nil or empty")
 	}

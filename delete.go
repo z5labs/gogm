@@ -21,13 +21,13 @@ package gogm
 
 import (
 	"errors"
+	"github.com/mindstand/go-bolt/connection"
 	dsl "github.com/mindstand/go-cypherdsl"
-	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"reflect"
 )
 
 // deleteNode is used to remove nodes from the database
-func deleteNode(conn *driver.BoltConn, deleteObj interface{}) error {
+func deleteNode(conn connection.IConnection, deleteObj interface{}) error {
 	rawType := reflect.TypeOf(deleteObj)
 
 	if rawType.Kind() != reflect.Ptr && rawType.Kind() != reflect.Slice {
@@ -76,8 +76,8 @@ func deleteNode(conn *driver.BoltConn, deleteObj interface{}) error {
 }
 
 // deleteByIds deletes node by graph ids
-func deleteByIds(conn *driver.BoltConn, ids ...int64) error {
-	rows, err := dsl.QB().
+func deleteByIds(conn connection.IConnection, ids ...int64) error {
+	_, err := dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
 		Where(dsl.C(&dsl.ConditionConfig{
@@ -95,18 +95,12 @@ func deleteByIds(conn *driver.BoltConn, ids ...int64) error {
 		return err
 	}
 
-	if numRows, err := rows.RowsAffected(); err != nil {
-		return err
-	} else if numRows == 0 {
-		return errors.New("nothing got deleted")
-	}
-
 	return nil
 }
 
 // deleteByUuids deletes nodes by uuids
-func deleteByUuids(conn *driver.BoltConn, ids ...string) error {
-	rows, err := dsl.QB().
+func deleteByUuids(conn connection.IConnection, ids ...string) error {
+	_, err := dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
 		Where(dsl.C(&dsl.ConditionConfig{
@@ -122,12 +116,6 @@ func deleteByUuids(conn *driver.BoltConn, ids ...string) error {
 		})
 	if err != nil {
 		return err
-	}
-
-	if numRows, err := rows.RowsAffected(); err != nil {
-		return err
-	} else if numRows == 0 {
-		return errors.New("nothing got deleted")
 	}
 
 	return nil

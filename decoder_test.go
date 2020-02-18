@@ -22,7 +22,7 @@ package gogm
 import (
 	"errors"
 	"github.com/cornelk/hashmap"
-	"github.com/mindstand/golang-neo4j-bolt-driver/structures/graph"
+	"github.com/mindstand/go-bolt/structures/graph"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"

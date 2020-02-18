@@ -20,12 +20,12 @@
 package gogm
 
 import (
-	driver "github.com/mindstand/golang-neo4j-bolt-driver"
+	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/stretchr/testify/require"
 )
 
 func testDelete(req *require.Assertions) {
-	conn, err := driverPool.Open(driver.ReadWriteMode)
+	conn, err := driverPool.Open(bolt_mode.WriteMode)
 	if err != nil {
 		req.Nil(err)
 	}

@@ -24,13 +24,13 @@ import (
 	"fmt"
 	"github.com/adam-hanna/arrayOperations"
 	"github.com/cornelk/hashmap"
+	"github.com/mindstand/go-bolt/bolt_mode"
 	dsl "github.com/mindstand/go-cypherdsl"
-	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 )
 
 //drops all known indexes
 func dropAllIndexesAndConstraints() error {
-	conn, err := driverPool.Open(driver.ReadWriteMode)
+	conn, err := driverPool.Open(bolt_mode.WriteMode)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,7 @@ func dropAllIndexesAndConstraints() error {
 
 //creates all indexes
 func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
-	conn, err := driverPool.Open(driver.ReadWriteMode)
+	conn, err := driverPool.Open(bolt_mode.WriteMode)
 	if err != nil {
 		return err
 	}
@@ -205,7 +205,7 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
 
 //verifies all indexes
 func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
-	conn, err := driverPool.Open(driver.ReadWriteMode)
+	conn, err := driverPool.Open(bolt_mode.WriteMode)
 	if err != nil {
 		return err
 	}

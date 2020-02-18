@@ -22,16 +22,17 @@ package gogm
 import (
 	"errors"
 	"fmt"
+	"github.com/mindstand/go-bolt/bolt_mode"
+	"github.com/mindstand/go-bolt/connection"
 	dsl "github.com/mindstand/go-cypherdsl"
-	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"reflect"
 )
 
 const defaultDepth = 1
 
 type Session struct {
-	conn         *driver.BoltConn
-	tx           driver.Tx
+	conn         connection.IConnection
+	tx           connection.ITransaction
 	DefaultDepth int
 	LoadStrategy LoadStrategy
 }
@@ -43,12 +44,12 @@ func NewSession(readonly bool) (*Session, error) {
 
 	session := new(Session)
 
-	var mode driver.DriverMode
+	var mode bolt_mode.AccessMode
 
 	if readonly {
-		mode = driver.ReadOnlyMode
+		mode = bolt_mode.ReadMode
 	} else {
-		mode = driver.ReadWriteMode
+		mode = bolt_mode.WriteMode
 	}
 
 	conn, err := driverPool.Open(mode)
@@ -88,7 +89,7 @@ func (s *Session) Rollback() error {
 	}
 
 	if s.tx == nil {
-		return fmt.Errorf("cannot Rollback nil transaction: %w", ErrTransaction)
+		return fmt.Errorf("cannot rollback nil transaction: %w", ErrTransaction)
 	}
 
 	err := s.tx.Rollback()
