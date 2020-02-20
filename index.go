@@ -60,7 +60,7 @@ func dropAllIndexesAndConstraints() error {
 
 		for _, constraint := range constraints {
 			log.Debugf("dropping constraint '%s'", constraint)
-			_, err := dsl.QB().Cypher(fmt.Sprintf("DROP %s", constraint)).WithNeo(conn).Exec(nil)
+			_, err := dsl.QB().Cypher(fmt.Sprintf("DROP %s", constraint)).WithNeo(tx).Exec(nil)
 			if err != nil {
 				oerr := err
 				err = tx.Rollback()
@@ -105,7 +105,7 @@ func dropAllIndexesAndConstraints() error {
 				return errors.New("invalid index config")
 			}
 
-			_, err := dsl.QB().Cypher(fmt.Sprintf("DROP %s", index[0].(string))).WithNeo(conn).Exec(nil)
+			_, err := dsl.QB().Cypher(fmt.Sprintf("DROP %s", index[0].(string))).WithNeo(tx).Exec(nil)
 			if err != nil {
 				oerr := err
 				err = tx.Rollback()

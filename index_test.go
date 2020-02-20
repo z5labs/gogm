@@ -26,15 +26,14 @@ import (
 )
 
 func testIndexManagement(req *require.Assertions) {
-	//init
+	//delete everything
+	req.Nil(dropAllIndexesAndConstraints())
+
 	conn, err := driverPool.Open(bolt_mode.WriteMode)
 	req.Nil(err)
 
 	defer driverPool.Reclaim(conn)
 	req.Nil(err)
-
-	//delete everything
-	req.Nil(dropAllIndexesAndConstraints())
 
 	//setup structure
 	mapp := toHashmapStructdecconf(map[string]structDecoratorConfig{

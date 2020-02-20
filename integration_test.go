@@ -20,36 +20,42 @@
 package gogm
 
 import (
+	_log "github.com/mindstand/go-bolt/log"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 )
 
 func TestIntegration(t *testing.T) {
-	if testing.Short() {
+	if !testing.Short() {
 		t.Skip()
 	}
+
+	_log.SetLevel("trace")
 
 	req := require.New(t)
 
 	conf := Config{
 		Username:      "neo4j",
-		Password:      "password",
+		Password:      "changeme",
 		Host:          "0.0.0.0",
-		IsCluster:     false,
+		IsCluster:     true,
 		Port:          7687,
-		PoolSize:      15,
+		PoolSize:      2,
 		IndexStrategy: IGNORE_INDEX,
 	}
 
 	req.Nil(Init(&conf, &a{}, &b{}, &c{}))
 
-	sess, err := NewSession(false)
-	req.Nil(err)
-	defer sess.Close()
+	log.Println("opening session")
 
 	log.Println("testIndexManagement")
 	testIndexManagement(req)
+
+	sess, err := NewSession(false)
+	req.Nil(err)
+	defer sess.Close()
+	defer driverPool.Close()
 
 	log.Println("test save")
 	testSave(sess, req)
