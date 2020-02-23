@@ -13,20 +13,22 @@ go get -u github.com/mindstand/gogm
 - Struct Mapping through the `gogm` struct decorator
 - Full support for ACID transactions
 - Underlying connection pooling
-- Support for HA Clusters using `bolt+routing` through [MindStand's fork](https://github.com/mindstand/golang-neo4j-bolt-driver) of [@johnnadratowski's golang bolt driver](https://github.com/johnnadratowski/golang-neo4j-bolt-driver)
+- Support for HA Casual Clusters using `bolt+routing` through [MindStand's bolt driver](https://github.com/mindstand/go-bolt)
 - Custom queries in addition to built in functionality
 - Builder pattern cypher queries using [MindStand's cypher dsl package](https://github.com/mindstand/go-cypherdsl)
 - CLI to generate link and unlink functions for gogm structs.
+- Multi database support with Neo4j v4.
 
 ## Usage
 
 ### Struct Configuration
+##### <s>text</s> notates deprecation
 
 Decorators that can be used
 - `name=<name>` -- used to set the field name that will show up in neo4j.
 - `relationship=<edge_name>` -- used to set the name of the edge on that field.
 - `direction=<INCOMING|OUTGOING|BOTH|NONE>` -- used to specify direction of that edge field.
-- `time` -- used to mark field as a time representation. compatible with `time.Time` Customizable time format coming soon.
+- <s>`time` -- used to mark field as a time representation. compatible with `time.Time` Customizable time format coming soon.</s>
 - `index` -- marks field to have an index applied to it.
 - `unique` -- marks field to have unique constraint.
 - `pk` -- marks field as a primary key. Can only have one pk, composite pk's are not supported.
