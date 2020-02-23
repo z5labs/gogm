@@ -39,9 +39,9 @@ func TestIntegration(t *testing.T) {
 		Username:      "neo4j",
 		Password:      "changeme",
 		Host:          "0.0.0.0",
-		IsCluster:     true,
+		IsCluster:     false,
 		Port:          7687,
-		PoolSize:      2,
+		PoolSize:      15,
 		IndexStrategy: IGNORE_INDEX,
 	}
 
