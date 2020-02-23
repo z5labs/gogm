@@ -27,7 +27,7 @@ import (
 )
 
 func TestIntegration(t *testing.T) {
-	if !testing.Short() {
+	if testing.Short() {
 		t.Skip()
 	}
 
