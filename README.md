@@ -17,7 +17,7 @@ go get -u github.com/mindstand/gogm
 - Custom queries in addition to built in functionality
 - Builder pattern cypher queries using [MindStand's cypher dsl package](https://github.com/mindstand/go-cypherdsl)
 - CLI to generate link and unlink functions for gogm structs.
-- Multi database support with Neo4j v4.
+- Multi database support with Neo4j v4. (not yet)
 
 ## Usage
 
