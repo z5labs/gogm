@@ -27,7 +27,7 @@ import (
 )
 
 // deleteNode is used to remove nodes from the database
-func deleteNode(conn connection.IConnection, deleteObj interface{}) error {
+func deleteNode(conn connection.IQuery, deleteObj interface{}) error {
 	rawType := reflect.TypeOf(deleteObj)
 
 	if rawType.Kind() != reflect.Ptr && rawType.Kind() != reflect.Slice {
@@ -76,7 +76,7 @@ func deleteNode(conn connection.IConnection, deleteObj interface{}) error {
 }
 
 // deleteByIds deletes node by graph ids
-func deleteByIds(conn connection.IConnection, ids ...int64) error {
+func deleteByIds(conn connection.IQuery, ids ...int64) error {
 	_, err := dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
@@ -99,7 +99,7 @@ func deleteByIds(conn connection.IConnection, ids ...int64) error {
 }
 
 // deleteByUuids deletes nodes by uuids
-func deleteByUuids(conn connection.IConnection, ids ...string) error {
+func deleteByUuids(conn connection.IQuery, ids ...string) error {
 	_, err := dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).

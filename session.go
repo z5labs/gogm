@@ -198,7 +198,15 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 		params["uuid"] = id
 	}
 
-	rows, err := query.WithNeo(s.conn).Query(params)
+	// handle if in transaction
+	var conn connection.IQuery
+	if s.tx != nil {
+		conn = s.tx
+	} else {
+		conn = s.conn
+	}
+
+	rows, err := query.WithNeo(conn).Query(params)
 	if err != nil {
 		return err
 	}
@@ -280,7 +288,15 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 			Limit(pagination.LimitPerPage)
 	}
 
-	rows, err := query.WithNeo(s.conn).Query(params)
+	// handle if in transaction
+	var conn connection.IQuery
+	if s.tx != nil {
+		conn = s.tx
+	} else {
+		conn = s.conn
+	}
+
+	rows, err := query.WithNeo(conn).Query(params)
 	if err != nil {
 		return err
 	}
@@ -333,7 +349,15 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 		return errors.New("unknown load strategy")
 	}
 
-	rows, err := query.WithNeo(s.conn).Query(map[string]interface{}{
+	// handle if in transaction
+	var conn connection.IQuery
+	if s.tx != nil {
+		conn = s.tx
+	} else {
+		conn = s.conn
+	}
+
+	rows, err := query.WithNeo(conn).Query(map[string]interface{}{
 		endNodeField: edgeConstraint,
 	})
 	if err != nil {
@@ -352,7 +376,15 @@ func (s *Session) SaveDepth(saveObj interface{}, depth int) error {
 		return errors.New("neo4j connection not initialized")
 	}
 
-	return saveDepth(s.conn, saveObj, depth)
+	// handle if in transaction
+	var conn connection.IQuery
+	if s.tx != nil {
+		conn = s.tx
+	} else {
+		conn = s.conn
+	}
+
+	return saveDepth(conn, saveObj, depth)
 }
 
 func (s *Session) Delete(deleteObj interface{}) error {
@@ -364,7 +396,15 @@ func (s *Session) Delete(deleteObj interface{}) error {
 		return errors.New("deleteObj can not be nil")
 	}
 
-	return deleteNode(s.conn, deleteObj)
+	// handle if in transaction
+	var conn connection.IQuery
+	if s.tx != nil {
+		conn = s.tx
+	} else {
+		conn = s.conn
+	}
+
+	return deleteNode(conn, deleteObj)
 }
 
 func (s *Session) DeleteUUID(uuid string) error {
@@ -372,7 +412,15 @@ func (s *Session) DeleteUUID(uuid string) error {
 		return errors.New("neo4j connection not initialized")
 	}
 
-	return deleteByUuids(s.conn, uuid)
+	// handle if in transaction
+	var conn connection.IQuery
+	if s.tx != nil {
+		conn = s.tx
+	} else {
+		conn = s.conn
+	}
+
+	return deleteByUuids(conn, uuid)
 }
 
 func (s *Session) Query(query string, properties map[string]interface{}, respObj interface{}) error {
@@ -380,7 +428,15 @@ func (s *Session) Query(query string, properties map[string]interface{}, respObj
 		return errors.New("neo4j connection not initialized")
 	}
 
-	rows, err := dsl.QB().Cypher(query).WithNeo(s.conn).Query(properties)
+	// handle if in transaction
+	var conn connection.IQuery
+	if s.tx != nil {
+		conn = s.tx
+	} else {
+		conn = s.conn
+	}
+
+	rows, err := dsl.QB().Cypher(query).WithNeo(conn).Query(properties)
 	if err != nil {
 		return err
 	}
@@ -393,7 +449,15 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 		return nil, errors.New("neo4j connection not initialized")
 	}
 
-	rows, err := dsl.QB().Cypher(query).WithNeo(s.conn).Query(properties)
+	// handle if in transaction
+	var conn connection.IQuery
+	if s.tx != nil {
+		conn = s.tx
+	} else {
+		conn = s.conn
+	}
+
+	rows, err := dsl.QB().Cypher(query).WithNeo(conn).Query(properties)
 	if err != nil {
 		return nil, err
 	}
@@ -416,7 +480,15 @@ func (s *Session) PurgeDatabase() error {
 		return errors.New("neo4j connection not initialized")
 	}
 
-	_, err := dsl.QB().Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).Delete(true, "n").WithNeo(s.conn).Exec(nil)
+	// handle if in transaction
+	var conn connection.IQuery
+	if s.tx != nil {
+		conn = s.tx
+	} else {
+		conn = s.conn
+	}
+
+	_, err := dsl.QB().Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).Delete(true, "n").WithNeo(conn).Exec(nil)
 	return err
 }
 

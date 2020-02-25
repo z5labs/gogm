@@ -55,7 +55,7 @@ type relCreateConf struct {
 }
 
 // saves target node and connected node to specified depth
-func saveDepth(sess connection.IConnection, obj interface{}, depth int) error {
+func saveDepth(sess connection.IQuery, obj interface{}, depth int) error {
 	if sess == nil {
 		return errors.New("session can not be nil")
 	}
@@ -151,7 +151,7 @@ func saveDepth(sess connection.IConnection, obj interface{}, depth int) error {
 	if len(dels) != 0 {
 		wg.Add(1)
 
-		go func(wg *sync.WaitGroup, _dels map[string][]int64, _conn connection.IConnection, _err *error) {
+		go func(wg *sync.WaitGroup, _dels map[string][]int64, _conn connection.IQuery, _err *error) {
 			err := removeRelations(_conn, _dels)
 			if err != nil {
 				*_err = err
@@ -162,7 +162,7 @@ func saveDepth(sess connection.IConnection, obj interface{}, depth int) error {
 
 	if len(relations) != 0 {
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, _conn connection.IConnection, _relations map[string][]relCreateConf, _ids map[string]int64, _err *error) {
+		go func(wg *sync.WaitGroup, _conn connection.IQuery, _relations map[string][]relCreateConf, _ids map[string]int64, _err *error) {
 			err := relateNodes(_conn, _relations, _ids)
 			if err != nil {
 				*_err = err
@@ -229,7 +229,7 @@ func calculateDels(oldRels, curRels map[string]map[string]*RelationConfig) map[s
 }
 
 // removes relationships between specified nodes
-func removeRelations(conn connection.IConnection, dels map[string][]int64) error {
+func removeRelations(conn connection.IQuery, dels map[string][]int64) error {
 	if dels == nil || len(dels) == 0 {
 		return nil
 	}
@@ -282,7 +282,7 @@ func removeRelations(conn connection.IConnection, dels map[string][]int64) error
 }
 
 // creates nodes
-func createNodes(conn connection.IConnection, crNodes map[string]map[string]nodeCreateConf, nodeRef *map[string]*reflect.Value) (map[string]int64, error) {
+func createNodes(conn connection.IQuery, crNodes map[string]map[string]nodeCreateConf, nodeRef *map[string]*reflect.Value) (map[string]int64, error) {
 	idMap := map[string]int64{}
 
 	for label, nodes := range crNodes {
@@ -377,7 +377,7 @@ func createNodes(conn connection.IConnection, crNodes map[string]map[string]node
 }
 
 // relateNodes connects nodes together using edge config
-func relateNodes(conn connection.IConnection, relations map[string][]relCreateConf, ids map[string]int64) error {
+func relateNodes(conn connection.IQuery, relations map[string][]relCreateConf, ids map[string]int64) error {
 	if relations == nil || len(relations) == 0 {
 		return errors.New("relations can not be nil or empty")
 	}
