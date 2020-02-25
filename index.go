@@ -270,7 +270,20 @@ func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
 
 	log.Debug(delta)
 
-	delta, found = arrayOperations.Difference(foundConstraints, constraints)
+	var founds []string
+
+	for _, constraint := range foundConstraints {
+		if len(constraint) != 0 {
+			val, ok := constraint[0].(string)
+			if !ok {
+				return fmt.Errorf("unable to convert [%T] to [string]", val)
+			}
+
+			founds = append(founds, val)
+		}
+	}
+
+	delta, found = arrayOperations.Difference(founds, constraints)
 	if !found {
 		return fmt.Errorf("found differences in remote vs ogm for found constraints, %v", delta)
 	}
