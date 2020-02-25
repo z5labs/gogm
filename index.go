@@ -46,11 +46,6 @@ func dropAllIndexesAndConstraints() error {
 		return err
 	}
 
-	err = constraintRows.Close()
-	if err != nil {
-		return err
-	}
-
 	//if there is anything, get rid of it
 	if len(constraints) != 0 {
 		tx, err := conn.Begin()
@@ -78,17 +73,7 @@ func dropAllIndexesAndConstraints() error {
 		}
 	}
 
-	indexRows, err := dsl.QB().Cypher("CALL db.indexes()").WithNeo(conn).Query(nil)
-	if err != nil {
-		return err
-	}
-
-	indexes, err := dsl.RowsTo2DInterfaceArray(indexRows)
-	if err != nil {
-		return err
-	}
-
-	err = indexRows.Close()
+	indexes, err := dsl.QB().Cypher("CALL db.indexes()").WithNeo(conn).Query(nil)
 	if err != nil {
 		return err
 	}
@@ -255,34 +240,14 @@ func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
 	}
 
 	//get whats there now
-	constRows, err := dsl.QB().WithNeo(conn).Cypher("CALL db.constraints").Query(nil)
-	if err != nil {
-		return err
-	}
-
-	foundConstraints, err := dsl.RowsToStringArray(constRows)
-	if err != nil {
-		return err
-	}
-
-	err = constRows.Close()
+	foundConstraints, err := dsl.QB().WithNeo(conn).Cypher("CALL db.constraints").Query(nil)
 	if err != nil {
 		return err
 	}
 
 	var foundIndexes []string
 
-	indexRows, err := dsl.QB().WithNeo(conn).Cypher("CALL db.indexes()").Query(nil)
-	if err != nil {
-		return err
-	}
-
-	findexes, err := dsl.RowsTo2DInterfaceArray(indexRows)
-	if err != nil {
-		return err
-	}
-
-	err = indexRows.Close()
+	findexes, err := dsl.QB().WithNeo(conn).Cypher("CALL db.indexes()").Query(nil)
 	if err != nil {
 		return err
 	}

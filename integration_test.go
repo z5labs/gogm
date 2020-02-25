@@ -54,13 +54,14 @@ func TestIntegration(t *testing.T) {
 
 	sess, err := NewSession(false)
 	req.Nil(err)
-	defer sess.Close()
-	defer driverPool.Close()
 
 	log.Println("test save")
 	testSave(sess, req)
 
 	req.Nil(sess.PurgeDatabase())
+
+	req.Nil(sess.Close())
+	req.Nil(driverPool.Close())
 }
 
 // runs with integration test

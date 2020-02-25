@@ -22,25 +22,11 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	"github.com/mindstand/go-bolt/connection"
 	"github.com/mindstand/go-bolt/structures/graph"
-	dsl "github.com/mindstand/go-cypherdsl"
 	"reflect"
 	"strings"
 	"time"
 )
-
-// decodes neo4j rows and writes the response to generic interface
-func decodeNeoRows(rows connection.IRows, respObj interface{}) error {
-	defer rows.Close()
-
-	arr, err := dsl.RowsTo2DInterfaceArray(rows)
-	if err != nil {
-		return err
-	}
-
-	return decode(arr, respObj)
-}
 
 //decodes raw path response from driver
 //example query `match p=(n)-[*0..5]-() return p`

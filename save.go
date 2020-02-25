@@ -25,7 +25,6 @@ import (
 	"github.com/mindstand/go-bolt/connection"
 	dsl "github.com/mindstand/go-cypherdsl"
 	"reflect"
-	"sync"
 )
 
 // maximum supported depth
@@ -121,63 +120,39 @@ func saveDepth(sess connection.IQuery, obj interface{}, depth int) error {
 
 	dels := calculateDels(oldRels, curRels)
 
-	var wg sync.WaitGroup
-	var err1, err2, err3 error
 	//fix the cur rels and write them to their perspective nodes
-	wg.Add(1)
-	go func(wg *sync.WaitGroup, _curRels *map[string]map[string]*RelationConfig, _nodeRef *map[string]*reflect.Value, _ids *map[string]int64, _err *error) {
-		for uuid, val := range *_nodeRef {
-			loadConf, ok := (*_curRels)[uuid]
-			if !ok {
-				*_err = fmt.Errorf("load config not found for node [%s]", uuid)
-				wg.Done()
-				return
-			}
-
-			//handle if its a pointer
-			if val.Kind() == reflect.Ptr {
-				*val = val.Elem()
-			}
-
-			reflect.Indirect(*val).FieldByName("LoadMap").Set(reflect.ValueOf(loadConf))
+	for uuid, val := range nodeRef {
+		loadConf, ok := (curRels)[uuid]
+		if !ok {
+			return fmt.Errorf("load config not found for node [%s]", uuid)
 		}
 
-		wg.Done()
-	}(&wg, &curRels, &nodeRef, &ids, &err3)
+		//handle if its a pointer
+		if val.Kind() == reflect.Ptr {
+			*val = val.Elem()
+		}
+
+		reflect.Indirect(*val).FieldByName("LoadMap").Set(reflect.ValueOf(loadConf))
+	}
 
 	//execute concurrently
 	//calculate dels
 
 	if len(dels) != 0 {
-		wg.Add(1)
-
-		go func(wg *sync.WaitGroup, _dels map[string][]int64, _conn connection.IQuery, _err *error) {
-			err := removeRelations(_conn, _dels)
-			if err != nil {
-				*_err = err
-			}
-			wg.Done()
-		}(&wg, dels, sess, &err1)
+		err := removeRelations(sess, dels)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(relations) != 0 {
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, _conn connection.IQuery, _relations map[string][]relCreateConf, _ids map[string]int64, _err *error) {
-			err := relateNodes(_conn, _relations, _ids)
-			if err != nil {
-				*_err = err
-			}
-			wg.Done()
-		}(&wg, sess, relations, ids, &err2)
+		err := relateNodes(sess, relations, ids)
+		if err != nil {
+			return err
+		}
 	}
 
-	wg.Wait()
-
-	if err1 != nil || err2 != nil || err3 != nil {
-		return fmt.Errorf("delErr=(%v) | relErr=(%v) | reallocErr=(%v)", err1, err2, err3)
-	} else {
-		return nil
-	}
+	return nil
 }
 
 // calculates which relationships to delete
@@ -309,7 +284,7 @@ func createNodes(conn connection.IQuery, crNodes map[string]map[string]nodeCreat
 		}
 
 		//todo replace once unwind is fixed and path
-		res, err := dsl.QB().
+		resRows, err := dsl.QB().
 			Cypher("UNWIND {rows} as row").
 			Merge(&dsl.MergeConfig{
 				Path: path,
@@ -329,15 +304,6 @@ func createNodes(conn connection.IQuery, crNodes map[string]map[string]nodeCreat
 			Query(map[string]interface{}{
 				"rows": rows,
 			})
-		if err != nil {
-			return nil, err
-		}
-
-		if res == nil {
-			return nil, errors.New("res should not be nil")
-		}
-
-		resRows, _, err := res.All()
 		if err != nil {
 			return nil, err
 		}
@@ -365,11 +331,6 @@ func createNodes(conn connection.IQuery, crNodes map[string]map[string]nodeCreat
 			}
 
 			reflect.Indirect(*val).FieldByName("Id").Set(reflect.ValueOf(graphId))
-		}
-
-		err = res.Close()
-		if err != nil {
-			return nil, err
 		}
 	}
 

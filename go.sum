@@ -31,10 +31,10 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/mindstand/go-bolt v0.2.0 h1:ehSeTaZ3zhnz3s2jexa7Nlc5baWWD9Cse3LmdzgvuyY=
-github.com/mindstand/go-bolt v0.2.0/go.mod h1:il2Q3ukfionGT1M6cqxfUDKSNhJFGiKu9VFz/i3Q+28=
-github.com/mindstand/go-cypherdsl v0.0.0-20200223221201-2195a7bf59ed h1:p2lGu9hWIph8uz5ueUgdijAzCd3LtBbysGJ4f8zO098=
-github.com/mindstand/go-cypherdsl v0.0.0-20200223221201-2195a7bf59ed/go.mod h1:Auou+agsxbyFplHonPNbQmwq+QwdOt5uFy1nre3OxLg=
+github.com/mindstand/go-bolt v0.2.1-0.20200225171020-0494fb808e58 h1:2zBrWg0ROoQWADFVmKthrTS916txoOZ21Mnp1cvlNHM=
+github.com/mindstand/go-bolt v0.2.1-0.20200225171020-0494fb808e58/go.mod h1:il2Q3ukfionGT1M6cqxfUDKSNhJFGiKu9VFz/i3Q+28=
+github.com/mindstand/go-cypherdsl v0.0.0-20200225174545-c548bb9c5bf6 h1:yS7JIKVnupZhbz6TkcvihPjP0kS47HJQOix1x/dDvhM=
+github.com/mindstand/go-cypherdsl v0.0.0-20200225174545-c548bb9c5bf6/go.mod h1:Dwe2WBw18iifJtKed28BZRw/EsRKYAh0JHIOhIcUeis=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/russross/blackfriday/v2 v2.0.1 h1:lPqVAte+HuHNfhJ/0LC98ESWRz8afy9tM/0RK8m9o+Q=

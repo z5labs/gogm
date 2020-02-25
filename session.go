@@ -211,7 +211,7 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 		return err
 	}
 
-	return decodeNeoRows(rows, respObj)
+	return decode(rows, respObj)
 }
 
 func (s *Session) LoadAll(respObj interface{}) error {
@@ -301,7 +301,7 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 		return err
 	}
 
-	return decodeNeoRows(rows, respObj)
+	return decode(rows, respObj)
 }
 
 func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNodeField string, edgeConstraint interface{}, minJumps, maxJumps, depth int, filter dsl.ConditionOperator) error {
@@ -364,7 +364,7 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 		return err
 	}
 
-	return decodeNeoRows(rows, respObj)
+	return decode(rows, respObj)
 }
 
 func (s *Session) Save(saveObj interface{}) error {
@@ -441,7 +441,7 @@ func (s *Session) Query(query string, properties map[string]interface{}, respObj
 		return err
 	}
 
-	return decodeNeoRows(rows, respObj)
+	return decode(rows, respObj)
 }
 
 func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error) {
@@ -457,17 +457,7 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 		conn = s.conn
 	}
 
-	rows, err := dsl.QB().Cypher(query).WithNeo(conn).Query(properties)
-	if err != nil {
-		return nil, err
-	}
-
-	data, _, err := rows.All()
-	if err != nil {
-		return nil, err
-	}
-
-	err = rows.Close()
+	data, err := dsl.QB().Cypher(query).WithNeo(conn).Query(properties)
 	if err != nil {
 		return nil, err
 	}
