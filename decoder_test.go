@@ -138,20 +138,21 @@ type f struct {
 
 type a struct {
 	BaseNode
-	TestField         string   `gogm:"name=test_field"`
-	TestTypeDefString tdString `gogm:"name=test_type_def_string"`
-	TestTypeDefInt    tdInt    `gogm:"name=test_type_def_int"`
-	SingleA           *b       `gogm:"direction=incoming;relationship=test_rel"`
-	ManyA             []*b     `gogm:"direction=incoming;relationship=testm2o"`
-	MultiA            []*b     `gogm:"direction=incoming;relationship=multib"`
-	SingleSpecA       *c       `gogm:"direction=outgoing;relationship=special_single"`
-	MultiSpecA        []*c     `gogm:"direction=outgoing;relationship=special_multi"`
+	TestField         string    `gogm:"name=test_field"`
+	TestTypeDefString tdString  `gogm:"name=test_type_def_string"`
+	TestTypeDefInt    tdInt     `gogm:"name=test_type_def_int"`
+	SingleA           *b        `gogm:"direction=incoming;relationship=test_rel"`
+	ManyA             []*b      `gogm:"direction=incoming;relationship=testm2o"`
+	MultiA            []*b      `gogm:"direction=incoming;relationship=multib"`
+	SingleSpecA       *c        `gogm:"direction=outgoing;relationship=special_single"`
+	MultiSpecA        []*c      `gogm:"direction=outgoing;relationship=special_multi"`
+	Created           time.Time `gogm:"name=created"`
 }
 
 type b struct {
 	BaseNode
 	TestField  string    `gogm:"name=test_field"`
-	TestTime   time.Time `gogm:"time;name=test_time"`
+	TestTime   time.Time `gogm:"name=test_time"`
 	Single     *a        `gogm:"direction=outgoing;relationship=test_rel"`
 	ManyB      *a        `gogm:"direction=outgoing;relationship=testm2o"`
 	Multi      []*a      `gogm:"direction=outgoing;relationship=multib"`

@@ -115,7 +115,7 @@ func (d *decoratorConfig) Equals(comp *decoratorConfig) bool {
 
 	return d.Name == comp.Name && d.FieldName == comp.FieldName && d.Relationship == comp.Relationship &&
 		d.Direction == comp.Direction && d.Unique == comp.Unique && d.Index == comp.Index && d.ManyRelationship == comp.ManyRelationship &&
-		d.UsesEdgeNode == comp.UsesEdgeNode && d.PrimaryKey == comp.PrimaryKey && d.Properties == comp.Properties && d.IsTime == comp.IsTime &&
+		d.UsesEdgeNode == comp.UsesEdgeNode && d.PrimaryKey == comp.PrimaryKey && d.Properties == comp.Properties &&
 		d.IsTypeDef == comp.IsTypeDef && d.Ignore == comp.Ignore
 }
 
@@ -159,7 +159,7 @@ func (s *structDecoratorConfig) Equals(comp *structDecoratorConfig) bool {
 func (d *decoratorConfig) Validate() error {
 	if d.Ignore {
 		if d.Relationship != "" || d.Unique || d.Index || d.ManyRelationship || d.UsesEdgeNode ||
-			d.PrimaryKey || d.Properties || d.IsTime || d.Name != d.FieldName {
+			d.PrimaryKey || d.Properties || d.Name != d.FieldName {
 			log.Println(d)
 			return NewInvalidDecoratorConfigError("ignore tag cannot be combined with any other tag", "")
 		}
@@ -227,16 +227,6 @@ func (d *decoratorConfig) Validate() error {
 		return nil
 	}
 
-	//validate timeField
-	if d.IsTime {
-		if kind != reflect.Int64 && d.Type != timeType {
-			return errors.New("can not be a time value and not be either an int64 or time.Time")
-		}
-
-		//time is valid
-		return nil
-	}
-
 	//standard field checks now
 
 	//check pk and index and unique on the same field
@@ -290,7 +280,6 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		PrimaryKey: false,
 		Ignore:     false,
 		Direction:  0,
-		IsTime:     false,
 		Type:       varType,
 		FieldName:  name,
 	}
@@ -306,10 +295,6 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 
 			key := assign[0]
 			val := assign[1]
-
-			if varType == timeType {
-				toReturn.IsTime = true
-			}
 
 			switch key {
 			case paramNameField:

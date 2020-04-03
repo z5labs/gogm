@@ -133,6 +133,7 @@ func testSave(sess *Session, req *require.Assertions) {
 		TestTypeDefInt:    600,
 		ManyA:             []*b{},
 		MultiA:            []*b{},
+		Created:           time.Now().UTC(),
 	}
 
 	req.Nil(sess.Begin())

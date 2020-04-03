@@ -28,7 +28,6 @@ Decorators that can be used
 - `name=<name>` -- used to set the field name that will show up in neo4j.
 - `relationship=<edge_name>` -- used to set the name of the edge on that field.
 - `direction=<INCOMING|OUTGOING|BOTH|NONE>` -- used to specify direction of that edge field.
-- <s>`time` -- used to mark field as a time representation. compatible with `time.Time` Customizable time format coming soon.</s>
 - `index` -- marks field to have an index applied to it.
 - `unique` -- marks field to have unique constraint.
 - `pk` -- marks field as a primary key. Can only have one pk, composite pk's are not supported.
@@ -91,7 +90,7 @@ type VertexB struct {
 	gogm.BaseNode
 
 	TestField  string    `gogm:"name=test_field"`
-	TestTime   time.Time `gogm:"time;name=test_time"`
+	TestTime   time.Time `gogm:"name=test_time"`
 
 	Single     *VertexA         `gogm:"direction=outgoing;relationship=test_rel"`
 	ManyB      *VertexA         `gogm:"direction=incoming;relationship=testm2o"`
