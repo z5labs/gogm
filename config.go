@@ -25,6 +25,7 @@ import (
 	"github.com/cornelk/hashmap"
 	driver "github.com/mindstand/golang-neo4j-bolt-driver"
 	"github.com/sirupsen/logrus"
+	"net/url"
 	"reflect"
 )
 
@@ -83,8 +84,8 @@ func (c *Config) ConnectionString() string {
 	} else {
 		protocol = "bolt"
 	}
-
-	return fmt.Sprintf("%s://%s:%s@%s:%v", protocol, c.Username, c.Password, c.Host, c.Port)
+	password := url.QueryEscape(c.Password)
+	return fmt.Sprintf("%s://%s:%s@%s:%v", protocol, c.Username, password, c.Host, c.Port)
 }
 
 // Index Strategy typedefs int to define different index approaches
