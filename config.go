@@ -84,6 +84,7 @@ func (c *Config) ConnectionString() string {
 	} else {
 		protocol = "bolt"
 	}
+	// In case of special characters in password string
 	password := url.QueryEscape(c.Password)
 	return fmt.Sprintf("%s://%s:%s@%s:%v", protocol, c.Username, password, c.Host, c.Port)
 }
