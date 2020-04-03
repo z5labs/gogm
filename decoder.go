@@ -25,7 +25,6 @@ import (
 	"github.com/mindstand/go-bolt/structures/graph"
 	"reflect"
 	"strings"
-	"time"
 )
 
 //decodes raw path response from driver
@@ -599,33 +598,11 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 		if raw == nil || rawVal.IsZero() {
 			continue //its already initialized to 0 value, no need to do anything
 		} else {
-			if fieldConfig.IsTime {
-				timeStr, ok := raw.(string)
-				if !ok {
-					return nil, errors.New("can not convert interface{} time to string")
-				}
-
-				convTime, err := time.Parse(time.RFC3339, timeStr)
-				if err != nil {
-					return nil, err
-				}
-
-				var writeVal reflect.Value
-
-				if fieldConfig.Type.Kind() == reflect.Ptr {
-					writeVal = reflect.ValueOf(convTime).Addr()
-				} else {
-					writeVal = reflect.ValueOf(convTime)
-				}
-
-				reflect.Indirect(val).FieldByName(field).Set(writeVal)
+			indirect := reflect.Indirect(val)
+			if indirect.FieldByName(field).Type() == rawVal.Type() {
+				indirect.FieldByName(field).Set(rawVal)
 			} else {
-				indirect := reflect.Indirect(val)
-				if indirect.FieldByName(field).Type() == rawVal.Type() {
-					indirect.FieldByName(field).Set(rawVal)
-				} else {
-					indirect.FieldByName(field).Set(rawVal.Convert(indirect.FieldByName(field).Type()))
-				}
+				indirect.FieldByName(field).Set(rawVal.Convert(indirect.FieldByName(field).Type()))
 			}
 		}
 	}

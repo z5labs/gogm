@@ -49,7 +49,7 @@ const (
 	directionField = "direction"
 
 	//specifies if the field contains time representation
-	timeField = "time"
+	//timeField = "time"
 
 	//specifies if the field is to be indexed
 	indexField = "index"
@@ -98,7 +98,7 @@ type decoratorConfig struct {
 	// specify if the field holds properties
 	Properties bool `json:"properties"`
 	// specifies if the field contains time value
-	IsTime bool `json:"is_time"`
+	//	IsTime bool `json:"is_time"`
 	// specifies if the field contains a typedef of another type
 	IsTypeDef bool `json:"is_type_def"`
 	// holds the reflect type of the root type if typedefed
@@ -307,6 +307,10 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 			key := assign[0]
 			val := assign[1]
 
+			if varType == timeType {
+				toReturn.IsTime = true
+			}
+
 			switch key {
 			case paramNameField:
 				toReturn.Name = val
@@ -366,8 +370,6 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		case indexField:
 			toReturn.Index = true
 			continue
-		case timeField:
-			toReturn.IsTime = true
 		default:
 			return nil, fmt.Errorf("key '%s' is not recognized", field) //todo replace with better error
 		}

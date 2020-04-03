@@ -27,7 +27,6 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-	"time"
 )
 
 // checks if integer is in slice
@@ -131,20 +130,7 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 			continue
 		}
 
-		if conf.IsTime {
-			if conf.Type.Kind() == reflect.Int64 {
-				ret[conf.Name] = val.FieldByName(conf.FieldName).Interface()
-			} else {
-				dateInterface := val.FieldByName(conf.FieldName).Interface()
-
-				dateObj, ok := dateInterface.(time.Time)
-				if !ok {
-					return nil, errors.New("cant convert date to time.Time")
-				}
-
-				ret[conf.Name] = dateObj.Format(time.RFC3339)
-			}
-		} else if conf.Properties {
+		if conf.Properties {
 			//check if field is a map
 			if conf.Type.Kind() == reflect.Map {
 				//try to cast it
