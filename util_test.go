@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestSetUuidIfNeeded(t *testing.T) {
@@ -107,6 +108,7 @@ func TestToCypherParamsMap(t *testing.T) {
 		"test_type_def_int":    0,
 		"test_type_def_string": "",
 		"test_field":           "testvalue",
+		"created":              time.Time{},
 	}, params)
 
 	p := propsTest{
