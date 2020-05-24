@@ -7,10 +7,8 @@ require (
 	github.com/cornelk/hashmap v1.0.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dchest/siphash v1.2.1 // indirect
-	github.com/extemporalgenome/epochdate v0.0.0-20190226042110-76033ea24270 // indirect
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/google/uuid v1.1.1
-	github.com/jordwest/mock-conn v0.0.0-20180617021051-4896c6bd1641 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mindstand/go-bolt v0.2.1-0.20200414154543-dd7499698d09
 	github.com/mindstand/go-cypherdsl v0.1.1
