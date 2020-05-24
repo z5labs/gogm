@@ -22,6 +22,7 @@ package gogm
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"reflect"
 
 	"github.com/cornelk/hashmap"
@@ -84,8 +85,9 @@ func (c *Config) ConnectionString() string {
 	} else {
 		protocol = "bolt"
 	}
-
-	return fmt.Sprintf("%s://%s:%s@%s:%v", protocol, c.Username, c.Password, c.Host, c.Port)
+	// In case of special characters in password string
+	password := url.QueryEscape(c.Password)
+	return fmt.Sprintf("%s://%s:%s@%s:%v", protocol, c.Username, password, c.Host, c.Port)
 }
 
 // Index Strategy typedefs int to define different index approaches

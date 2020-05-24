@@ -18,7 +18,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 name: Go
-on: [push]
+on: [push, pull_request]
 jobs:
 
   build:
