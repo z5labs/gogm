@@ -7,14 +7,17 @@ require (
 	github.com/cornelk/hashmap v1.0.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dchest/siphash v1.2.1 // indirect
+	github.com/extemporalgenome/epochdate v0.0.0-20190226042110-76033ea24270 // indirect
+	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/jordwest/mock-conn v0.0.0-20180617021051-4896c6bd1641 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mindstand/go-bolt v0.2.1-0.20200414154543-dd7499698d09
-	github.com/mindstand/go-cypherdsl v0.0.0-20200414155202-6d03f3fd5290
-	github.com/sirupsen/logrus v1.5.0
+	github.com/mindstand/go-cypherdsl v0.1.1
+	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.5.1
 	github.com/urfave/cli/v2 v2.0.0
-	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4 // indirect
+	golang.org/x/sys v0.0.0-20200523222454-059865788121 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )

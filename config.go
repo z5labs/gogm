@@ -22,10 +22,11 @@ package gogm
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
 	"github.com/cornelk/hashmap"
 	goBolt "github.com/mindstand/go-bolt"
 	"github.com/sirupsen/logrus"
-	"reflect"
 )
 
 var externalLog *logrus.Entry
@@ -91,11 +92,11 @@ func (c *Config) ConnectionString() string {
 type IndexStrategy int
 
 const (
-	// Assert Index ensures that all indices are set and sets them if they are not there
+	// ASSERT_INDEX ensures that all indices are set and sets them if they are not there
 	ASSERT_INDEX IndexStrategy = 0
-	// Validate Index ensures that all indices are set
+	// VALIDATE_INDEX ensures that all indices are set
 	VALIDATE_INDEX IndexStrategy = 1
-	// Ignore Index skips the index step of setup
+	// IGNORE_INDEX skips the index step of setup
 	IGNORE_INDEX IndexStrategy = 2
 )
 
