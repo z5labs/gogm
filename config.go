@@ -22,12 +22,12 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	"net/url"
-	"reflect"
-
 	"github.com/cornelk/hashmap"
 	goBolt "github.com/mindstand/go-bolt"
+	_ "github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/sirupsen/logrus"
+	"net/url"
+	"reflect"
 )
 
 var externalLog *logrus.Entry

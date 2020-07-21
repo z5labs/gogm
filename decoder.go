@@ -22,22 +22,17 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	"github.com/mindstand/go-bolt/structures/graph"
+	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"reflect"
 	"strings"
 )
 
 //decodes raw path response from driver
 //example query `match p=(n)-[*0..5]-() return p`
-func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
+func decode(result neo4j.Result, respObj interface{}) (err error) {
 	//check nil params
-	if rawArr == nil {
-		return fmt.Errorf("rawArr can not be nil, %w", ErrInvalidParams)
-	}
-
-	//check empty
-	if len(rawArr) == 0 {
-		return fmt.Errorf("nothing returned from driver, %w", ErrNotFound)
+	if result == nil {
+		return fmt.Errorf("result can not be nil, %w", ErrInvalidParams)
 	}
 
 	//we're doing reflection now, lets set up a panic recovery
@@ -61,24 +56,21 @@ func decode(rawArr [][]interface{}, respObj interface{}) (err error) {
 	}
 
 	//todo optimize with set array size
-	var paths []*graph.Path
-	var strictRels []*graph.Relationship
-	var isolatedNodes []*graph.Node
+	var paths []neo4j.Path
+	var strictRels []neo4j.Relationship
+	var isolatedNodes []neo4j.Node
 
-	for _, arr := range rawArr {
-		for _, graphType := range arr {
+	for result.Next() {
+		for _, graphType := range result.Record().Values() {
 			switch graphType.(type) {
-			case graph.Path:
-				convP := graphType.(graph.Path)
-				paths = append(paths, &convP)
+			case neo4j.Path:
+				paths = append(paths, graphType.(neo4j.Path))
 				break
-			case graph.Relationship:
-				convR := graphType.(graph.Relationship)
-				strictRels = append(strictRels, &convR)
+			case neo4j.Relationship:
+				strictRels = append(strictRels, graphType.(neo4j.Relationship))
 				break
-			case graph.Node:
-				convN := graphType.(graph.Node)
-				isolatedNodes = append(isolatedNodes, &convN)
+			case neo4j.Node:
+				isolatedNodes = append(isolatedNodes, graphType.(neo4j.Node))
 				break
 			default:
 				continue
@@ -344,7 +336,7 @@ func getPrimaryLabel(rt reflect.Type) string {
 }
 
 // sortIsolatedNodes process nodes that are returned individually from bolt driver
-func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]string, nodeLookup *map[int64]*reflect.Value, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
+func sortIsolatedNodes(isolatedNodes []neo4j.Node, labelLookup *map[int64]string, nodeLookup *map[int64]*reflect.Value, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
 	if isolatedNodes == nil {
 		return fmt.Errorf("isolatedNodes can not be nil, %w", ErrInternal)
 	}
@@ -355,24 +347,24 @@ func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]strin
 		}
 
 		//check if node has already been found by another process
-		if _, ok := (*nodeLookup)[node.NodeIdentity]; !ok {
+		if _, ok := (*nodeLookup)[node.Id()]; !ok {
 			//if it hasn't, map it
-			val, err := convertNodeToValue(*node)
+			val, err := convertNodeToValue(node)
 			if err != nil {
 				return err
 			}
 
-			(*nodeLookup)[node.NodeIdentity] = val
-			(*relMaps)[node.NodeIdentity] = map[string]*RelationConfig{}
+			(*nodeLookup)[node.Id()] = val
+			(*relMaps)[node.Id()] = map[string]*RelationConfig{}
 
 			//primary to return
-			if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
-				*pks = append(*pks, node.NodeIdentity)
+			if node.Labels != nil && len(node.Labels()) != 0 && node.Labels()[0] == pkLabel {
+				*pks = append(*pks, node.Id())
 			}
 
 			//set label map
-			if _, ok := (*labelLookup)[node.NodeIdentity]; !ok && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
-				(*labelLookup)[node.NodeIdentity] = node.Labels[0]
+			if _, ok := (*labelLookup)[node.Id()]; !ok && len(node.Labels()) != 0 && node.Labels()[0] == pkLabel {
+				(*labelLookup)[node.Id()] = node.Labels()[0]
 			}
 		}
 	}
@@ -381,7 +373,7 @@ func sortIsolatedNodes(isolatedNodes []*graph.Node, labelLookup *map[int64]strin
 }
 
 // sortStrictRels sorts relationships that are strictly defined (i.e direction is pre defined) from the bolt driver
-func sortStrictRels(strictRels []*graph.Relationship, labelLookup *map[int64]string, rels *map[int64]*neoEdgeConfig) error {
+func sortStrictRels(strictRels []neo4j.Relationship, labelLookup *map[int64]string, rels *map[int64]*neoEdgeConfig) error {
 	if strictRels == nil {
 		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
 	}
@@ -391,25 +383,25 @@ func sortStrictRels(strictRels []*graph.Relationship, labelLookup *map[int64]str
 			return errors.New("path can not be nil")
 		}
 
-		if _, ok := (*rels)[rel.RelIdentity]; !ok {
-			startLabel, ok := (*labelLookup)[rel.StartNodeIdentity]
+		if _, ok := (*rels)[rel.Id()]; !ok {
+			startLabel, ok := (*labelLookup)[rel.StartId()]
 			if !ok {
-				return fmt.Errorf("label not found for node [%v], %w", rel.StartNodeIdentity, ErrInternal)
+				return fmt.Errorf("label not found for node [%v], %w", rel.Id(), ErrInternal)
 			}
 
-			endLabel, ok := (*labelLookup)[rel.EndNodeIdentity]
+			endLabel, ok := (*labelLookup)[rel.EndId()]
 			if !ok {
-				return fmt.Errorf("label not found for node [%v], %w", rel.EndNodeIdentity, ErrInternal)
+				return fmt.Errorf("label not found for node [%v], %w", rel.EndId(), ErrInternal)
 			}
 
-			(*rels)[rel.RelIdentity] = &neoEdgeConfig{
-				Id:            rel.RelIdentity,
-				StartNodeId:   rel.StartNodeIdentity,
+			(*rels)[rel.Id()] = &neoEdgeConfig{
+				Id:            rel.Id(),
+				StartNodeId:   rel.StartId(),
 				StartNodeType: startLabel,
-				EndNodeId:     rel.StartNodeIdentity,
+				EndNodeId:     rel.EndId(),
 				EndNodeType:   endLabel,
-				Obj:           rel.Properties,
-				Type:          rel.Type,
+				Obj:           rel.Props(),
+				Type:          rel.Type(),
 			}
 		}
 	}
@@ -418,7 +410,7 @@ func sortStrictRels(strictRels []*graph.Relationship, labelLookup *map[int64]str
 }
 
 // sortPaths sorts nodes and relationships from bolt driver that dont specify the direction explicitly, instead uses the bolt spec to determine direction
-func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
+func sortPaths(paths []neo4j.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
 	if paths == nil {
 		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
 	}
@@ -428,70 +420,53 @@ func sortPaths(paths []*graph.Path, nodeLookup *map[int64]*reflect.Value, rels *
 			return errors.New("path can not be nil")
 		}
 
-		if path.Nodes == nil || len(path.Nodes) == 0 {
+		if path.Nodes() == nil || len(path.Nodes()) == 0 {
 			return fmt.Errorf("no nodes found, %w", ErrNotFound)
 		}
 
-		for _, node := range path.Nodes {
+		labelLookup := make(map[int64]string, len(path.Nodes()))
 
-			if _, ok := (*nodeLookup)[node.NodeIdentity]; !ok {
+		for _, node := range path.Nodes() {
+			if _, ok := labelLookup[node.Id()]; !ok && len(node.Labels()) != 0 {
+				labelLookup[node.Id()] = node.Labels()[0]
+			}
+			if _, ok := (*nodeLookup)[node.Id()]; !ok {
 				//we haven't parsed this one yet, lets do that now
 				val, err := convertNodeToValue(node)
 				if err != nil {
 					return err
 				}
 
-				(*nodeLookup)[node.NodeIdentity] = val
-				(*relMaps)[node.NodeIdentity] = map[string]*RelationConfig{}
+				(*nodeLookup)[node.Id()] = val
+				(*relMaps)[node.Id()] = map[string]*RelationConfig{}
 
 				//primary to return
-				if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
-					*pks = append(*pks, node.NodeIdentity)
+				if node.Labels != nil && len(node.Labels()) != 0 && node.Labels()[0] == pkLabel {
+					*pks = append(*pks, node.Id())
 				}
 			}
 		}
 
-		//handle the relationships
-		//sequence is [node_id, edge_id (negative if its in the wrong direction), repeat....]
-		if path.Sequence != nil && len(path.Sequence) != 0 && path.Relationships != nil && len(path.Relationships) == (len(path.Sequence)/2) {
-			seqPrime := append([]int{0}, path.Sequence...)
-			seqPrimeLen := len(seqPrime)
+		for _, rel := range path.Relationships() {
+			startLabel, ok := labelLookup[rel.StartId()]
+			if !ok {
+				return fmt.Errorf("label not found for node with graphId [%v], %w", rel.StartId(), ErrInternal)
+			}
 
-			for i := 0; i+2 < seqPrimeLen; i += 2 {
-				startPosIndex := seqPrime[i]
-				edgeIndex := seqPrime[i+1]
-				endPosIndex := seqPrime[i+2]
+			endLabel, ok := labelLookup[rel.EndId()]
+			if !ok {
+				return fmt.Errorf("label not found for node with graphId [%v], %w", rel.EndId(), ErrInternal)
+			}
 
-				var startId int
-				var endId int
-				var edgeId int
-
-				//keep order
-				if edgeIndex >= 0 {
-					startId = startPosIndex
-					endId = endPosIndex
-					edgeId = edgeIndex
-				} else {
-					//reverse
-					startId = endPosIndex
-					endId = startPosIndex
-					edgeId = -edgeIndex
-				}
-
-				startNode := path.Nodes[startId]
-				endNode := path.Nodes[endId]
-				rel := path.Relationships[edgeId-1] //offset for the array
-
-				if _, ok := (*rels)[rel.RelIdentity]; !ok {
-					(*rels)[rel.RelIdentity] = &neoEdgeConfig{
-						Id:            rel.RelIdentity,
-						StartNodeId:   startNode.NodeIdentity,
-						StartNodeType: startNode.Labels[0],
-						EndNodeId:     endNode.NodeIdentity,
-						EndNodeType:   endNode.Labels[0],
-						Obj:           rel.Properties,
-						Type:          rel.Type,
-					}
+			if _, ok := (*rels)[rel.Id()]; !ok {
+				(*rels)[rel.Id()] = &neoEdgeConfig{
+					Id:            rel.Id(),
+					StartNodeId:  	rel.StartId(),
+					StartNodeType: startLabel,
+					EndNodeId:     rel.EndId(),
+					EndNodeType:   endLabel,
+					Obj:           rel.Props(),
+					Type:          rel.Type(),
 				}
 			}
 		}
@@ -617,17 +592,17 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 }
 
 // convertNodeToValue converts raw bolt node to reflect value
-func convertNodeToValue(boltNode graph.Node) (*reflect.Value, error) {
+func convertNodeToValue(boltNode neo4j.Node) (*reflect.Value, error) {
 
-	if boltNode.Labels == nil || len(boltNode.Labels) == 0 {
+	if boltNode.Labels == nil || len(boltNode.Labels()) == 0 {
 		return nil, errors.New("boltNode has no labels")
 	}
 
 	var typeConfig structDecoratorConfig
 
-	temp, ok := mappedTypes.Get(boltNode.Labels[0]) // mappedTypes[boltNode.Labels[0]]
+	temp, ok := mappedTypes.Get(boltNode.Labels()[0]) // mappedTypes[boltNode.Labels[0]]
 	if !ok {
-		return nil, fmt.Errorf("can not find mapping for node with label %s", boltNode.Labels[0])
+		return nil, fmt.Errorf("can not find mapping for node with label %s", boltNode.Labels()[0])
 	}
 
 	typeConfig, ok = temp.(structDecoratorConfig)
@@ -635,5 +610,5 @@ func convertNodeToValue(boltNode graph.Node) (*reflect.Value, error) {
 		return nil, errors.New("unable to cast to struct decorator config")
 	}
 
-	return convertToValue(boltNode.NodeIdentity, typeConfig, boltNode.Properties, typeConfig.Type)
+	return convertToValue(boltNode.Id(), typeConfig, boltNode.Props(), typeConfig.Type)
 }

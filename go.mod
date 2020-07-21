@@ -12,6 +12,7 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mindstand/go-bolt v0.2.1-0.20200414154543-dd7499698d09
 	github.com/mindstand/go-cypherdsl v0.1.1
+	github.com/neo4j/neo4j-go-driver v1.8.1-0.20200622090208-4295b59525c9
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.5.1
