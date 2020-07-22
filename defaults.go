@@ -34,7 +34,7 @@ type BaseNode struct {
 	LoadMap map[string]*RelationConfig `json:"-" gogm:"-"`
 }
 
-// Specifies Type of Relationship
+// Specifies Type of testRelationship
 type RelationType int
 
 const (

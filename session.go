@@ -30,8 +30,8 @@ import (
 const defaultDepth = 1
 
 type Session struct {
-	neoSess neo4j.Session
-	tx neo4j.Transaction
+	neoSess      neo4j.Session
+	tx           neo4j.Transaction
 	DefaultDepth int
 	LoadStrategy LoadStrategy
 }

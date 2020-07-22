@@ -27,9 +27,19 @@ import (
 	"strings"
 )
 
+func decode(result neo4j.Result, respObj interface{}) (err error) {
+	var rows [][]interface{}
+
+	for result.Next() {
+		rows = append(rows, result.Record().Values())
+	}
+
+	return innerDecode(rows, respObj)
+}
+
 //decodes raw path response from driver
 //example query `match p=(n)-[*0..5]-() return p`
-func decode(result neo4j.Result, respObj interface{}) (err error) {
+func innerDecode(result [][]interface{}, respObj interface{}) (err error) {
 	//check nil params
 	if result == nil {
 		return fmt.Errorf("result can not be nil, %w", ErrInvalidParams)
@@ -60,8 +70,8 @@ func decode(result neo4j.Result, respObj interface{}) (err error) {
 	var strictRels []neo4j.Relationship
 	var isolatedNodes []neo4j.Node
 
-	for result.Next() {
-		for _, graphType := range result.Record().Values() {
+	for _, row := range result {
+		for _, graphType := range row {
 			switch graphType.(type) {
 			case neo4j.Path:
 				paths = append(paths, graphType.(neo4j.Path))
@@ -358,7 +368,7 @@ func sortIsolatedNodes(isolatedNodes []neo4j.Node, labelLookup *map[int64]string
 			(*relMaps)[node.Id()] = map[string]*RelationConfig{}
 
 			//primary to return
-			if node.Labels != nil && len(node.Labels()) != 0 && node.Labels()[0] == pkLabel {
+			if node.Labels() != nil && len(node.Labels()) != 0 && node.Labels()[0] == pkLabel {
 				*pks = append(*pks, node.Id())
 			}
 
@@ -441,7 +451,7 @@ func sortPaths(paths []neo4j.Path, nodeLookup *map[int64]*reflect.Value, rels *m
 				(*relMaps)[node.Id()] = map[string]*RelationConfig{}
 
 				//primary to return
-				if node.Labels != nil && len(node.Labels()) != 0 && node.Labels()[0] == pkLabel {
+				if node.Labels() != nil && len(node.Labels()) != 0 && node.Labels()[0] == pkLabel {
 					*pks = append(*pks, node.Id())
 				}
 			}
@@ -461,7 +471,7 @@ func sortPaths(paths []neo4j.Path, nodeLookup *map[int64]*reflect.Value, rels *m
 			if _, ok := (*rels)[rel.Id()]; !ok {
 				(*rels)[rel.Id()] = &neoEdgeConfig{
 					Id:            rel.Id(),
-					StartNodeId:  	rel.StartId(),
+					StartNodeId:   rel.StartId(),
 					StartNodeType: startLabel,
 					EndNodeId:     rel.EndId(),
 					EndNodeType:   endLabel,
@@ -594,7 +604,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 // convertNodeToValue converts raw bolt node to reflect value
 func convertNodeToValue(boltNode neo4j.Node) (*reflect.Value, error) {
 
-	if boltNode.Labels == nil || len(boltNode.Labels()) == 0 {
+	if boltNode.Labels() == nil || len(boltNode.Labels()) == 0 {
 		return nil, errors.New("boltNode has no labels")
 	}
 

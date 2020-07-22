@@ -23,11 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cornelk/hashmap"
-	goBolt "github.com/mindstand/go-bolt"
 	"github.com/neo4j/neo4j-go-driver/neo4j"
-	_ "github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/sirupsen/logrus"
-	"net/url"
 	"reflect"
 )
 
@@ -73,6 +70,10 @@ type Config struct {
 	// PoolSize is the size of the connection pool for GoGM
 	PoolSize int `yaml:"pool_size" json:"pool_size"`
 
+	Realm string `yaml:"realm" json:"realm"`
+
+	Encrypted bool `yaml:"encrypted" json:"encrypted"`
+
 	// Index Strategy defines the index strategy for GoGM
 	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy"`
 }
@@ -87,8 +88,8 @@ func (c *Config) ConnectionString() string {
 		protocol = "bolt"
 	}
 	// In case of special characters in password string
-	password := url.QueryEscape(c.Password)
-	return fmt.Sprintf("%s://%s:%s@%s:%v", protocol, c.Username, password, c.Host, c.Port)
+	//password := url.QueryEscape(c.Password)
+	return fmt.Sprintf("%s://%s:%v", protocol, c.Host, c.Port)
 }
 
 // Index Strategy typedefs int to define different index approaches
@@ -165,13 +166,13 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 
 	if !isTest {
 		log.Debug("opening connection to neo4j")
-
-		client, err := goBolt.NewClient(goBolt.WithConnectionString(conf.ConnectionString()))
-		if err != nil {
-			return err
+		// todo tls support
+		config := func(neoConf *neo4j.Config) {
+			neoConf.Encrypted = conf.Encrypted
+			neoConf.MaxConnectionPoolSize = conf.PoolSize
 		}
-
-		driver, err = client.NewDriverPool(conf.PoolSize)
+		var err error
+		driver, err = neo4j.NewDriver(conf.ConnectionString(), neo4j.BasicAuth(conf.Username, conf.Password, conf.Realm), config)
 		if err != nil {
 			return err
 		}

@@ -22,8 +22,6 @@ package gogm
 import (
 	"errors"
 	"github.com/cornelk/hashmap"
-	"github.com/mindstand/go-bolt/structures/graph"
-	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
@@ -83,13 +81,13 @@ func TestConvertNodeToValue(t *testing.T) {
 		},
 	})
 
-	bn := graph.Node{
-		NodeIdentity: 10,
-		Properties: map[string]interface{}{
+	bn := testNode{
+		id: 10,
+		props: map[string]interface{}{
 			"uuid":        "dadfasdfasdf",
 			"other_field": "dafsdfasd",
 		},
-		Labels: []string{"TestStruct"},
+		labels: []string{"TestStruct"},
 	}
 
 	val, err := convertNodeToValue(bn)
@@ -101,14 +99,14 @@ func TestConvertNodeToValue(t *testing.T) {
 		OtherField: "dafsdfasd",
 	}, val.Interface().(TestStruct))
 
-	bn = graph.Node{
-		NodeIdentity: 10,
-		Properties: map[string]interface{}{
+	bn = testNode{
+		id: 10,
+		props: map[string]interface{}{
 			"uuid":        "dadfasdfasdf",
 			"other_field": "dafsdfasd",
 			"t":           "dadfasdf",
 		},
-		Labels: []string{"TestStruct"},
+		labels: []string{"TestStruct"},
 	}
 
 	var te structDecoratorConfig
@@ -219,41 +217,46 @@ func TestDecoder(t *testing.T) {
 
 	vars10 := [][]interface{}{
 		{
-			graph.Path{
-				Nodes: []graph.Node{
-					graph.Node{
-						Labels: []string{"f"},
-						Properties: map[string]interface{}{
+			testPath{
+				nodes: []*testNode{
+					{
+						labels: []string{"f"},
+						props: map[string]interface{}{
 							"uuid": "0",
 						},
-						NodeIdentity: 0,
+						id: 0,
 					},
-					graph.Node{
-						Labels: []string{"f"},
-						Properties: map[string]interface{}{
+					{
+						labels: []string{"f"},
+						props: map[string]interface{}{
 							"uuid": "1",
 						},
-						NodeIdentity: 1,
+						id: 1,
 					},
-					graph.Node{
-						Labels: []string{"f"},
-						Properties: map[string]interface{}{
+					{
+						labels: []string{"f"},
+						props: map[string]interface{}{
 							"uuid": "2",
 						},
-						NodeIdentity: 2,
+						id: 2,
 					},
 				},
-				Relationships: []graph.UnboundRelationship{
-					graph.UnboundRelationship{
-						RelIdentity: 3,
-						Type:        "test",
+				relNodes: []*testRelationship{
+					{
+						id:      3,
+						startId: 0,
+						endId:   1,
+						_type:   "test",
+						props:   nil,
 					},
-					graph.UnboundRelationship{
-						RelIdentity: 4,
-						Type:        "test",
+					{
+						id:      4,
+						startId: 1,
+						endId:   2,
+						_type:   "test",
+						props:   nil,
 					},
 				},
-				Sequence: []int{1, 1 /*#*/, 2, 2},
 			},
 		},
 	}
@@ -285,7 +288,7 @@ func TestDecoder(t *testing.T) {
 	f2.Children = []*f{&f1}
 
 	var readin10 []*f
-	req.Nil(decode(vars10, &readin10))
+	req.Nil(innerDecode(vars10, &readin10))
 	req.True(len(readin10) == 3)
 	for _, r := range readin10 {
 		if r.Id == 0 {
@@ -310,34 +313,35 @@ func TestDecoder(t *testing.T) {
 
 	vars := [][]interface{}{
 		{
-			graph.Path{
-				Nodes: []graph.Node{
-					graph.Node{
-						Labels: []string{"b"},
-						Properties: map[string]interface{}{
+			testPath{
+				nodes: []*testNode{
+					{
+						labels: []string{"b"},
+						props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						NodeIdentity: 2,
+						id: 2,
 					},
-					graph.Node{
-						Labels: []string{"a"},
-						Properties: map[string]interface{}{
+					{
+						labels: []string{"a"},
+						props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfasd",
 						},
-						NodeIdentity: 1,
+						id: 1,
 					},
 				},
-				Relationships: []graph.UnboundRelationship{
-					graph.UnboundRelationship{
-						RelIdentity: 1,
-						Type:        "test_rel",
-						Properties:  nil,
+				relNodes: []*testRelationship{
+					{
+						id:      1,
+						startId: 1,
+						endId:   2,
+						_type:   "test_rel",
+						props:   nil,
 					},
 				},
-				Sequence: []int{1, 1},
 			},
 		},
 	}
@@ -366,7 +370,7 @@ func TestDecoder(t *testing.T) {
 	comp.SingleA = comp22
 	comp22.Single = comp
 
-	req.Nil(decode(vars, &readin))
+	req.Nil(innerDecode(vars, &readin))
 	req.EqualValues(comp.TestField, readin.TestField)
 	req.EqualValues(comp.UUID, readin.UUID)
 	req.EqualValues(comp.Id, readin.Id)
@@ -376,7 +380,7 @@ func TestDecoder(t *testing.T) {
 
 	var readinSlicePtr []*a
 
-	req.Nil(decode(vars, &readinSlicePtr))
+	req.Nil(innerDecode(vars, &readinSlicePtr))
 	req.EqualValues(comp.TestField, readinSlicePtr[0].TestField)
 	req.EqualValues(comp.UUID, readinSlicePtr[0].UUID)
 	req.EqualValues(comp.Id, readinSlicePtr[0].Id)
@@ -386,7 +390,7 @@ func TestDecoder(t *testing.T) {
 
 	var readinSlice []a
 
-	req.Nil(decode(vars, &readinSlice))
+	req.Nil(innerDecode(vars, &readinSlice))
 	req.EqualValues(comp.TestField, readinSlice[0].TestField)
 	req.EqualValues(comp.UUID, readinSlice[0].UUID)
 	req.EqualValues(comp.Id, readinSlice[0].Id)
@@ -396,37 +400,38 @@ func TestDecoder(t *testing.T) {
 
 	vars2 := [][]interface{}{
 		{
-			graph.Path{
-				Nodes: []graph.Node{
-					graph.Node{
-						Labels: []string{"a"},
-						Properties: map[string]interface{}{
+			testPath{
+				nodes: []*testNode{
+					{
+						labels: []string{"a"},
+						props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfasd",
 						},
-						NodeIdentity: 1,
+						id: 1,
 					},
-					graph.Node{
-						Labels: []string{"b"},
-						Properties: map[string]interface{}{
+					{
+						labels: []string{"b"},
+						props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						NodeIdentity: 2,
+						id: 2,
 					},
 				},
-				Relationships: []graph.UnboundRelationship{
-					graph.UnboundRelationship{
-						RelIdentity: 5,
-						Type:        "special_single",
-						Properties: map[string]interface{}{
+				relNodes: []*testRelationship{
+					{
+						id:      5,
+						startId: 1,
+						endId:   2,
+						_type:   "special_single",
+						props: map[string]interface{}{
 							"test": "testing",
 							"uuid": "asdfasdafsd",
 						},
 					},
 				},
-				Sequence: []int{1, 1},
 			},
 		},
 	}
@@ -463,7 +468,7 @@ func TestDecoder(t *testing.T) {
 	comp2.SingleSpecA = c1
 	b2.SingleSpec = c1
 
-	req.Nil(decode(vars2, &readin2))
+	req.Nil(innerDecode(vars2, &readin2))
 	req.EqualValues(comp2.TestField, readin2.TestField)
 	req.EqualValues(comp2.UUID, readin2.UUID)
 	req.EqualValues(comp2.Id, readin2.Id)
@@ -473,34 +478,35 @@ func TestDecoder(t *testing.T) {
 
 	vars3 := [][]interface{}{
 		{
-			graph.Path{
-				Nodes: []graph.Node{
-					graph.Node{
-						Labels: []string{"a"},
-						Properties: map[string]interface{}{
+			testPath{
+				nodes: []*testNode{
+					{
+						labels: []string{"a"},
+						props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfasd",
 						},
-						NodeIdentity: 1,
+						id: 1,
 					},
-					graph.Node{
-						Labels: []string{"b"},
-						Properties: map[string]interface{}{
+					{
+						labels: []string{"b"},
+						props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						NodeIdentity: 2,
+						id: 2,
 					},
 				},
-				Relationships: []graph.UnboundRelationship{
-					graph.UnboundRelationship{
-						RelIdentity: 5,
-						Type:        "multib",
-						Properties:  nil,
+				relNodes: []*testRelationship{
+					{
+						id:      5,
+						startId: 1,
+						endId:   2,
+						_type:   "multib",
+						props:   nil,
 					},
 				},
-				Sequence: []int{1, 1},
 			},
 		},
 	}
@@ -525,7 +531,7 @@ func TestDecoder(t *testing.T) {
 		},
 	}
 
-	req.Nil(decode(vars3, &readin3))
+	req.Nil(innerDecode(vars3, &readin3))
 	req.EqualValues(comp3.TestField, readin3.TestField)
 	req.EqualValues(comp3.UUID, readin3.UUID)
 	req.EqualValues(comp3.Id, readin3.Id)
@@ -537,37 +543,38 @@ func TestDecoder(t *testing.T) {
 
 	vars4 := [][]interface{}{
 		{
-			graph.Path{
-				Nodes: []graph.Node{
-					graph.Node{
-						Labels: []string{"a"},
-						Properties: map[string]interface{}{
+			testPath{
+				nodes: []*testNode{
+					{
+						labels: []string{"a"},
+						props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfasd",
 						},
-						NodeIdentity: 1,
+						id: 1,
 					},
-					graph.Node{
-						Labels: []string{"b"},
-						Properties: map[string]interface{}{
+					{
+						labels: []string{"b"},
+						props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						NodeIdentity: 2,
+						id: 2,
 					},
 				},
-				Relationships: []graph.UnboundRelationship{
-					graph.UnboundRelationship{
-						RelIdentity: 5,
-						Type:        "special_multi",
-						Properties: map[string]interface{}{
+				relNodes: []*testRelationship{
+					{
+						id:      5,
+						startId: 1,
+						endId:   2,
+						_type:   "special_multi",
+						props: map[string]interface{}{
 							"test": "testing",
 							"uuid": "asdfasdafsd",
 						},
 					},
 				},
-				Sequence: []int{1, 1},
 			},
 		},
 	}
@@ -603,7 +610,7 @@ func TestDecoder(t *testing.T) {
 	comp4.MultiSpecA = append(comp4.MultiSpecA, &c4)
 	b3.MultiSpec = append(b3.MultiSpec, &c4)
 
-	req.Nil(decode(vars4, &readin4))
+	req.Nil(innerDecode(vars4, &readin4))
 	req.EqualValues(b3.TestField, readin4.TestField)
 	req.EqualValues(b3.UUID, readin4.UUID)
 	req.EqualValues(b3.Id, readin4.Id)
@@ -617,12 +624,12 @@ func TestDecoder(t *testing.T) {
 
 	vars5 := [][]interface{}{
 		{
-			graph.Path{
-				Nodes: []graph.Node{
-					graph.Node{
-						NodeIdentity: 1,
-						Labels:       []string{"propsTest"},
-						Properties: map[string]interface{}{
+			testPath{
+				nodes: []*testNode{
+					{
+						id:     1,
+						labels: []string{"propsTest"},
+						props: map[string]interface{}{
 							"uuid":            var5uuid,
 							"props.test.test": "test",
 							"props.test2":     "test2",
@@ -630,8 +637,6 @@ func TestDecoder(t *testing.T) {
 						},
 					},
 				},
-				Relationships: nil,
-				Sequence:      nil,
 			},
 		},
 	}
@@ -648,7 +653,7 @@ func TestDecoder(t *testing.T) {
 		},
 	}
 
-	req.Nil(decode(vars5, &readin5))
+	req.Nil(innerDecode(vars5, &readin5))
 	req.EqualValues(r.Id, readin5.Id)
 	req.EqualValues(r.UUID, readin5.UUID)
 	req.EqualValues(r.Props["test"], readin5.Props["test"])
@@ -658,29 +663,27 @@ func TestDecoder(t *testing.T) {
 	//multi single
 	vars6 := [][]interface{}{
 		{
-			graph.Path{
-				Nodes: []graph.Node{
-					graph.Node{
-						Labels: []string{"b"},
-						Properties: map[string]interface{}{
+			testPath{
+				nodes: []*testNode{
+					{
+						labels: []string{"b"},
+						props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						NodeIdentity: 2,
+						id: 2,
 					},
-					graph.Node{
-						Labels: []string{"b"},
-						Properties: map[string]interface{}{
+					{
+						labels: []string{"b"},
+						props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						NodeIdentity: 3,
+						id: 3,
 					},
 				},
-				Relationships: nil,
-				Sequence:      nil,
 			},
 		},
 	}
@@ -700,22 +703,22 @@ func TestDecoder(t *testing.T) {
 	//	Id: 3,
 	//}
 
-	req.Nil(decode(vars6, &readin6))
+	req.Nil(innerDecode(vars6, &readin6))
 	req.True(len(readin6) == 2)
 
 	vars7 := [][]interface{}{
 		{
-			graph.Path{
-				Nodes:         nil,
-				Relationships: nil,
-				Sequence:      nil,
+			testPath{
+				nodes:    nil,
+				relNodes: nil,
+				indexes:  nil,
 			},
 		},
 	}
 
 	var readin7 []*b
 
-	emptyErr := decode(vars7, &readin7)
+	emptyErr := innerDecode(vars7, &readin7)
 
 	req.NotNil(emptyErr)
 	req.True(errors.As(emptyErr, &ErrNotFound))
@@ -723,17 +726,17 @@ func TestDecoder(t *testing.T) {
 
 	vars8 := [][]interface{}{
 		{
-			graph.Path{
-				Nodes:         nil,
-				Relationships: nil,
-				Sequence:      nil,
+			testPath{
+				nodes:    nil,
+				relNodes: nil,
+				indexes:  nil,
 			},
 		},
 	}
 
 	var readin8 b
 
-	emptyErr = decode(vars8, &readin8)
+	emptyErr = innerDecode(vars8, &readin8)
 
 	req.NotNil(emptyErr)
 	req.True(errors.As(emptyErr, &ErrNotFound))
@@ -741,10 +744,10 @@ func TestDecoder(t *testing.T) {
 
 	vars9 := [][]interface{}{
 		{
-			graph.Node{
-				NodeIdentity: 55,
-				Labels:       []string{"b"},
-				Properties: map[string]interface{}{
+			testNode{
+				id:     55,
+				labels: []string{"b"},
+				props: map[string]interface{}{
 					"test_field": "test",
 					"uuid":       "dasdfas",
 					"test_time":  fTime,
@@ -753,7 +756,7 @@ func TestDecoder(t *testing.T) {
 		},
 	}
 	var readin9 b
-	req.Nil(decode(vars9, &readin9))
+	req.Nil(innerDecode(vars9, &readin9))
 	req.Equal("test", readin9.TestField)
 	req.Equal(int64(55), readin9.Id)
 	req.Equal("dasdfas", readin9.UUID)
