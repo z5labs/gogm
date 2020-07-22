@@ -61,7 +61,7 @@ func TestIntegration(t *testing.T) {
 	req.Nil(sess.PurgeDatabase())
 
 	req.Nil(sess.Close())
-	req.Nil(driverPool.Close())
+	req.Nil(driver.Close())
 }
 
 // runs with integration test

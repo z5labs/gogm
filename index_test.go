@@ -29,10 +29,10 @@ func testIndexManagement(req *require.Assertions) {
 	//delete everything
 	req.Nil(dropAllIndexesAndConstraints())
 
-	conn, err := driverPool.Open(bolt_mode.WriteMode)
+	conn, err := driver.Open(bolt_mode.WriteMode)
 	req.Nil(err)
 
-	defer driverPool.Reclaim(conn)
+	defer driver.Reclaim(conn)
 	req.Nil(err)
 
 	//setup structure

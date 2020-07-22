@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"github.com/cornelk/hashmap"
 	goBolt "github.com/mindstand/go-bolt"
+	"github.com/neo4j/neo4j-go-driver/neo4j"
 	_ "github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/sirupsen/logrus"
 	"net/url"
@@ -106,7 +107,7 @@ const (
 var mappedTypes = &hashmap.HashMap{}
 
 //thread pool
-var driverPool goBolt.IDriverPool
+var driver neo4j.Driver
 
 //relationship + label
 var mappedRelations = &relationConfigs{}
@@ -170,7 +171,7 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 			return err
 		}
 
-		driverPool, err = client.NewDriverPool(conf.PoolSize)
+		driver, err = client.NewDriverPool(conf.PoolSize)
 		if err != nil {
 			return err
 		}

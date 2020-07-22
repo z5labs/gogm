@@ -23,6 +23,7 @@ import (
 	"errors"
 	"github.com/cornelk/hashmap"
 	"github.com/mindstand/go-bolt/structures/graph"
+	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"

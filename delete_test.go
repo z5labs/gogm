@@ -25,11 +25,11 @@ import (
 )
 
 func testDelete(req *require.Assertions) {
-	conn, err := driverPool.Open(bolt_mode.WriteMode)
+	conn, err := driver.Open(bolt_mode.WriteMode)
 	if err != nil {
 		req.Nil(err)
 	}
-	defer driverPool.Reclaim(conn)
+	defer driver.Reclaim(conn)
 
 	del := a{
 		BaseNode: BaseNode{

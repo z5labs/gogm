@@ -35,6 +35,8 @@ func main() {
 		panic(err)
 	}
 
+	session.WriteTransaction()
+
 	for result.Next() {
 
 		fmt.Printf("Created Item with Id = '%d' and Name = '%s'\n", result.Record().GetByIndex(0).(int64), result.Record().GetByIndex(1).(string))

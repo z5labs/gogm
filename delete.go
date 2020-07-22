@@ -21,13 +21,12 @@ package gogm
 
 import (
 	"errors"
-	"github.com/mindstand/go-bolt/connection"
 	dsl "github.com/mindstand/go-cypherdsl"
 	"reflect"
 )
 
 // deleteNode is used to remove nodes from the database
-func deleteNode(conn connection.IQuery, deleteObj interface{}) error {
+func deleteNode(runFunc neoRunFunc, deleteObj interface{}) error {
 	rawType := reflect.TypeOf(deleteObj)
 
 	if rawType.Kind() != reflect.Ptr && rawType.Kind() != reflect.Slice {
@@ -72,12 +71,12 @@ func deleteNode(conn connection.IQuery, deleteObj interface{}) error {
 		}
 	}
 
-	return deleteByIds(conn, ids...)
+	return deleteByIds(runFunc, ids...)
 }
 
 // deleteByIds deletes node by graph ids
-func deleteByIds(conn connection.IQuery, ids ...int64) error {
-	_, err := dsl.QB().
+func deleteByIds(runFunc neoRunFunc, ids ...int64) error {
+	cyp, err := dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
 		Where(dsl.C(&dsl.ConditionConfig{
@@ -87,10 +86,14 @@ func deleteByIds(conn connection.IQuery, ids ...int64) error {
 			Check:                     dsl.ParamString("row"),
 		})).
 		Delete(true, "n").
-		WithNeo(conn).
-		Exec(map[string]interface{}{
-			"rows": ids,
-		})
+		ToCypher()
+	if err != nil {
+		return err
+	}
+
+	_, err = runFunc(cyp, map[string]interface{}{
+		"rows": ids,
+	})
 	if err != nil {
 		return err
 	}
@@ -99,8 +102,8 @@ func deleteByIds(conn connection.IQuery, ids ...int64) error {
 }
 
 // deleteByUuids deletes nodes by uuids
-func deleteByUuids(conn connection.IQuery, ids ...string) error {
-	_, err := dsl.QB().
+func deleteByUuids(runFunc neoRunFunc, ids ...string) error {
+	cyp, err := dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
 		Where(dsl.C(&dsl.ConditionConfig{
@@ -110,10 +113,13 @@ func deleteByUuids(conn connection.IQuery, ids ...string) error {
 			Check:             dsl.ParamString("row"),
 		})).
 		Delete(true, "n").
-		WithNeo(conn).
-		Exec(map[string]interface{}{
-			"rows": ids,
-		})
+		ToCypher()
+	if err != nil {
+		return err
+	}
+	_, err = runFunc(cyp, map[string]interface{}{
+		"rows": ids,
+	})
 	if err != nil {
 		return err
 	}
