@@ -22,6 +22,7 @@ package gogm
 import (
 	"errors"
 	"fmt"
+	"github.com/adam-hanna/arrayOperations"
 	"github.com/cornelk/hashmap"
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/neo4j/neo4j-go-driver/neo4j"
@@ -229,105 +230,96 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
 
 //verifies all indexes
 func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
-	//sess, err := driver.Session(neo4j.AccessModeWrite)
-	//if err != nil {
-	//	return err
-	//}
-	//defer sess.Close()
-	//
-	////validate that we have to do anything
-	//if mappedTypes == nil || mappedTypes.Len() == 0 {
-	//	return errors.New("must have types to map")
-	//}
-	//
-	//var constraints []string
-	//var indexes []string
-	//
-	////build constraint strings
-	//for nodes := range mappedTypes.Iter() {
-	//	node := nodes.Key.(string)
-	//	structConfig := nodes.Value.(structDecoratorConfig)
-	//
-	//	if structConfig.Fields == nil || len(structConfig.Fields) == 0 {
-	//		continue
-	//	}
-	//
-	//	fields := []string{}
-	//
-	//	for _, config := range structConfig.Fields {
-	//
-	//		if config.PrimaryKey || config.Unique {
-	//			t := fmt.Sprintf("CONSTRAINT ON (%s:%s) ASSERT %s.%s IS UNIQUE", node, structConfig.Label, node, config.Name)
-	//			constraints = append(constraints, t)
-	//
-	//			indexes = append(indexes, fmt.Sprintf("INDEX ON :%s(%s)", structConfig.Label, config.Name))
-	//
-	//		} else if config.Index {
-	//			fields = append(fields, config.Name)
-	//		}
-	//	}
-	//
-	//	f := "("
-	//	for _, field := range fields {
-	//		f += field
-	//	}
-	//
-	//	f += ")"
-	//
-	//	indexes = append(indexes, fmt.Sprintf("INDEX ON :%s%s", structConfig.Label, f))
-	//
-	//}
-	//
-	////get whats there now
-	//foundConstraints, err := dsl.QB().WithNeo(conn).Cypher("CALL db.constraints").Query(nil)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//var foundIndexes []string
-	//
-	//findexes, err := dsl.QB().WithNeo(conn).Cypher("CALL db.indexes()").Query(nil)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if len(findexes) != 0 {
-	//	for _, index := range findexes {
-	//		if len(index) == 0 {
-	//			return errors.New("invalid index config")
-	//		}
-	//
-	//		foundIndexes = append(foundIndexes, index[0].(string))
-	//	}
-	//}
-	//
-	////verify from there
-	//delta, found := arrayOperations.Difference(foundIndexes, indexes)
-	//if !found {
-	//	return fmt.Errorf("found differences in remote vs ogm for found indexes, %v", delta)
-	//}
-	//
-	//log.Debug(delta)
-	//
-	//var founds []string
-	//
-	//for _, constraint := range foundConstraints {
-	//	if len(constraint) != 0 {
-	//		val, ok := constraint[0].(string)
-	//		if !ok {
-	//			return fmt.Errorf("unable to convert [%T] to [string]", val)
-	//		}
-	//
-	//		founds = append(founds, val)
-	//	}
-	//}
-	//
-	//delta, found = arrayOperations.Difference(founds, constraints)
-	//if !found {
-	//	return fmt.Errorf("found differences in remote vs ogm for found constraints, %v", delta)
-	//}
-	//
-	//log.Debug(delta)
+	sess, err := driver.Session(neo4j.AccessModeWrite)
+	if err != nil {
+		return err
+	}
+	defer sess.Close()
+
+	//validate that we have to do anything
+	if mappedTypes == nil || mappedTypes.Len() == 0 {
+		return errors.New("must have types to map")
+	}
+
+	var constraints []string
+	var indexes []string
+
+	//build constraint strings
+	for nodes := range mappedTypes.Iter() {
+		node := nodes.Key.(string)
+		structConfig := nodes.Value.(structDecoratorConfig)
+
+		if structConfig.Fields == nil || len(structConfig.Fields) == 0 {
+			continue
+		}
+
+		fields := []string{}
+
+		for _, config := range structConfig.Fields {
+
+			if config.PrimaryKey || config.Unique {
+				t := fmt.Sprintf("CONSTRAINT ON (%s:%s) ASSERT %s.%s IS UNIQUE", node, structConfig.Label, node, config.Name)
+				constraints = append(constraints, t)
+
+				indexes = append(indexes, fmt.Sprintf("INDEX ON :%s(%s)", structConfig.Label, config.Name))
+
+			} else if config.Index {
+				fields = append(fields, config.Name)
+			}
+		}
+
+		f := "("
+		for _, field := range fields {
+			f += field
+		}
+
+		f += ")"
+
+		indexes = append(indexes, fmt.Sprintf("INDEX ON :%s%s", structConfig.Label, f))
+
+	}
+
+	//get whats there now
+	foundResult, err := sess.Run("CALL db.constraints", nil)
+	if err != nil {
+		return err
+	}
+
+	foundConstraints, err := resultToStringArr(foundResult)
+	if err != nil {
+		return err
+	}
+
+	foundInxdexResult, err := sess.Run("CALL db.indexes()", nil)
+	if err != nil {
+		return err
+	}
+
+	foundIndexes, err := resultToStringArr(foundInxdexResult)
+	if err != nil {
+		return err
+	}
+
+	//verify from there
+	delta, found := arrayOperations.Difference(foundIndexes, indexes)
+	if !found {
+		return fmt.Errorf("found differences in remote vs ogm for found indexes, %v", delta)
+	}
+
+	log.Debug(delta)
+
+	var founds []string
+
+	for _, constraint := range foundConstraints {
+		founds = append(founds, constraint)
+	}
+
+	delta, found = arrayOperations.Difference(founds, constraints)
+	if !found {
+		return fmt.Errorf("found differences in remote vs ogm for found constraints, %v", delta)
+	}
+
+	log.Debug(delta)
 
 	return nil
 }
