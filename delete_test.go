@@ -20,16 +20,16 @@
 package gogm
 
 import (
-	"github.com/mindstand/go-bolt/bolt_mode"
+	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/stretchr/testify/require"
 )
 
 func testDelete(req *require.Assertions) {
-	conn, err := driverPool.Open(bolt_mode.WriteMode)
+	conn, err := driver.Session(neo4j.AccessModeWrite)
 	if err != nil {
 		req.Nil(err)
 	}
-	defer driverPool.Reclaim(conn)
+	defer conn.Close()
 
 	del := a{
 		BaseNode: BaseNode{
@@ -38,6 +38,6 @@ func testDelete(req *require.Assertions) {
 		},
 	}
 
-	err = deleteNode(conn, &del)
+	err = deleteNode(runWrap(conn), &del)
 	req.Nil(err)
 }

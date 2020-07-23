@@ -24,38 +24,63 @@ import (
 	"fmt"
 	"github.com/adam-hanna/arrayOperations"
 	"github.com/cornelk/hashmap"
-	"github.com/mindstand/go-bolt/bolt_mode"
 	dsl "github.com/mindstand/go-cypherdsl"
+	"github.com/neo4j/neo4j-go-driver/neo4j"
 )
+
+func resultToStringArr(res neo4j.Result) ([]string, error) {
+	if res == nil {
+		return nil, errors.New("result is nil")
+	}
+
+	var result []string
+
+	for res.Next() {
+		val := res.Record().Values()
+		// nothing to parse
+		if val == nil || len(val) == 0 {
+			continue
+		}
+
+		str, ok := val[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("unable to parse [%T] to string, %w", val[0], ErrInternal)
+		}
+
+		result = append(result, str)
+	}
+
+	return result, nil
+}
 
 //drops all known indexes
 func dropAllIndexesAndConstraints() error {
-	conn, err := driverPool.Open(bolt_mode.WriteMode)
+	sess, err := driver.Session(neo4j.AccessModeWrite)
 	if err != nil {
 		return err
 	}
-	defer driverPool.Reclaim(conn)
+	defer sess.Close()
 
-	constraintRows, err := dsl.QB().Cypher("CALL db.constraints").WithNeo(conn).Query(nil)
+	res, err := sess.Run("CALL db.constraints", nil)
 	if err != nil {
 		return err
 	}
 
-	constraints, err := dsl.RowsToStringArray(constraintRows)
+	constraints, err := resultToStringArr(res)
 	if err != nil {
 		return err
 	}
 
 	//if there is anything, get rid of it
 	if len(constraints) != 0 {
-		tx, err := conn.Begin()
+		tx, err := sess.BeginTransaction()
 		if err != nil {
 			return err
 		}
 
 		for _, constraint := range constraints {
 			log.Debugf("dropping constraint '%s'", constraint)
-			_, err := dsl.QB().Cypher(fmt.Sprintf("DROP %s", constraint)).WithNeo(tx).Exec(nil)
+			_, err := tx.Run(fmt.Sprintf("DROP %s", constraint), nil)
 			if err != nil {
 				oerr := err
 				err = tx.Rollback()
@@ -73,14 +98,19 @@ func dropAllIndexesAndConstraints() error {
 		}
 	}
 
-	indexes, err := dsl.QB().Cypher("CALL db.indexes()").WithNeo(conn).Query(nil)
+	res, err = sess.Run("CALL db.indexes()", nil)
+	if err != nil {
+		return err
+	}
+
+	indexes, err := resultToStringArr(res)
 	if err != nil {
 		return err
 	}
 
 	//if there is anything, get rid of it
 	if len(indexes) != 0 {
-		tx, err := conn.Begin()
+		tx, err := sess.BeginTransaction()
 		if err != nil {
 			return err
 		}
@@ -90,7 +120,7 @@ func dropAllIndexesAndConstraints() error {
 				return errors.New("invalid index config")
 			}
 
-			_, err := dsl.QB().Cypher(fmt.Sprintf("DROP %s", index[0].(string))).WithNeo(tx).Exec(nil)
+			_, err := tx.Run(fmt.Sprintf("DROP %s", index), nil)
 			if err != nil {
 				oerr := err
 				err = tx.Rollback()
@@ -110,11 +140,11 @@ func dropAllIndexesAndConstraints() error {
 
 //creates all indexes
 func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
-	conn, err := driverPool.Open(bolt_mode.WriteMode)
+	sess, err := driver.Session(neo4j.AccessModeWrite)
 	if err != nil {
 		return err
 	}
-	defer driverPool.Reclaim(conn)
+	defer sess.Close()
 
 	//validate that we have to do anything
 	if mappedTypes == nil || mappedTypes.Len() == 0 {
@@ -123,7 +153,7 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
 
 	numIndexCreated := 0
 
-	tx, err := conn.Begin()
+	tx, err := sess.BeginTransaction()
 	if err != nil {
 		return err
 	}
@@ -144,12 +174,17 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
 			if config.PrimaryKey || config.Unique {
 				numIndexCreated++
 
-				_, err := dsl.QB().WithNeo(conn).Create(dsl.NewConstraint(&dsl.ConstraintConfig{
+				cyp, err := dsl.QB().Create(dsl.NewConstraint(&dsl.ConstraintConfig{
 					Unique: true,
 					Name:   node,
 					Type:   structConfig.Label,
 					Field:  config.Name,
-				})).Exec(nil)
+				})).ToCypher()
+				if err != nil {
+					return err
+				}
+
+				_, err = tx.Run(cyp, nil)
 				if err != nil {
 					oerr := err
 					err = tx.Rollback()
@@ -167,10 +202,15 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
 		//create composite index
 		if len(indexFields) > 0 {
 			numIndexCreated++
-			_, err := dsl.QB().WithNeo(conn).Create(dsl.NewIndex(&dsl.IndexConfig{
+			cyp, err := dsl.QB().Create(dsl.NewIndex(&dsl.IndexConfig{
 				Type:   structConfig.Label,
 				Fields: indexFields,
-			})).Exec(nil)
+			})).ToCypher()
+			if err != nil {
+				return err
+			}
+
+			_, err = tx.Run(cyp, nil)
 			if err != nil {
 				oerr := err
 				err = tx.Rollback()
@@ -190,11 +230,11 @@ func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
 
 //verifies all indexes
 func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
-	conn, err := driverPool.Open(bolt_mode.WriteMode)
+	sess, err := driver.Session(neo4j.AccessModeWrite)
 	if err != nil {
 		return err
 	}
-	defer driverPool.Reclaim(conn)
+	defer sess.Close()
 
 	//validate that we have to do anything
 	if mappedTypes == nil || mappedTypes.Len() == 0 {
@@ -240,26 +280,24 @@ func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
 	}
 
 	//get whats there now
-	foundConstraints, err := dsl.QB().WithNeo(conn).Cypher("CALL db.constraints").Query(nil)
+	foundResult, err := sess.Run("CALL db.constraints", nil)
 	if err != nil {
 		return err
 	}
 
-	var foundIndexes []string
-
-	findexes, err := dsl.QB().WithNeo(conn).Cypher("CALL db.indexes()").Query(nil)
+	foundConstraints, err := resultToStringArr(foundResult)
 	if err != nil {
 		return err
 	}
 
-	if len(findexes) != 0 {
-		for _, index := range findexes {
-			if len(index) == 0 {
-				return errors.New("invalid index config")
-			}
+	foundInxdexResult, err := sess.Run("CALL db.indexes()", nil)
+	if err != nil {
+		return err
+	}
 
-			foundIndexes = append(foundIndexes, index[0].(string))
-		}
+	foundIndexes, err := resultToStringArr(foundInxdexResult)
+	if err != nil {
+		return err
 	}
 
 	//verify from there
@@ -273,14 +311,7 @@ func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
 	var founds []string
 
 	for _, constraint := range foundConstraints {
-		if len(constraint) != 0 {
-			val, ok := constraint[0].(string)
-			if !ok {
-				return fmt.Errorf("unable to convert [%T] to [string]", val)
-			}
-
-			founds = append(founds, val)
-		}
+		founds = append(founds, constraint)
 	}
 
 	delta, found = arrayOperations.Difference(founds, constraints)

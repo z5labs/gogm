@@ -20,7 +20,6 @@
 package gogm
 
 import (
-	_log "github.com/mindstand/go-bolt/log"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
@@ -30,8 +29,6 @@ func TestIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 	}
-
-	_log.SetLevel("trace")
 
 	req := require.New(t)
 
@@ -61,7 +58,7 @@ func TestIntegration(t *testing.T) {
 	req.Nil(sess.PurgeDatabase())
 
 	req.Nil(sess.Close())
-	req.Nil(driverPool.Close())
+	req.Nil(driver.Close())
 }
 
 // runs with integration test

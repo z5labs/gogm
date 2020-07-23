@@ -13,7 +13,7 @@ go get -u github.com/mindstand/gogm
 - Struct Mapping through the `gogm` struct decorator
 - Full support for ACID transactions
 - Underlying connection pooling
-- Support for HA Casual Clusters using `bolt+routing` through [MindStand's bolt driver](https://github.com/mindstand/go-bolt)
+- Support for HA Casual Clusters using `bolt+routing` through the [Official Neo4j Go Driver](https://github.com/neo4j/neo4j-go-driver)
 - Custom queries in addition to built in functionality
 - Builder pattern cypher queries using [MindStand's cypher dsl package](https://github.com/mindstand/go-cypherdsl)
 - CLI to generate link and unlink functions for gogm structs.

@@ -22,14 +22,27 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	"github.com/mindstand/go-bolt/connection"
 	dsl "github.com/mindstand/go-cypherdsl"
+	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"reflect"
 )
 
 // maximum supported depth
 const maxSaveDepth = 10
 const defaultSaveDepth = 1
+
+// neoRunFunc typedefs function signature from neo4j driver
+type neoRunFunc func(cypher string, params map[string]interface{}) (neo4j.Result, error)
+
+// runWrap is used to wrap the session run function into a consistent function signature
+func runWrap(sess neo4j.Session) neoRunFunc {
+	return func(cypher string, params map[string]interface{}) (neo4j.Result, error) {
+		if sess == nil {
+			return nil, fmt.Errorf("session can not be nil, %w", ErrInternal)
+		}
+		return sess.Run(cypher, params)
+	}
+}
 
 // nodeCreateConf holds configuration for creating new nodes
 type nodeCreateConf struct {
@@ -54,8 +67,8 @@ type relCreateConf struct {
 }
 
 // saves target node and connected node to specified depth
-func saveDepth(sess connection.IQuery, obj interface{}, depth int) error {
-	if sess == nil {
+func saveDepth(runFunc neoRunFunc, obj interface{}, depth int) error {
+	if runFunc == nil {
 		return errors.New("session can not be nil")
 	}
 
@@ -108,7 +121,7 @@ func saveDepth(sess connection.IQuery, obj interface{}, depth int) error {
 		return err
 	}
 
-	ids, err := createNodes(sess, nodes, &nodeRef)
+	ids, err := createNodes(runFunc, nodes, &nodeRef)
 	if err != nil {
 		return err
 	}
@@ -139,14 +152,14 @@ func saveDepth(sess connection.IQuery, obj interface{}, depth int) error {
 	//calculate dels
 
 	if len(dels) != 0 {
-		err := removeRelations(sess, dels)
+		err := removeRelations(runFunc, dels)
 		if err != nil {
 			return err
 		}
 	}
 
 	if len(relations) != 0 {
-		err := relateNodes(sess, relations, ids)
+		err := relateNodes(runFunc, relations, ids)
 		if err != nil {
 			return err
 		}
@@ -204,13 +217,13 @@ func calculateDels(oldRels, curRels map[string]map[string]*RelationConfig) map[s
 }
 
 // removes relationships between specified nodes
-func removeRelations(conn connection.IQuery, dels map[string][]int64) error {
+func removeRelations(runFunc neoRunFunc, dels map[string][]int64) error {
 	if dels == nil || len(dels) == 0 {
 		return nil
 	}
 
-	if conn == nil {
-		return fmt.Errorf("connection can not be nil, %w", ErrInternal)
+	if runFunc == nil {
+		return fmt.Errorf("runFunc can not be nil, %w", ErrInternal)
 	}
 
 	var params []interface{}
@@ -229,7 +242,7 @@ func removeRelations(conn connection.IQuery, dels map[string][]int64) error {
 		return fmt.Errorf("%s, %w", err.Error(), ErrInternal)
 	}
 
-	_, err = dsl.QB().
+	cyq, err := dsl.QB().
 		Cypher("UNWIND {rows} as row").
 		Match(dsl.Path().
 			V(dsl.V{
@@ -242,22 +255,24 @@ func removeRelations(conn connection.IQuery, dels map[string][]int64) error {
 		}).Build()).
 		Cypher("WHERE id(end) IN row.endNodeIds").
 		Delete(false, "e").
-		WithNeo(conn).
-		Exec(map[string]interface{}{
-			"rows": params,
-		},
-		)
+		ToCypher()
+	if err != nil {
+		return err
+	}
+
+	_, err = runFunc(cyq, map[string]interface{}{
+		"rows": params,
+	})
 	if err != nil {
 		return fmt.Errorf("%s, %w", err.Error(), ErrInternal)
 	}
-
 	//todo sanity check to make sure the affects worked
 
 	return nil
 }
 
 // creates nodes
-func createNodes(conn connection.IQuery, crNodes map[string]map[string]nodeCreateConf, nodeRef *map[string]*reflect.Value) (map[string]int64, error) {
+func createNodes(runFunc neoRunFunc, crNodes map[string]map[string]nodeCreateConf, nodeRef *map[string]*reflect.Value) (map[string]int64, error) {
 	idMap := map[string]int64{}
 
 	for label, nodes := range crNodes {
@@ -284,7 +299,7 @@ func createNodes(conn connection.IQuery, crNodes map[string]map[string]nodeCreat
 		}
 
 		//todo replace once unwind is fixed and path
-		resRows, err := dsl.QB().
+		cyp, err := dsl.QB().
 			Cypher("UNWIND {rows} as row").
 			Merge(&dsl.MergeConfig{
 				Path: path,
@@ -300,15 +315,17 @@ func createNodes(conn connection.IQuery, crNodes map[string]map[string]nodeCreat
 				},
 				Alias: "id",
 			}).
-			WithNeo(conn).
-			Query(map[string]interface{}{
-				"rows": rows,
-			})
+			ToCypher()
+
+		res, err := runFunc(cyp, map[string]interface{}{
+			"rows": rows,
+		})
 		if err != nil {
 			return nil, err
 		}
 
-		for _, row := range resRows {
+		for res.Next() {
+			row := res.Record().Values()
 			if len(row) != 2 {
 				continue
 			}
@@ -338,7 +355,7 @@ func createNodes(conn connection.IQuery, crNodes map[string]map[string]nodeCreat
 }
 
 // relateNodes connects nodes together using edge config
-func relateNodes(conn connection.IQuery, relations map[string][]relCreateConf, ids map[string]int64) error {
+func relateNodes(runFunc neoRunFunc, relations map[string][]relCreateConf, ids map[string]int64) error {
 	if relations == nil || len(relations) == 0 {
 		return errors.New("relations can not be nil or empty")
 	}
@@ -396,7 +413,7 @@ func relateNodes(conn connection.IQuery, relations map[string][]relCreateConf, i
 			return err
 		}
 
-		_, err = dsl.QB().
+		cyp, err := dsl.QB().
 			Cypher("UNWIND {rows} as row").
 			Match(dsl.Path().V(dsl.V{Name: "startNode"}).Build()).
 			Where(dsl.C(&dsl.ConditionConfig{
@@ -426,10 +443,11 @@ func relateNodes(conn connection.IQuery, relations map[string][]relCreateConf, i
 				Path: mergePath,
 			}).
 			Cypher("SET rel += row.props").
-			WithNeo(conn).
-			Exec(map[string]interface{}{
-				"rows": params,
-			})
+			ToCypher()
+
+		_, err = runFunc(cyp, map[string]interface{}{
+			"rows": params,
+		})
 		if err != nil {
 			return err
 		}

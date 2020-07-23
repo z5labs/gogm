@@ -20,7 +20,6 @@
 package gogm
 
 import (
-	"github.com/mindstand/go-bolt/bolt_mode"
 	"github.com/stretchr/testify/require"
 	"reflect"
 )
@@ -28,12 +27,6 @@ import (
 func testIndexManagement(req *require.Assertions) {
 	//delete everything
 	req.Nil(dropAllIndexesAndConstraints())
-
-	conn, err := driverPool.Open(bolt_mode.WriteMode)
-	req.Nil(err)
-
-	defer driverPool.Reclaim(conn)
-	req.Nil(err)
 
 	//setup structure
 	mapp := toHashmapStructdecconf(map[string]structDecoratorConfig{

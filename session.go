@@ -22,42 +22,41 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	"github.com/mindstand/go-bolt/bolt_mode"
-	"github.com/mindstand/go-bolt/connection"
 	dsl "github.com/mindstand/go-cypherdsl"
+	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"reflect"
 )
 
 const defaultDepth = 1
 
 type Session struct {
-	conn         connection.IConnection
-	tx           connection.ITransaction
+	neoSess      neo4j.Session
+	tx           neo4j.Transaction
 	DefaultDepth int
 	LoadStrategy LoadStrategy
 }
 
 func NewSession(readonly bool) (*Session, error) {
-	if driverPool == nil {
-		return nil, errors.New("driverPool cannot be nil")
+	if driver == nil {
+		return nil, errors.New("driver cannot be nil")
 	}
 
 	session := new(Session)
 
-	var mode bolt_mode.AccessMode
+	var mode neo4j.AccessMode
 
 	if readonly {
-		mode = bolt_mode.ReadMode
+		mode = neo4j.AccessModeRead
 	} else {
-		mode = bolt_mode.WriteMode
+		mode = neo4j.AccessModeWrite
 	}
 
-	conn, err := driverPool.Open(mode)
+	neoSess, err := driver.Session(mode)
 	if err != nil {
 		return nil, err
 	}
 
-	session.conn = conn
+	session.neoSess = neoSess
 
 	session.DefaultDepth = defaultDepth
 
@@ -65,7 +64,7 @@ func NewSession(readonly bool) (*Session, error) {
 }
 
 func (s *Session) Begin() error {
-	if s.conn == nil {
+	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
@@ -75,7 +74,7 @@ func (s *Session) Begin() error {
 
 	var err error
 
-	s.tx, err = s.conn.Begin()
+	s.tx, err = s.neoSess.BeginTransaction()
 	if err != nil {
 		return err
 	}
@@ -84,7 +83,7 @@ func (s *Session) Begin() error {
 }
 
 func (s *Session) Rollback() error {
-	if s.conn == nil {
+	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
@@ -111,7 +110,7 @@ func (s *Session) RollbackWithError(originalError error) error {
 }
 
 func (s *Session) Commit() error {
-	if s.conn == nil {
+	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
@@ -199,19 +198,24 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	}
 
 	// handle if in transaction
-	var conn connection.IQuery
+	var rf neoRunFunc
 	if s.tx != nil {
-		conn = s.tx
+		rf = s.tx.Run
 	} else {
-		conn = s.conn
+		rf = runWrap(s.neoSess)
 	}
 
-	rows, err := query.WithNeo(conn).Query(params)
+	cyp, err := query.ToCypher()
 	if err != nil {
 		return err
 	}
 
-	return decode(rows, respObj)
+	result, err := rf(cyp, params)
+	if err != nil {
+		return err
+	}
+
+	return decode(result, respObj)
 }
 
 func (s *Session) LoadAll(respObj interface{}) error {
@@ -289,19 +293,24 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 	}
 
 	// handle if in transaction
-	var conn connection.IQuery
+	var rf neoRunFunc
 	if s.tx != nil {
-		conn = s.tx
+		rf = s.tx.Run
 	} else {
-		conn = s.conn
+		rf = runWrap(s.neoSess)
 	}
 
-	rows, err := query.WithNeo(conn).Query(params)
+	cyp, err := query.ToCypher()
 	if err != nil {
 		return err
 	}
 
-	return decode(rows, respObj)
+	result, err := rf(cyp, params)
+	if err != nil {
+		return err
+	}
+
+	return decode(result, respObj)
 }
 
 func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNodeField string, edgeConstraint interface{}, minJumps, maxJumps, depth int, filter dsl.ConditionOperator) error {
@@ -350,21 +359,26 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 	}
 
 	// handle if in transaction
-	var conn connection.IQuery
+	var rf neoRunFunc
 	if s.tx != nil {
-		conn = s.tx
+		rf = s.tx.Run
 	} else {
-		conn = s.conn
+		rf = runWrap(s.neoSess)
 	}
 
-	rows, err := query.WithNeo(conn).Query(map[string]interface{}{
+	cyp, err := query.ToCypher()
+	if err != nil {
+		return err
+	}
+
+	result, err := rf(cyp, map[string]interface{}{
 		endNodeField: edgeConstraint,
 	})
 	if err != nil {
 		return err
 	}
 
-	return decode(rows, respObj)
+	return decode(result, respObj)
 }
 
 func (s *Session) Save(saveObj interface{}) error {
@@ -372,23 +386,23 @@ func (s *Session) Save(saveObj interface{}) error {
 }
 
 func (s *Session) SaveDepth(saveObj interface{}, depth int) error {
-	if s.conn == nil {
+	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
 	// handle if in transaction
-	var conn connection.IQuery
+	var rf neoRunFunc
 	if s.tx != nil {
-		conn = s.tx
+		rf = s.tx.Run
 	} else {
-		conn = s.conn
+		rf = runWrap(s.neoSess)
 	}
 
-	return saveDepth(conn, saveObj, depth)
+	return saveDepth(rf, saveObj, depth)
 }
 
 func (s *Session) Delete(deleteObj interface{}) error {
-	if s.conn == nil {
+	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
@@ -397,111 +411,116 @@ func (s *Session) Delete(deleteObj interface{}) error {
 	}
 
 	// handle if in transaction
-	var conn connection.IQuery
+	var rf neoRunFunc
 	if s.tx != nil {
-		conn = s.tx
+		rf = s.tx.Run
 	} else {
-		conn = s.conn
+		rf = runWrap(s.neoSess)
 	}
 
-	return deleteNode(conn, deleteObj)
+	return deleteNode(rf, deleteObj)
 }
 
 func (s *Session) DeleteUUID(uuid string) error {
-	if s.conn == nil {
+	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
 	// handle if in transaction
-	var conn connection.IQuery
+	var rf neoRunFunc
 	if s.tx != nil {
-		conn = s.tx
+		rf = s.tx.Run
 	} else {
-		conn = s.conn
+		rf = runWrap(s.neoSess)
 	}
 
-	return deleteByUuids(conn, uuid)
+	return deleteByUuids(rf, uuid)
 }
 
 func (s *Session) Query(query string, properties map[string]interface{}, respObj interface{}) error {
-	if s.conn == nil {
+	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
 	// handle if in transaction
-	var conn connection.IQuery
+	var rf neoRunFunc
 	if s.tx != nil {
-		conn = s.tx
+		rf = s.tx.Run
 	} else {
-		conn = s.conn
+		rf = runWrap(s.neoSess)
 	}
 
-	rows, err := dsl.QB().Cypher(query).WithNeo(conn).Query(properties)
+	res, err := rf(query, properties)
 	if err != nil {
 		return err
 	}
 
-	return decode(rows, respObj)
+	return decode(res, respObj)
 }
 
 func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error) {
-	if s.conn == nil {
+	if s.neoSess == nil {
 		return nil, errors.New("neo4j connection not initialized")
 	}
 
 	// handle if in transaction
-	var conn connection.IQuery
+	var rf neoRunFunc
 	if s.tx != nil {
-		conn = s.tx
+		rf = s.tx.Run
 	} else {
-		conn = s.conn
+		rf = runWrap(s.neoSess)
 	}
 
-	data, err := dsl.QB().Cypher(query).WithNeo(conn).Query(properties)
+	res, err := rf(query, properties)
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	var result [][]interface{}
+
+	for res.Next() {
+		result = append(result, res.Record().Values())
+	}
+
+	return result, nil
 }
 
 func (s *Session) PurgeDatabase() error {
-	if s.conn == nil {
+	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
 	// handle if in transaction
-	var conn connection.IQuery
+	var rf neoRunFunc
 	if s.tx != nil {
-		conn = s.tx
+		rf = s.tx.Run
 	} else {
-		conn = s.conn
+		rf = runWrap(s.neoSess)
 	}
 
-	_, err := dsl.QB().Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).Delete(true, "n").WithNeo(conn).Exec(nil)
-	return err
-}
-
-func (s *Session) Close() error {
-	if s.conn == nil {
-		return errors.New("neo4j connection not initialized")
-	}
-
-	if s.conn == nil {
-		return fmt.Errorf("cannot close nil connection: %w", ErrInternal)
-	}
-
-	if s.tx != nil {
-		log.Warn("attempting to close a session with a pending transaction")
-		return fmt.Errorf("cannot close a session with a pending transaction: %w", ErrTransaction)
-	}
-
-	err := driverPool.Reclaim(s.conn)
+	cyp, err := dsl.QB().Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).Delete(true, "n").ToCypher()
 	if err != nil {
 		return err
 	}
 
-	s.conn = nil
+	_, err = rf(cyp, nil)
+	return err
+}
 
-	return nil
+func (s *Session) Close() error {
+	if s.neoSess == nil {
+		return fmt.Errorf("cannot close nil connection: %w", ErrInternal)
+	}
+
+	// handle tx
+	if s.tx != nil {
+		log.Warn("attempting to close a session with a pending transaction. Tx is being rolled back")
+		err := s.tx.Rollback()
+		if err != nil {
+			return err
+		}
+		s.tx = nil
+	}
+
+	return s.neoSess.Close()
 }
