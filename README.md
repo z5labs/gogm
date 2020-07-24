@@ -128,7 +128,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	o
+	
 	//close the session
 	defer sess.Close()
 
