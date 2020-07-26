@@ -63,8 +63,8 @@ type MyNeo4jObject struct {
 package main
 
 import (
-  "github.com/mindstand/gogm"
-  "time"
+	"github.com/mindstand/gogm"
+	"time"
 )
 
 type tdString string
@@ -72,36 +72,34 @@ type tdInt int
 
 //structs for the example (can also be found in decoder_test.go)
 type VertexA struct {
-    // provides required node fields
+	// provides required node fields
 	gogm.BaseNode
 
-	TestField         string   `gogm:"name=test_field"`
-	TestTypeDefString tdString `gogm:"name=test_type_def_string"`
-	TestTypeDefInt    tdInt    `gogm:"name=test_type_def_int"`
-	SingleA           *VertexB       `gogm:"direction=incoming;relationship=test_rel"`
-	ManyA             []*VertexB     `gogm:"direction=incoming;relationship=testm2o"`
-	MultiA            []*VertexB     `gogm:"direction=incoming;relationship=multib"`
-	SingleSpecA       *EdgeC       `gogm:"direction=outgoing;relationship=special_single"`
-	MultiSpecA        []*EdgeC     `gogm:"direction=outgoing;relationship=special_multi"`
+	TestField         string     `gogm:"name=test_field"`
+	TestTypeDefString tdString   `gogm:"name=test_type_def_string"`
+	TestTypeDefInt    tdInt      `gogm:"name=test_type_def_int"`
+	SingleA           *VertexB   `gogm:"direction=incoming;relationship=test_rel"`
+	ManyA             []*VertexB `gogm:"direction=incoming;relationship=testm2o"`
+	MultiA            []*VertexB `gogm:"direction=incoming;relationship=multib"`
+	SingleSpecA       *EdgeC     `gogm:"direction=outgoing;relationship=special_single"`
+	MultiSpecA        []*EdgeC   `gogm:"direction=outgoing;relationship=special_multi"`
 }
 
 type VertexB struct {
-    // provides required node fields
+	// provides required node fields
 	gogm.BaseNode
 
-	TestField  string    `gogm:"name=test_field"`
-	TestTime   time.Time `gogm:"name=test_time"`
-
-	Single     *VertexA         `gogm:"direction=outgoing;relationship=test_rel"`
-	ManyB      *VertexA         `gogm:"direction=incoming;relationship=testm2o"`
-	Multi      []*VertexA       `gogm:"direction=outgoing;relationship=multib"`
-
-	SingleSpec *EdgeC        `gogm:"direction=incoming;relationship=special_single"`
-	MultiSpec  []*EdgeC      `gogm:"direction=incoming;relationship=special_multi"`
+	TestField  string     `gogm:"name=test_field"`
+	TestTime   time.Time  `gogm:"name=test_time"`
+	Single     *VertexA   `gogm:"direction=outgoing;relationship=test_rel"`
+	ManyB      *VertexA   `gogm:"direction=incoming;relationship=testm2o"`
+	Multi      []*VertexA `gogm:"direction=outgoing;relationship=multib"`
+	SingleSpec *EdgeC     `gogm:"direction=incoming;relationship=special_single"`
+	MultiSpec  []*EdgeC   `gogm:"direction=incoming;relationship=special_multi"`
 }
 
 type EdgeC struct {
-    // provides required node fields
+	// provides required node fields
 	gogm.BaseNode
 
 	Start *VertexA
@@ -109,57 +107,57 @@ type EdgeC struct {
 	Test  string `gogm:"name=test"`
 }
 
-func main(){
-  config := gogm.Config{
-    IndexStrategy: gogm.VALIDATE_INDEX, //other options are ASSERT_INDEX and IGNORE_INDEX
-    PoolSize:      50,
-    Port:          7687,
-    IsCluster:     false, //tells it whether or not to use `bolt+routing`
-    Host:          "0.0.0.0",
-    Password:      "password",
-    Username:      "neo4j",
-  }
-  
-  err := gogm.Init(&config, &VertexA{}, &VertexB{}, &EdgeC{})
-  if err != nil {
-    panic(err)
-  }
-  
-  //param is readonly, we're going to make stuff so we're going to do read write
-  sess, err := gogm.NewSession(false) 
-  if err != nil {
-    panic(err)
-  }
-  
-  //close the session
-  defer sess.Close()
-  
-  aVal := &VertexA{
-    TestField: "woo neo4j",
-  }
-  
-  bVal := &VertexB{
-    TestTime: time.Now().UTC(),
-  }
-  
-  //set bi directional pointer
-  bVal.Single = aVal
-  aVal.SingleA = bVal
-  
-  err = sess.SaveDepth(&aVal, 2)
-  if err != nil {
-    panic(err)
-  }
-  
-  //load the object we just made (save will set the uuid)
-  var readin VertexA
-  err = sess.Load(&readin, aVal.UUID)
-  if err != nil {
-    panic(err)
-  }
-  
-  
+func main() {
+	config := gogm.Config{
+		IndexStrategy: gogm.VALIDATE_INDEX, //other options are ASSERT_INDEX and IGNORE_INDEX
+		PoolSize:      50,
+		Port:          7687,
+		IsCluster:     false, //tells it whether or not to use `bolt+routing`
+		Host:          "0.0.0.0",
+		Password:      "password",
+		Username:      "neo4j",
+	}
+
+	err := gogm.Init(&config, &VertexA{}, &VertexB{}, &EdgeC{})
+	if err != nil {
+		panic(err)
+	}
+
+	//param is readonly, we're going to make stuff so we're going to do read write
+	sess, err := gogm.NewSession(false)
+	if err != nil {
+		panic(err)
+	}
+	
+	//close the session
+	defer sess.Close()
+
+	aVal := &VertexA{
+		TestField: "woo neo4j",
+	}
+
+	bVal := &VertexB{
+		TestTime: time.Now().UTC(),
+	}
+
+	//set bi directional pointer
+	bVal.Single = aVal
+	aVal.SingleA = bVal
+
+	err = sess.SaveDepth(&aVal, 2)
+	if err != nil {
+		panic(err)
+	}
+
+	//load the object we just made (save will set the uuid)
+	var readin VertexA
+	err = sess.Load(&readin, aVal.UUID)
+	if err != nil {
+		panic(err)
+	}
+
 }
+
 
 ```
 
