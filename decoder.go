@@ -30,10 +30,15 @@ import (
 func decode(result neo4j.Result, respObj interface{}) (err error) {
 	var rows [][]interface{}
 
+	numRows := 0
 	for result.Next() {
 		rows = append(rows, result.Record().Values())
+		numRows++
 	}
 
+	if numRows == 0 {
+		return ErrNotFound
+	}
 	return innerDecode(rows, respObj)
 }
 
