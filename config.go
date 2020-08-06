@@ -55,27 +55,27 @@ func SetLogger(logger *logrus.Entry) error {
 // Config Defined GoGM config
 type Config struct {
 	// Host is the neo4j host
-	Host string `yaml:"host" json:"host"`
+	Host string `yaml:"host" json:"host" mapstructure:"host"`
 	// Port is the neo4j port
-	Port int `yaml:"port" json:"port"`
+	Port int `yaml:"port" json:"port" mapstructure:"port"`
 
 	// IsCluster specifies whether GoGM is connecting to a casual cluster or not
-	IsCluster bool `yaml:"is_cluster" json:"is_cluster"`
+	IsCluster bool `yaml:"is_cluster" json:"is_cluster" mapstructure:"is_cluster"`
 
 	// Username is the GoGM username
-	Username string `yaml:"username" json:"username"`
+	Username string `yaml:"username" json:"username" mapstructure:"username"`
 	// Password is the GoGM password
-	Password string `yaml:"password" json:"password"`
+	Password string `yaml:"password" json:"password" mapstructure:"password"`
 
 	// PoolSize is the size of the connection pool for GoGM
-	PoolSize int `yaml:"pool_size" json:"pool_size"`
+	PoolSize int `yaml:"pool_size" json:"pool_size" mapstructure:"pool_size"`
 
-	Realm string `yaml:"realm" json:"realm"`
+	Realm string `yaml:"realm" json:"realm" mapstructure:"realm"`
 
-	Encrypted bool `yaml:"encrypted" json:"encrypted"`
+	Encrypted bool `yaml:"encrypted" json:"encrypted" mapstructure:"encrypted"`
 
 	// Index Strategy defines the index strategy for GoGM
-	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy"`
+	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy" mapstructure:"index_strategy"`
 }
 
 // ConnectionString builds the neo4j bolt/bolt+routing connection string
