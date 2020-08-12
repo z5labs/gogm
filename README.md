@@ -145,7 +145,7 @@ func main() {
 	bVal.Single = aVal
 	aVal.SingleA = bVal
 
-	err = sess.SaveDepth(&aVal, 2)
+	err = sess.SaveDepth(aVal, 2)
 	if err != nil {
 		panic(err)
 	}
