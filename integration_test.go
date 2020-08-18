@@ -20,9 +20,10 @@
 package gogm
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestIntegration(t *testing.T) {
