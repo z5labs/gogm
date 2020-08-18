@@ -208,7 +208,24 @@ type propsTest struct {
 	Props map[string]interface{} `gogm:"name=props;properties"`
 }
 
-func TestDecoder(t *testing.T) {
+func TestDecode(t *testing.T) {
+
+	req := require.New(t)
+	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}, &f{}, &propsTest{}))
+
+	var fNode f
+	t1 := testResult{
+		empty: true,
+	}
+
+	req.True(errors.Is(decode(&t1, &fNode), ErrNotFound))
+
+	t1.empty = false
+
+	req.Nil(decode(&t1, &fNode))
+}
+
+func TestInnerDecode(t *testing.T) {
 	req := require.New(t)
 
 	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}, &f{}, &propsTest{}))

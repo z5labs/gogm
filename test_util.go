@@ -75,3 +75,101 @@ func (t testPath) Relationships() []neo4j.Relationship {
 	}
 	return nodes
 }
+
+type testRecord struct {
+
+}
+
+func (t *testRecord) Keys() []string {
+	panic("implement me")
+}
+
+func (t *testRecord) Values() []interface{} {
+	return []interface{}{
+		testPath{
+			nodes: []*testNode{
+				{
+					labels: []string{"f"},
+					props: map[string]interface{}{
+						"uuid": "0",
+					},
+					id: 0,
+				},
+				{
+					labels: []string{"f"},
+					props: map[string]interface{}{
+						"uuid": "1",
+					},
+					id: 1,
+				},
+				{
+					labels: []string{"f"},
+					props: map[string]interface{}{
+						"uuid": "2",
+					},
+					id: 2,
+				},
+			},
+			relNodes: []*testRelationship{
+				{
+					id:      3,
+					startId: 0,
+					endId:   1,
+					_type:   "test",
+					props:   nil,
+				},
+				{
+					id:      4,
+					startId: 1,
+					endId:   2,
+					_type:   "test",
+					props:   nil,
+				},
+			},
+		},
+	}
+
+}
+
+func (t testRecord) Get(key string) (interface{}, bool) {
+	panic("implement me")
+}
+
+func (t testRecord) GetByIndex(index int) interface{} {
+	panic("implement me")
+}
+
+type testResult struct {
+	empty bool
+	num int
+}
+
+func (t *testResult) Keys() ([]string, error) {
+	panic("implement me")
+}
+
+func (t *testResult) Next() bool {
+	toRet := !t.empty && t.num == 0
+
+	if !t.empty {
+		t.num++
+	}
+
+	return toRet
+}
+
+func (t *testResult) Err() error {
+	panic("implement me")
+}
+
+func (t *testResult) Record() neo4j.Record {
+	return &testRecord{}
+}
+
+func (t *testResult) Summary() (neo4j.ResultSummary, error) {
+	panic("implement me")
+}
+
+func (t *testResult) Consume() (neo4j.ResultSummary, error) {
+	panic("implement me")
+}

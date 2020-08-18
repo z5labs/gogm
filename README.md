@@ -59,6 +59,7 @@ type MyNeo4jObject struct {
 ```
 
 ### GOGM Usage
+- Edges must implement the [IEdge interface](https://github.com/mindstand/gogm/blob/master/interface.go#L28). View the complete example [here](https://github.com/mindstand/gogm/blob/master/examples/example.go). 
 ```go
 package main
 
@@ -92,7 +93,7 @@ type VertexB struct {
 	TestField  string     `gogm:"name=test_field"`
 	TestTime   time.Time  `gogm:"name=test_time"`
 	Single     *VertexA   `gogm:"direction=outgoing;relationship=test_rel"`
-	ManyB      *VertexA   `gogm:"direction=incoming;relationship=testm2o"`
+	ManyB      *VertexA   `gogm:"direction=outgoing;relationship=testm2o"`
 	Multi      []*VertexA `gogm:"direction=outgoing;relationship=multib"`
 	SingleSpec *EdgeC     `gogm:"direction=incoming;relationship=special_single"`
 	MultiSpec  []*EdgeC   `gogm:"direction=incoming;relationship=special_multi"`
@@ -144,7 +145,7 @@ func main() {
 	bVal.Single = aVal
 	aVal.SingleA = bVal
 
-	err = sess.SaveDepth(&aVal, 2)
+	err = sess.SaveDepth(aVal, 2)
 	if err != nil {
 		panic(err)
 	}
