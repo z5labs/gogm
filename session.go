@@ -30,6 +30,9 @@ import (
 
 const defaultDepth = 1
 
+const AccessModeRead = neo4j.AccessModeRead
+const AccessModeWrite = neo4j.AccessModeWrite
+
 type SessionConfig neo4j.SessionConfig
 
 type Session struct {
@@ -49,9 +52,9 @@ func NewSession(readonly bool) (*Session, error) {
 	var mode neo4j.AccessMode
 
 	if readonly {
-		mode = neo4j.AccessModeRead
+		mode = AccessModeRead
 	} else {
-		mode = neo4j.AccessModeWrite
+		mode = AccessModeWrite
 	}
 
 	neoSess, err := driver.Session(mode)

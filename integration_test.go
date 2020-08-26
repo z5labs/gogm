@@ -59,7 +59,16 @@ func TestIntegration(t *testing.T) {
 	req.Nil(sess.PurgeDatabase())
 
 	req.Nil(sess.Close())
+
+	// Test Opening and Closing Session using SessionConfig
+	sessConf, err := NewSessionWithConfig(SessionConfig{
+		AccessMode: AccessModeRead,
+	})
+	req.Nil(err)
+	req.Nil(sessConf.Close())
+
 	req.Nil(driver.Close())
+
 }
 
 // runs with integration test
