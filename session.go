@@ -478,8 +478,30 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 
 	var result [][]interface{}
 
+	// we have to wrap everything because the driver only exposes interfaces which are not serializable
 	for res.Next() {
-		result = append(result, res.Record().Values())
+		valLen := len(res.Record().Values())
+		valCap := cap(res.Record().Values())
+		if valLen != 0 {
+			vals := make([]interface{}, valLen, valCap)
+			for i, val := range res.Record().Values() {
+				switch val.(type) {
+				case neo4j.Path:
+					vals[i] = newPathWrap(val.(neo4j.Path))
+					break
+				case neo4j.Relationship:
+					vals[i] = newRelationshipWrap(val.(neo4j.Relationship))
+					break
+				case neo4j.Node:
+					vals[i] = newNodeWrap(val.(neo4j.Node))
+					break
+				default:
+					vals[i] = val
+					continue
+				}
+			}
+			result = append(result, vals)
+		}
 	}
 
 	return result, nil
