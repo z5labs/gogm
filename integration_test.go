@@ -28,6 +28,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// This test is to make sure retuning raw results from neo4j actually work. This
+// proves that the bug causing empty interfaces to be returned has been fixed.
 func TestRawQuery(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
