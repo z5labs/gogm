@@ -37,8 +37,8 @@ type neoEdgeConfig struct {
 }
 
 type NodeWrap struct {
-	Id     int64 `json:"id"`
-	Labels []string `json:"labels"`
+	Id     int64                  `json:"id"`
+	Labels []string               `json:"labels"`
 	Props  map[string]interface{} `json:"props"`
 }
 
@@ -51,7 +51,7 @@ func newNodeWrap(node neo4j.Node) *NodeWrap {
 }
 
 type PathWrap struct {
-	Nodes    []*NodeWrap `json:"nodes"`
+	Nodes    []*NodeWrap         `json:"nodes"`
 	RelNodes []*RelationshipWrap `json:"rel_nodes"`
 }
 
@@ -81,10 +81,10 @@ func newPathWrap(path neo4j.Path) *PathWrap {
 }
 
 type RelationshipWrap struct {
-	Id      int64 `json:"id"`
-	StartId int64 `json:"start_id"`
-	EndId   int64 `json:"end_id"`
-	Type   string `json:"type"`
+	Id      int64                  `json:"id"`
+	StartId int64                  `json:"start_id"`
+	EndId   int64                  `json:"end_id"`
+	Type    string                 `json:"type"`
 	Props   map[string]interface{} `json:"props"`
 }
 

@@ -22,12 +22,18 @@ package gogm
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/neo4j/neo4j-go-driver/neo4j"
-	"reflect"
 )
 
 const defaultDepth = 1
+
+const AccessModeRead = neo4j.AccessModeRead
+const AccessModeWrite = neo4j.AccessModeWrite
+
+type SessionConfig neo4j.SessionConfig
 
 type Session struct {
 	neoSess      neo4j.Session
@@ -46,9 +52,9 @@ func NewSession(readonly bool) (*Session, error) {
 	var mode neo4j.AccessMode
 
 	if readonly {
-		mode = neo4j.AccessModeRead
+		mode = AccessModeRead
 	} else {
-		mode = neo4j.AccessModeWrite
+		mode = AccessModeWrite
 	}
 
 	neoSess, err := driver.Session(mode)
@@ -63,6 +69,25 @@ func NewSession(readonly bool) (*Session, error) {
 	return session, nil
 }
 
+func NewSessionWithConfig(conf SessionConfig) (*Session, error) {
+	if driver == nil {
+		return nil, errors.New("driver cannot be nil")
+	}
+
+	neoSess, err := driver.NewSession(neo4j.SessionConfig{
+		AccessMode:   conf.AccessMode,
+		Bookmarks:    conf.Bookmarks,
+		DatabaseName: conf.DatabaseName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Session{
+		neoSess:      neoSess,
+		DefaultDepth: defaultDepth,
+	}, nil
+}
 func (s *Session) Begin() error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")

@@ -21,9 +21,11 @@ package gogm
 
 import (
 	uuid2 "github.com/google/uuid"
-	"github.com/stretchr/testify/require"
+
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestRawQuery(t *testing.T) {
@@ -52,8 +54,8 @@ func TestRawQuery(t *testing.T) {
 	uuid := uuid2.New().String()
 
 	req.Nil(sess.Save(&a{
-		BaseNode:          BaseNode{
-			UUID:    uuid,
+		BaseNode: BaseNode{
+			UUID: uuid,
 		},
 	}))
 
@@ -97,7 +99,16 @@ func TestIntegration(t *testing.T) {
 	req.Nil(sess.PurgeDatabase())
 
 	req.Nil(sess.Close())
+
+	// Test Opening and Closing Session using SessionConfig
+	sessConf, err := NewSessionWithConfig(SessionConfig{
+		AccessMode: AccessModeRead,
+	})
+	req.Nil(err)
+	req.Nil(sessConf.Close())
+
 	req.Nil(driver.Close())
+
 }
 
 // runs with integration test
