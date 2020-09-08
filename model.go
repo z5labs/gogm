@@ -36,6 +36,7 @@ type neoEdgeConfig struct {
 	Type string
 }
 
+// NodeWrap wraps the neo4j node struct because it is private
 type NodeWrap struct {
 	Id     int64                  `json:"id"`
 	Labels []string               `json:"labels"`
@@ -50,6 +51,7 @@ func newNodeWrap(node neo4j.Node) *NodeWrap {
 	}
 }
 
+// PathWrap wraps the neo4j path struct because it is private
 type PathWrap struct {
 	Nodes    []*NodeWrap         `json:"nodes"`
 	RelNodes []*RelationshipWrap `json:"rel_nodes"`
@@ -80,6 +82,7 @@ func newPathWrap(path neo4j.Path) *PathWrap {
 	return pw
 }
 
+// RelationshipWrap wraps the neo4j relationship struct because it is private
 type RelationshipWrap struct {
 	Id      int64                  `json:"id"`
 	StartId int64                  `json:"start_id"`
