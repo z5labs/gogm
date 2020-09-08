@@ -20,11 +20,53 @@
 package gogm
 
 import (
+	uuid2 "github.com/google/uuid"
+
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+// This test is to make sure retuning raw results from neo4j actually work. This
+// proves that the bug causing empty interfaces to be returned has been fixed.
+func TestRawQuery(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+		return
+	}
+
+	req := require.New(t)
+
+	conf := Config{
+		Username:      "neo4j",
+		Password:      "password",
+		Host:          "0.0.0.0",
+		IsCluster:     false,
+		Port:          7687,
+		PoolSize:      15,
+		IndexStrategy: IGNORE_INDEX,
+	}
+
+	req.Nil(Init(&conf, &a{}, &b{}, &c{}))
+
+	sess, err := NewSession(false)
+	req.Nil(err)
+
+	uuid := uuid2.New().String()
+
+	req.Nil(sess.Save(&a{
+		BaseNode: BaseNode{
+			UUID: uuid,
+		},
+	}))
+
+	raw, err := sess.QueryRaw("match (n) where n.uuid=$uuid return n", map[string]interface{}{
+		"uuid": uuid,
+	})
+	req.Nil(err)
+	req.NotEmpty(raw)
+}
 
 func TestIntegration(t *testing.T) {
 	if testing.Short() {

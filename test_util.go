@@ -77,7 +77,6 @@ func (t testPath) Relationships() []neo4j.Relationship {
 }
 
 type testRecord struct {
-
 }
 
 func (t *testRecord) Keys() []string {
@@ -141,7 +140,7 @@ func (t testRecord) GetByIndex(index int) interface{} {
 
 type testResult struct {
 	empty bool
-	num int
+	num   int
 }
 
 func (t *testResult) Keys() ([]string, error) {
