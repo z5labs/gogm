@@ -215,6 +215,8 @@ func (d *decoratorConfig) Validate() error {
 		}
 	} else if d.Properties {
 		return NewInvalidDecoratorConfigError("property must be map[string]<primitive> or map[string][]<primitive> or []primitive", d.Name)
+	} else if kind == reflect.Map {
+		return NewInvalidDecoratorConfigError("field with map must be marked as a property", d.Name)
 	}
 
 	//check if type is pointer

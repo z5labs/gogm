@@ -296,6 +296,11 @@ func TestNewDecoratorConfig(t *testing.T) {
 		Properties: true,
 		Name:       "test",
 		Type:       reflect.TypeOf(map[string]interface{}{}),
+		PropConfig: &propConfig{
+			IsMap:      true,
+			IsMapSlice: false,
+			SubType:    emptyInterfaceType,
+		},
 	}
 
 	compare, err = newDecoratorConfig(decProps, "", reflect.TypeOf(map[string]interface{}{}))
@@ -341,7 +346,7 @@ type validStruct struct {
 	PropsMapInterface      map[string]interface{} `gogm:"properties;name=props1"`
 	PropsMapPrimitive      map[string]int         `gogm:"properties;name=props2"`
 	PropsMapSlicePrimitive map[string][]int       `gogm:"properties;name=props3"`
-	PropsSliceInterface    []interface{}          `gogm:"properties;name=props4"`
+	PropsSliceInterface    []string               `gogm:"properties;name=props4"`
 	PropsPrimitive         []int                  `gogm:"properties;name=props5"`
 	IgnoreMe               int                    `gogm:"-"`
 }
@@ -518,30 +523,55 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Properties: true,
 				Name:       "props1",
 				Type:       reflect.TypeOf(map[string]interface{}{}),
+				PropConfig: &propConfig{
+					IsMap:      true,
+					IsMapSlice: false,
+					SubType:    emptyInterfaceType,
+				},
 			},
 			"PropsMapPrimitive": {
 				FieldName:  "PropsMapPrimitive",
 				Properties: true,
 				Name:       "props2",
 				Type:       reflect.TypeOf(map[string]int{}),
+				PropConfig: &propConfig{
+					IsMap:      true,
+					IsMapSlice: false,
+					SubType:    reflect.TypeOf(int(0)),
+				},
 			},
 			"PropsMapSlicePrimitive": {
 				FieldName:  "PropsMapSlicePrimitive",
 				Properties: true,
 				Name:       "props3",
 				Type:       reflect.TypeOf(map[string][]int{}),
+				PropConfig: &propConfig{
+					IsMap:      true,
+					IsMapSlice: true,
+					SubType:    reflect.TypeOf(int(0)),
+				},
 			},
 			"PropsSliceInterface": {
 				FieldName:  "PropsSliceInterface",
 				Properties: true,
 				Name:       "props4",
-				Type:       reflect.TypeOf([]interface{}{}),
+				Type:       reflect.TypeOf([]string{}),
+				PropConfig: &propConfig{
+					IsMap:      false,
+					IsMapSlice: false,
+					SubType:    reflect.TypeOf(""),
+				},
 			},
 			"PropsPrimitive": {
 				FieldName:  "PropsPrimitive",
 				Properties: true,
 				Name:       "props5",
 				Type:       reflect.TypeOf([]int{}),
+				PropConfig: &propConfig{
+					IsMap:      false,
+					IsMapSlice: false,
+					SubType:    reflect.TypeOf(int(0)),
+				},
 			},
 			"IgnoreMe": {
 				FieldName: "IgnoreMe",
