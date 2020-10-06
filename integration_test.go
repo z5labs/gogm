@@ -77,7 +77,7 @@ func TestIntegration(t *testing.T) {
 
 	conf := Config{
 		Username:      "neo4j",
-		Password:      "changeme",
+		Password:      "password",
 		Host:          "0.0.0.0",
 		IsCluster:     false,
 		Port:          7687,
@@ -118,6 +118,15 @@ func testSave(sess *Session, req *require.Assertions) {
 	req.Nil(sess.Begin())
 	a2 := &a{
 		TestField: "test",
+		PropTest0: map[string]interface{}{
+			"test.test": "test",
+			"test2":     1,
+		},
+		PropTest1: map[string]string{
+			"test": "test",
+		},
+		PropsTest2: []string{"test", "test"},
+		PropsTest3: []int{1, 2},
 	}
 
 	b2 := &b{

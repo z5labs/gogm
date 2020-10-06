@@ -60,7 +60,7 @@ const (
 	//specifies is the field is a primary key
 	primaryKeyField = "pk"
 
-	//specifies if the field is map of type `map[string]interface{}`
+	//specifies if the field is map of type `map[string]interface{} or []<primitive>`
 	propertiesField = "properties"
 
 	//specifies if the field is to be ignored
@@ -72,6 +72,13 @@ const (
 	//assignment operator for GoGM tags
 	assignmentOperator = "="
 )
+
+type propConfig struct {
+	// IsMap if false assume slice
+	IsMap      bool
+	IsMapSlice bool
+	SubType    reflect.Type
+}
 
 //decorator config defines configuration of GoGM field
 type decoratorConfig struct {
@@ -97,6 +104,8 @@ type decoratorConfig struct {
 	PrimaryKey bool `json:"primary_key"`
 	// specify if the field holds properties
 	Properties bool `json:"properties"`
+
+	PropConfig *propConfig `json:"prop_config"`
 	// specifies if the field contains time value
 	//	IsTime bool `json:"is_time"`
 	// specifies if the field contains a typedef of another type
@@ -160,7 +169,6 @@ func (d *decoratorConfig) Validate() error {
 	if d.Ignore {
 		if d.Relationship != "" || d.Unique || d.Index || d.ManyRelationship || d.UsesEdgeNode ||
 			d.PrimaryKey || d.Properties || d.Name != d.FieldName {
-			log.Println(d)
 			return NewInvalidDecoratorConfigError("ignore tag cannot be combined with any other tag", "")
 		}
 
@@ -174,22 +182,39 @@ func (d *decoratorConfig) Validate() error {
 
 	kind := d.Type.Kind()
 
-	//check for valid properties
-	if kind == reflect.Map || d.Properties {
-		if !d.Properties {
-			return NewInvalidDecoratorConfigError("properties must be added to gogm config on field with a map", d.Name)
-		}
-
-		if kind != reflect.Map || d.Type != reflect.TypeOf(map[string]interface{}{}) {
-			return NewInvalidDecoratorConfigError("properties must be a map with signature map[string]interface{}", d.Name)
-		}
-
+	// properties supports map and slices
+	if (kind == reflect.Map || kind == reflect.Slice) && d.Properties && d.Relationship == "" {
 		if d.PrimaryKey || d.Relationship != "" || d.Direction != 0 || d.Index || d.Unique {
 			return NewInvalidDecoratorConfigError("field marked as properties can only have name defined", d.Name)
 		}
 
-		//valid properties
-		return nil
+		if kind == reflect.Slice {
+			sliceType := reflect.SliceOf(d.Type)
+			sliceKind := sliceType.Elem().Elem().Kind()
+			if _, err := getPrimitiveType(sliceKind); err != nil && sliceKind != reflect.Interface {
+				return NewInvalidDecoratorConfigError("property slice not of type <primitive>", d.Name)
+			}
+		} else if kind == reflect.Map {
+			// check if the key is a string
+			if d.Type.Kind() == reflect.String {
+				return NewInvalidDecoratorConfigError("property map key not of type string", d.Name)
+			}
+
+			mapType := d.Type.Elem()
+			mapKind := mapType.Kind()
+			if mapKind == reflect.Slice {
+				mapElem := mapType.Elem().Kind()
+				if _, err := getPrimitiveType(mapElem); err != nil {
+					return NewInvalidDecoratorConfigError("property map not of type <primitive> or []<primitive>", d.Name)
+				}
+			} else if _, err := getPrimitiveType(mapKind); err != nil && mapType.Kind() != reflect.Interface {
+				return NewInvalidDecoratorConfigError("property map not of type <primitive> or []<primitive> or interface{} or []interface{}", d.Name)
+			}
+		} else {
+			return NewInvalidDecoratorConfigError("property muss be map[string]<primitive> or map[string][]<primitive> or []primitive", d.Name)
+		}
+	} else if d.Properties {
+		return NewInvalidDecoratorConfigError("property must be map[string]<primitive> or map[string][]<primitive> or []primitive", d.Name)
 	}
 
 	//check if type is pointer
@@ -199,7 +224,7 @@ func (d *decoratorConfig) Validate() error {
 	}
 
 	//check valid relationship
-	if d.Direction != 0 || d.Relationship != "" || (kind == reflect.Struct && d.Type != timeType) || kind == reflect.Slice {
+	if d.Direction != 0 || d.Relationship != "" || (kind == reflect.Struct && d.Type != timeType) || (kind == reflect.Slice && !d.Properties) {
 		if d.Relationship == "" {
 			return NewInvalidDecoratorConfigError("relationship has to be defined when creating a relationship", d.FieldName)
 		}
@@ -350,6 +375,23 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 			toReturn.Ignore = true
 			continue
 		case propertiesField:
+			conf := propConfig{}
+			conf.IsMapSlice = false
+			k := varType.Kind()
+			if k == reflect.Slice {
+				conf.IsMap = false
+				conf.SubType = varType.Elem()
+			} else if k == reflect.Map {
+				conf.IsMap = true
+				sub := varType.Elem()
+				if sub.Kind() == reflect.Slice {
+					conf.IsMapSlice = true
+					conf.SubType = sub.Elem()
+				} else {
+					conf.SubType = sub
+				}
+			}
+			toReturn.PropConfig = &conf
 			toReturn.Properties = true
 			continue
 		case indexField:

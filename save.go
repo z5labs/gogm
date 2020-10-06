@@ -322,6 +322,8 @@ func createNodes(runFunc neoRunFunc, crNodes map[string]map[string]nodeCreateCon
 		})
 		if err != nil {
 			return nil, err
+		} else if res.Err() != nil {
+			return nil, res.Err()
 		}
 
 		for res.Next() {

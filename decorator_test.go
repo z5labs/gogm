@@ -332,14 +332,18 @@ type embedTest struct {
 
 type validStruct struct {
 	embedTest
-	IndexField  string                 `gogm:"index;name=index_field"`
-	UniqueField int                    `gogm:"unique;name=unique_field"`
-	OneToOne    *validStruct           `gogm:"relationship=one2one;direction=incoming"`
-	ManyToOne   []*a                   `gogm:"relationship=many2one;direction=outgoing"`
-	SpecialOne  *c                     `gogm:"relationship=specC;direction=outgoing"`
-	SpecialMany []*c                   `gogm:"relationship=manyC;direction=outgoing"`
-	Props       map[string]interface{} `gogm:"properties;name=props"`
-	IgnoreMe    int                    `gogm:"-"`
+	IndexField             string                 `gogm:"index;name=index_field"`
+	UniqueField            int                    `gogm:"unique;name=unique_field"`
+	OneToOne               *validStruct           `gogm:"relationship=one2one;direction=incoming"`
+	ManyToOne              []*a                   `gogm:"relationship=many2one;direction=outgoing"`
+	SpecialOne             *c                     `gogm:"relationship=specC;direction=outgoing"`
+	SpecialMany            []*c                   `gogm:"relationship=manyC;direction=outgoing"`
+	PropsMapInterface      map[string]interface{} `gogm:"properties;name=props1"`
+	PropsMapPrimitive      map[string]int         `gogm:"properties;name=props2"`
+	PropsMapSlicePrimitive map[string][]int       `gogm:"properties;name=props3"`
+	PropsSliceInterface    []interface{}          `gogm:"properties;name=props4"`
+	PropsPrimitive         []int                  `gogm:"properties;name=props5"`
+	IgnoreMe               int                    `gogm:"-"`
 }
 
 func (v *validStruct) GetId() int64 {
@@ -395,7 +399,9 @@ type invalidStructProperties struct {
 	Id   int64  `gogm:"name=id"`
 	UUID string `gogm:"pk;name=uuid"`
 
-	Props map[string]string `gogm:"name=props"` //should have properties decorator
+	Props  map[string]*validStruct   `gogm:"properties;name=props"`
+	Props1 map[string][]*validStruct `gogm:"properties;name=props1"`
+	Props2 []*validStruct            `gogm:"properties;name=props2"`
 }
 
 func (i *invalidStructProperties) GetLabels() []string {
@@ -507,11 +513,35 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				ManyRelationship: true,
 				Type:             reflect.TypeOf([]*a{}),
 			},
-			"Props": {
-				FieldName:  "Props",
+			"PropsMapInterface": {
+				FieldName:  "PropsMapInterface",
 				Properties: true,
-				Name:       "props",
+				Name:       "props1",
 				Type:       reflect.TypeOf(map[string]interface{}{}),
+			},
+			"PropsMapPrimitive": {
+				FieldName:  "PropsMapPrimitive",
+				Properties: true,
+				Name:       "props2",
+				Type:       reflect.TypeOf(map[string]int{}),
+			},
+			"PropsMapSlicePrimitive": {
+				FieldName:  "PropsMapSlicePrimitive",
+				Properties: true,
+				Name:       "props3",
+				Type:       reflect.TypeOf(map[string][]int{}),
+			},
+			"PropsSliceInterface": {
+				FieldName:  "PropsSliceInterface",
+				Properties: true,
+				Name:       "props4",
+				Type:       reflect.TypeOf([]interface{}{}),
+			},
+			"PropsPrimitive": {
+				FieldName:  "PropsPrimitive",
+				Properties: true,
+				Name:       "props5",
+				Type:       reflect.TypeOf([]int{}),
 			},
 			"IgnoreMe": {
 				FieldName: "IgnoreMe",

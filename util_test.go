@@ -114,7 +114,7 @@ func TestToCypherParamsMap(t *testing.T) {
 	p := propsTest{
 		Id:   1,
 		UUID: "testuuid",
-		Props: map[string]interface{}{
+		PropTest0: map[string]interface{}{
 			"test": "testvalue",
 		},
 	}
@@ -125,8 +125,8 @@ func TestToCypherParamsMap(t *testing.T) {
 	params, err = toCypherParamsMap(reflect.ValueOf(&p), *config)
 	require.Nil(t, err)
 	require.EqualValues(t, map[string]interface{}{
-		"uuid":       "testuuid",
-		"props.test": "testvalue",
+		"uuid":        "testuuid",
+		"props0.test": "testvalue",
 	}, params)
 }
 

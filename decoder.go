@@ -554,22 +554,31 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 		}
 
 		if fieldConfig.Properties {
-			mapType := reflect.MapOf(reflect.TypeOf(""), emptyInterfaceType)
-			mapVal := reflect.MakeMap(mapType)
-
-			for k, v := range props {
-				if !strings.Contains(k, fieldConfig.Name) {
-					//not one of our map fields
-					continue
-				}
-
-				mapKey := strings.Replace(k, fieldConfig.Name+".", "", 1)
-
-				mapVal.SetMapIndex(reflect.ValueOf(mapKey), reflect.ValueOf(v))
+			if fieldConfig.PropConfig == nil {
+				return nil, errors.New("property config is nil for property field")
 			}
+			if fieldConfig.PropConfig.IsMap {
+				for k, v := range props {
+					if !strings.Contains(k, fieldConfig.Name) {
+						//not one of our map fields
+						continue
+					}
 
-			reflect.Indirect(val).FieldByName(field).Set(mapVal)
-			continue
+					var sub reflect.Type
+					if fieldConfig.PropConfig.IsMapSlice {
+						sub = reflect.SliceOf(fieldConfig.PropConfig.SubType)
+					} else {
+						sub = fieldConfig.PropConfig.SubType
+					}
+					mapType := reflect.MapOf(reflect.TypeOf(""), sub)
+					mapVal := reflect.MakeMap(mapType)
+
+					mapKey := strings.Replace(k, fieldConfig.Name+".", "", 1)
+					mapVal.SetMapIndex(reflect.ValueOf(mapKey), reflect.ValueOf(v))
+					reflect.Indirect(val).FieldByName(field).Set(mapVal)
+				}
+				continue
+			}
 		}
 
 		var raw interface{}
