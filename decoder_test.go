@@ -137,15 +137,19 @@ type f struct {
 
 type a struct {
 	BaseNode
-	TestField         string    `gogm:"name=test_field"`
-	TestTypeDefString tdString  `gogm:"name=test_type_def_string"`
-	TestTypeDefInt    tdInt     `gogm:"name=test_type_def_int"`
-	SingleA           *b        `gogm:"direction=incoming;relationship=test_rel"`
-	ManyA             []*b      `gogm:"direction=incoming;relationship=testm2o"`
-	MultiA            []*b      `gogm:"direction=incoming;relationship=multib"`
-	SingleSpecA       *c        `gogm:"direction=outgoing;relationship=special_single"`
-	MultiSpecA        []*c      `gogm:"direction=outgoing;relationship=special_multi"`
-	Created           time.Time `gogm:"name=created"`
+	PropTest0         map[string]interface{} `gogm:"properties;name=props0"`
+	PropTest1         map[string]string      `gogm:"properties;name=props1"`
+	PropsTest2        []string               `gogm:"properties;name=props2"`
+	PropsTest3        []int                  `gogm:"properties;name=props3"`
+	TestField         string                 `gogm:"name=test_field"`
+	TestTypeDefString tdString               `gogm:"name=test_type_def_string"`
+	TestTypeDefInt    tdInt                  `gogm:"name=test_type_def_int"`
+	SingleA           *b                     `gogm:"direction=incoming;relationship=test_rel"`
+	ManyA             []*b                   `gogm:"direction=incoming;relationship=testm2o"`
+	MultiA            []*b                   `gogm:"direction=incoming;relationship=multib"`
+	SingleSpecA       *c                     `gogm:"direction=outgoing;relationship=special_single"`
+	MultiSpecA        []*c                   `gogm:"direction=outgoing;relationship=special_multi"`
+	Created           time.Time              `gogm:"name=created"`
 }
 
 type b struct {
@@ -203,9 +207,12 @@ func (c *c) SetEndNode(v interface{}) error {
 }
 
 type propsTest struct {
-	Id    int64                  `gogm:"name=id"`
-	UUID  string                 `gogm:"pk;name=uuid"`
-	Props map[string]interface{} `gogm:"name=props;properties"`
+	Id         int64                  `gogm:"name=id"`
+	UUID       string                 `gogm:"pk;name=uuid"`
+	PropTest0  map[string]interface{} `gogm:"properties;name=props0"`
+	PropTest1  map[string]string      `gogm:"properties;name=props1"`
+	PropsTest2 []string               `gogm:"properties;name=props2"`
+	PropsTest3 []int                  `gogm:"properties;name=props3"`
 }
 
 func TestDecode(t *testing.T) {
@@ -647,10 +654,12 @@ func TestInnerDecode(t *testing.T) {
 						id:     1,
 						labels: []string{"propsTest"},
 						props: map[string]interface{}{
-							"uuid":            var5uuid,
-							"props.test.test": "test",
-							"props.test2":     "test2",
-							"props.test3":     "test3",
+							"uuid":             var5uuid,
+							"props0.test.test": "test",
+							"props0.test2":     1,
+							"props1.test":      "test",
+							"props2":           []string{"test"},
+							"props3":           []int{1, 2},
 						},
 					},
 				},
@@ -663,19 +672,25 @@ func TestInnerDecode(t *testing.T) {
 	r := propsTest{
 		Id:   1,
 		UUID: var5uuid,
-		Props: map[string]interface{}{
+		PropTest0: map[string]interface{}{
 			"test.test": "test",
-			"test2":     "test2",
-			"test3":     "test3",
+			"test2":     1,
 		},
+		PropTest1: map[string]string{
+			"test": "test",
+		},
+		PropsTest2: []string{"test"},
+		PropsTest3: []int{1, 2},
 	}
 
 	req.Nil(innerDecode(vars5, &readin5))
 	req.EqualValues(r.Id, readin5.Id)
 	req.EqualValues(r.UUID, readin5.UUID)
-	req.EqualValues(r.Props["test"], readin5.Props["test"])
-	req.EqualValues(r.Props["test2"], readin5.Props["test2"])
-	req.EqualValues(r.Props["test3"], readin5.Props["test3"])
+	req.EqualValues(r.PropTest0["test"], readin5.PropTest0["test"])
+	req.EqualValues(r.PropTest0["test2"], readin5.PropTest0["test2"])
+	req.EqualValues(r.PropTest1["test"], readin5.PropTest1["test"])
+	req.EqualValues(r.PropsTest2, readin5.PropsTest2)
+	req.EqualValues(r.PropsTest3, readin5.PropsTest3)
 
 	//multi single
 	vars6 := [][]interface{}{

@@ -553,25 +553,6 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 			continue
 		}
 
-		if fieldConfig.Properties {
-			mapType := reflect.MapOf(reflect.TypeOf(""), emptyInterfaceType)
-			mapVal := reflect.MakeMap(mapType)
-
-			for k, v := range props {
-				if !strings.Contains(k, fieldConfig.Name) {
-					//not one of our map fields
-					continue
-				}
-
-				mapKey := strings.Replace(k, fieldConfig.Name+".", "", 1)
-
-				mapVal.SetMapIndex(reflect.ValueOf(mapKey), reflect.ValueOf(v))
-			}
-
-			reflect.Indirect(val).FieldByName(field).Set(mapVal)
-			continue
-		}
-
 		var raw interface{}
 		var ok bool
 
@@ -585,10 +566,81 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 
 		rawVal := reflect.ValueOf(raw)
 
-		if raw == nil || rawVal.IsZero() {
-			continue //its already initialized to 0 value, no need to do anything
+		indirect := reflect.Indirect(val)
+		if fieldConfig.Properties && fieldConfig.PropConfig != nil {
+			if fieldConfig.PropConfig.IsMap {
+				var sub reflect.Type
+				if fieldConfig.PropConfig.IsMapSlice {
+					sub = reflect.SliceOf(fieldConfig.PropConfig.SubType)
+				} else {
+					sub = fieldConfig.PropConfig.SubType
+				}
+				mapType := reflect.MapOf(reflect.TypeOf(""), sub)
+				mapVal := reflect.MakeMap(mapType)
+				for k, v := range props {
+					if !strings.Contains(k, fieldConfig.Name) {
+						//not one of our map fields
+						continue
+					}
+
+					mapKey := strings.Replace(k, fieldConfig.Name+".", "", 1)
+
+					if fieldConfig.PropConfig.IsMapSlice {
+						if v == nil {
+							// skip if nil
+							continue
+						}
+
+						sliceVal := reflect.ValueOf(v)
+
+						if sliceVal.IsZero() {
+							// cant do anything with a zero value
+							continue
+						}
+						rawLen := sliceVal.Len()
+						sl := reflect.MakeSlice(reflect.SliceOf(fieldConfig.PropConfig.SubType), rawLen, sliceVal.Cap())
+
+						for i := 0; i < rawLen; i++ {
+							slVal := sliceVal.Index(i)
+							if fieldConfig.PropConfig.SubType == slVal.Type() {
+								sl.Index(i).Set(slVal)
+							} else {
+								sl.Index(i).Set(slVal.Elem().Convert(fieldConfig.PropConfig.SubType))
+							}
+						}
+						mapVal.SetMapIndex(reflect.ValueOf(mapKey), sl)
+					} else {
+						vVal := reflect.ValueOf(v)
+						if fieldConfig.PropConfig.SubType == vVal.Type() {
+							mapVal.SetMapIndex(reflect.ValueOf(mapKey), vVal)
+						} else {
+							mapVal.SetMapIndex(reflect.ValueOf(mapKey), vVal.Convert(fieldConfig.PropConfig.SubType))
+						}
+					}
+				}
+				indirect.FieldByName(field).Set(mapVal)
+			} else {
+				if raw == nil || rawVal.IsZero() {
+					// cant do anything with a zero value
+					continue
+				}
+				rawLen := rawVal.Len()
+				sl := reflect.MakeSlice(reflect.SliceOf(fieldConfig.PropConfig.SubType), rawLen, rawVal.Cap())
+
+				for i := 0; i < rawLen; i++ {
+					slVal := rawVal.Index(i)
+					if fieldConfig.PropConfig.SubType == slVal.Type() {
+						sl.Index(i).Set(slVal)
+					} else {
+						sl.Index(i).Set(slVal.Elem().Convert(fieldConfig.PropConfig.SubType))
+					}
+				}
+				indirect.FieldByName(field).Set(sl)
+			}
 		} else {
-			indirect := reflect.Indirect(val)
+			if raw == nil || rawVal.IsZero() {
+				continue
+			}
 			if indirect.FieldByName(field).Type() == rawVal.Type() {
 				indirect.FieldByName(field).Set(rawVal)
 			} else {

@@ -130,28 +130,27 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 			continue
 		}
 
+		field := val.FieldByName(conf.FieldName)
+
 		if conf.Properties {
 			//check if field is a map
-			if conf.Type.Kind() == reflect.Map {
-				//try to cast it
-				propsMap, ok := val.FieldByName(conf.FieldName).Interface().(map[string]interface{})
-				if ok {
-					//if it works, create the fields
-					for k, v := range propsMap {
-						ret[conf.Name+"."+k] = v
-					}
-				} else {
-					return nil, errors.New("unable to convert map to map[string]interface{}")
+			if conf.Type.Kind() == reflect.Map && field.Kind() == reflect.Map {
+				for _, e := range field.MapKeys() {
+					v := field.MapIndex(e)
+					es := e.Interface().(string)
+					ret[conf.Name+"."+es] = v.Interface()
 				}
+			} else if conf.Type.Kind() == reflect.Slice && field.Kind() == reflect.Slice {
+				ret[conf.Name] = field.Interface()
 			} else {
-				return nil, errors.New("properties type is not a map")
+				return nil, fmt.Errorf("properties type is not a map or slice, %T", field.Interface())
 			}
 		} else {
 			//check if field is type aliased
 			if conf.IsTypeDef {
-				ret[conf.Name] = val.FieldByName(conf.FieldName).Convert(conf.TypedefActual).Interface()
+				ret[conf.Name] = field.Convert(conf.TypedefActual).Interface()
 			} else {
-				ret[conf.Name] = val.FieldByName(conf.FieldName).Interface()
+				ret[conf.Name] = field.Interface()
 			}
 		}
 	}

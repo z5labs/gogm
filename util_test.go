@@ -108,15 +108,20 @@ func TestToCypherParamsMap(t *testing.T) {
 		"test_type_def_int":    0,
 		"test_type_def_string": "",
 		"test_field":           "testvalue",
+		"props2":               []string(nil),
+		"props3":               []int(nil),
 		"created":              time.Time{},
 	}, params)
 
 	p := propsTest{
 		Id:   1,
 		UUID: "testuuid",
-		Props: map[string]interface{}{
+		PropTest0: map[string]interface{}{
 			"test": "testvalue",
 		},
+		PropTest1:  nil,
+		PropsTest2: nil,
+		PropsTest3: nil,
 	}
 
 	config, err = getStructDecoratorConfig(&p, mappedRelations)
@@ -125,8 +130,10 @@ func TestToCypherParamsMap(t *testing.T) {
 	params, err = toCypherParamsMap(reflect.ValueOf(&p), *config)
 	require.Nil(t, err)
 	require.EqualValues(t, map[string]interface{}{
-		"uuid":       "testuuid",
-		"props.test": "testvalue",
+		"uuid":        "testuuid",
+		"props0.test": "testvalue",
+		"props2":      []string(nil),
+		"props3":      []int(nil),
 	}, params)
 }
 
