@@ -89,7 +89,7 @@ func TestIntegration(t *testing.T) {
 
 	conf := Config{
 		Username:      "neo4j",
-		Password:      "password",
+		Password:      "changeme",
 		Host:          "0.0.0.0",
 		IsCluster:     false,
 		Port:          7687,
