@@ -586,12 +586,27 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 					mapKey := strings.Replace(k, fieldConfig.Name+".", "", 1)
 
 					if fieldConfig.PropConfig.IsMapSlice {
+						if v == nil {
+							// skip if nil
+							continue
+						}
+
 						sliceVal := reflect.ValueOf(v)
+
+						if sliceVal.IsZero() {
+							// cant do anything with a zero value
+							continue
+						}
 						rawLen := sliceVal.Len()
 						sl := reflect.MakeSlice(reflect.SliceOf(fieldConfig.PropConfig.SubType), rawLen, sliceVal.Cap())
 
 						for i := 0; i < rawLen; i++ {
-							sl.Index(i).Set(sliceVal.Index(i).Elem().Convert(fieldConfig.PropConfig.SubType))
+							slVal := sliceVal.Index(i)
+							if fieldConfig.PropConfig.SubType == slVal.Type() {
+								sl.Index(i).Set(slVal)
+							} else {
+								sl.Index(i).Set(slVal.Elem().Convert(fieldConfig.PropConfig.SubType))
+							}
 						}
 						mapVal.SetMapIndex(reflect.ValueOf(mapKey), sl)
 					} else {
@@ -605,11 +620,20 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 				}
 				indirect.FieldByName(field).Set(mapVal)
 			} else {
+				if raw == nil || rawVal.IsZero() {
+					// cant do anything with a zero value
+					continue
+				}
 				rawLen := rawVal.Len()
 				sl := reflect.MakeSlice(reflect.SliceOf(fieldConfig.PropConfig.SubType), rawLen, rawVal.Cap())
 
 				for i := 0; i < rawLen; i++ {
-					sl.Index(i).Set(rawVal.Index(i).Elem().Convert(fieldConfig.PropConfig.SubType))
+					slVal := rawVal.Index(i)
+					if fieldConfig.PropConfig.SubType == slVal.Type() {
+						sl.Index(i).Set(slVal)
+					} else {
+						sl.Index(i).Set(slVal.Elem().Convert(fieldConfig.PropConfig.SubType))
+					}
 				}
 				indirect.FieldByName(field).Set(sl)
 			}
