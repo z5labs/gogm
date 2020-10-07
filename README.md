@@ -31,7 +31,7 @@ Decorators that can be used
 - `index` -- marks field to have an index applied to it.
 - `unique` -- marks field to have unique constraint.
 - `pk` -- marks field as a primary key. Can only have one pk, composite pk's are not supported.
-- `properties` -- marks that field is using a map. GoGM only supports properties fields of `map[string]interface{}`
+- `properties` -- marks that field is using a map. GoGM only supports properties fields of `map[string]interface{}`, `map[string]<primitive>`, `map[string][]<primitive>` and `[]<primitive>`
 - `-` -- marks that field will be ignored by the ogm
 
 #### Not on relationship member variables
@@ -76,14 +76,16 @@ type VertexA struct {
 	// provides required node fields
 	gogm.BaseNode
 
-	TestField         string     `gogm:"name=test_field"`
-	TestTypeDefString tdString   `gogm:"name=test_type_def_string"`
-	TestTypeDefInt    tdInt      `gogm:"name=test_type_def_int"`
-	SingleA           *VertexB   `gogm:"direction=incoming;relationship=test_rel"`
-	ManyA             []*VertexB `gogm:"direction=incoming;relationship=testm2o"`
-	MultiA            []*VertexB `gogm:"direction=incoming;relationship=multib"`
-	SingleSpecA       *EdgeC     `gogm:"direction=outgoing;relationship=special_single"`
-	MultiSpecA        []*EdgeC   `gogm:"direction=outgoing;relationship=special_multi"`
+TestField         string                `gogm:"name=test_field"`
+	TestTypeDefString tdString          `gogm:"name=test_type_def_string"`
+	TestTypeDefInt    tdInt             `gogm:"name=test_type_def_int"`
+	MapProperty       map[string]string `gogm:"name=map_property;properties"`
+	SliceProperty     []string          `gogm:"name=slice_property;properties"`
+    SingleA           *VertexB          `gogm:"direction=incoming;relationship=test_rel"`
+	ManyA             []*VertexB        `gogm:"direction=incoming;relationship=testm2o"`
+	MultiA            []*VertexB        `gogm:"direction=incoming;relationship=multib"`
+	SingleSpecA       *EdgeC            `gogm:"direction=outgoing;relationship=special_single"`
+	MultiSpecA        []*EdgeC          `gogm:"direction=outgoing;relationship=special_multi"`
 }
 
 type VertexB struct {

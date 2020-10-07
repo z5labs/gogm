@@ -68,6 +68,18 @@ func TestRawQuery(t *testing.T) {
 	req.NotEmpty(raw)
 }
 
+type propTest struct {
+	BaseNode
+
+	MapInterface   map[string]interface{} `gogm:"name=prop1;properties"`
+	MapPrim        map[string]string      `gogm:"name=prop2;properties"`
+	MapTdPrim      map[string]tdString    `gogm:"name=prop3;properties"`
+	MapSlicePrim   map[string][]string    `gogm:"name=prop4;properties"`
+	MapSliceTdPrim map[string][]tdString  `gogm:"name=prop5;properties"`
+	SlicePrim      []string               `gogm:"name=prop6;properties"`
+	SliceTdPrim    []tdString             `gogm:"name=prop7;properties"`
+}
+
 func TestIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
@@ -77,7 +89,7 @@ func TestIntegration(t *testing.T) {
 
 	conf := Config{
 		Username:      "neo4j",
-		Password:      "changeme",
+		Password:      "password",
 		Host:          "0.0.0.0",
 		IsCluster:     false,
 		Port:          7687,
@@ -85,7 +97,7 @@ func TestIntegration(t *testing.T) {
 		IndexStrategy: IGNORE_INDEX,
 	}
 
-	req.Nil(Init(&conf, &a{}, &b{}, &c{}))
+	req.Nil(Init(&conf, &a{}, &b{}, &c{}, &propTest{}))
 
 	log.Println("opening session")
 
@@ -197,4 +209,39 @@ func testSave(sess *Session, req *require.Assertions) {
 	req.Nil(sess.Begin())
 	req.Nil(sess.SaveDepth(singleSave, 1))
 	req.Nil(sess.Commit())
+
+	// property test
+	prop1 := propTest{
+		BaseNode: BaseNode{},
+		MapInterface: map[string]interface{}{
+			"test": int64(1),
+		},
+		MapPrim: map[string]string{
+			"test": "test1",
+		},
+		MapTdPrim: map[string]tdString{
+			"test": "test2",
+		},
+		MapSlicePrim: map[string][]string{
+			"test": {"test1", "test2"},
+		},
+		MapSliceTdPrim: map[string][]tdString{
+			"test": {"test1", "test2"},
+		},
+		SlicePrim:   []string{"test2"},
+		SliceTdPrim: []tdString{"test3"},
+	}
+
+	req.Nil(sess.SaveDepth(&prop1, 0))
+
+	var prop2 propTest
+	req.Nil(sess.Load(&prop2, prop1.UUID))
+
+	req.EqualValues(prop1.MapInterface, prop2.MapInterface)
+	req.EqualValues(prop1.MapPrim, prop2.MapPrim)
+	req.EqualValues(prop1.MapTdPrim, prop2.MapTdPrim)
+	req.EqualValues(prop1.MapSlicePrim, prop2.MapSlicePrim)
+	req.EqualValues(prop1.MapSliceTdPrim, prop2.MapSliceTdPrim)
+	req.EqualValues(prop1.SlicePrim, prop2.SlicePrim)
+	req.EqualValues(prop1.SliceTdPrim, prop2.SliceTdPrim)
 }
