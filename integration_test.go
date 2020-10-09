@@ -68,6 +68,12 @@ func TestRawQuery(t *testing.T) {
 	req.NotEmpty(raw)
 }
 
+type tdArr []string
+type tdArrOfTd []tdString
+type tdMap map[string]interface{}
+type tdMapTdSlice map[string]tdArr
+type tdMapTdSliceOfTd map[string]tdArrOfTd
+
 type propTest struct {
 	BaseNode
 
@@ -78,6 +84,12 @@ type propTest struct {
 	MapSliceTdPrim map[string][]tdString  `gogm:"name=prop5;properties"`
 	SlicePrim      []string               `gogm:"name=prop6;properties"`
 	SliceTdPrim    []tdString             `gogm:"name=prop7;properties"`
+
+	TypeDefArr       tdArr            `gogm:"name=prop8;properties"`
+	TypeDefArrOfTD   tdArrOfTd        `gogm:"name=prop9;properties"`
+	TdMap            tdMap            `gogm:"name=prop10;properties"`
+	TdMapOfTdSlice   tdMapTdSlice     `gogm:"name=prop11;properties"`
+	TdMapTdSliceOfTd tdMapTdSliceOfTd `gogm:"name=prop12;properties"`
 }
 
 func TestIntegration(t *testing.T) {
@@ -228,8 +240,19 @@ func testSave(sess *Session, req *require.Assertions) {
 		MapSliceTdPrim: map[string][]tdString{
 			"test": {"test1", "test2"},
 		},
-		SlicePrim:   []string{"test2"},
-		SliceTdPrim: []tdString{"test3"},
+		SlicePrim:        []string{"test2"},
+		SliceTdPrim:      []tdString{"test3"},
+		TypeDefArr: []string{"test1"},
+		TypeDefArrOfTD: []tdString{"test1"},
+		TdMap: map[string]interface{}{
+			"test": "test",
+		},
+		TdMapOfTdSlice: map[string]tdArr{
+			"test": []string{"test1", "test2"},
+		},
+		TdMapTdSliceOfTd: map[string]tdArrOfTd{
+			"test": []tdString{"test1", "test2"},
+		},
 	}
 
 	req.Nil(sess.SaveDepth(&prop1, 0))
@@ -244,4 +267,9 @@ func testSave(sess *Session, req *require.Assertions) {
 	req.EqualValues(prop1.MapSliceTdPrim, prop2.MapSliceTdPrim)
 	req.EqualValues(prop1.SlicePrim, prop2.SlicePrim)
 	req.EqualValues(prop1.SliceTdPrim, prop2.SliceTdPrim)
+	req.EqualValues(prop1.TypeDefArr, prop2.TypeDefArr)
+	req.EqualValues(prop1.TypeDefArrOfTD, prop2.TypeDefArrOfTD)
+	req.EqualValues(prop1.TdMap, prop2.TdMap)
+	req.EqualValues(prop1.TdMapOfTdSlice, prop2.TdMapOfTdSlice)
+	req.EqualValues(prop1.TdMapTdSliceOfTd, prop2.TdMapTdSliceOfTd)
 }
