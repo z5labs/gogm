@@ -213,6 +213,11 @@ type propsTest struct {
 	PropTest1  map[string]string      `gogm:"properties;name=props1"`
 	PropsTest2 []string               `gogm:"properties;name=props2"`
 	PropsTest3 []int                  `gogm:"properties;name=props3"`
+	PropsTest4 tdArr                  `gogm:"name=props4;properties"`
+	PropsTest5 tdArrOfTd              `gogm:"name=props5;properties"`
+	PropsTest6 tdMap                  `gogm:"name=props6;properties"`
+	PropsTest7 tdMapTdSlice           `gogm:"name=props7;properties"`
+	PropsTest8 tdMapTdSliceOfTd       `gogm:"name=props8;properties"`
 }
 
 func TestDecode(t *testing.T) {
@@ -658,8 +663,13 @@ func TestInnerDecode(t *testing.T) {
 							"props0.test.test": "test",
 							"props0.test2":     1,
 							"props1.test":      "test",
-							"props2":           []string{"test"},
-							"props3":           []int{1, 2},
+							"props2":           []interface{}{"test"},
+							"props3":           []interface{}{1, 2},
+							"props4":           []interface{}{"test1", "test2"},
+							"props5":           []interface{}{"tdtest"},
+							"props6.test":      1,
+							"props7.test":      []interface{}{"test1", "test2"},
+							"props8.test3":     []interface{}{"test1", "test"},
 						},
 					},
 				},
@@ -681,6 +691,17 @@ func TestInnerDecode(t *testing.T) {
 		},
 		PropsTest2: []string{"test"},
 		PropsTest3: []int{1, 2},
+		PropsTest4: []string{"test1", "test2"},
+		PropsTest5: []tdString{"tdtest"},
+		PropsTest6: map[string]interface{}{
+			"test": 1,
+		},
+		PropsTest7: map[string]tdArr{
+			"test": []string{"test1", "test2"},
+		},
+		PropsTest8: map[string]tdArrOfTd{
+			"test3": []tdString{"test1", "test"},
+		},
 	}
 
 	req.Nil(innerDecode(vars5, &readin5))
@@ -691,6 +712,11 @@ func TestInnerDecode(t *testing.T) {
 	req.EqualValues(r.PropTest1["test"], readin5.PropTest1["test"])
 	req.EqualValues(r.PropsTest2, readin5.PropsTest2)
 	req.EqualValues(r.PropsTest3, readin5.PropsTest3)
+	req.EqualValues(r.PropsTest4, readin5.PropsTest4)
+	req.EqualValues(r.PropsTest5, readin5.PropsTest5)
+	req.EqualValues(r.PropsTest6, readin5.PropsTest6)
+	req.EqualValues(r.PropsTest7, readin5.PropsTest7)
+	req.EqualValues(r.PropsTest8, readin5.PropsTest8)
 
 	//multi single
 	vars6 := [][]interface{}{

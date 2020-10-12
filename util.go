@@ -187,7 +187,7 @@ func (r *relationConfigs) Add(nodeType, relationship, fieldType string, dec deco
 		r.configs[key][fieldType] = []decoratorConfig{}
 	}
 
-	log.Infof("mapped relations [%s][%s][%v]", key, fieldType, len(r.configs[key][fieldType]))
+	log.Debugf("mapped relations [%s][%s][%v]", key, fieldType, len(r.configs[key][fieldType]))
 
 	r.configs[key][fieldType] = append(r.configs[key][fieldType], dec)
 }

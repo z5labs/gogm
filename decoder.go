@@ -553,10 +553,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 			continue
 		}
 
-		var raw interface{}
-		var ok bool
-
-		raw, ok = props[fieldConfig.Name]
+		raw, ok := props[fieldConfig.Name]
 		if !ok {
 			if fieldConfig.IsTypeDef {
 				log.Debugf("skipping field %s since it is typedeffed and not defined", fieldConfig.Name)
@@ -571,15 +568,14 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 			if fieldConfig.PropConfig.IsMap {
 				var sub reflect.Type
 				if fieldConfig.PropConfig.IsMapSlice {
-					sub = reflect.SliceOf(fieldConfig.PropConfig.SubType)
+					sub = fieldConfig.PropConfig.MapSliceType
 				} else {
 					sub = fieldConfig.PropConfig.SubType
 				}
 				mapType := reflect.MapOf(reflect.TypeOf(""), sub)
 				mapVal := reflect.MakeMap(mapType)
 				for k, v := range props {
-					if !strings.Contains(k, fieldConfig.Name) {
-						//not one of our map fields
+					if !strings.HasPrefix(k, fmt.Sprintf("%s.", fieldConfig.Name)) {
 						continue
 					}
 
@@ -598,7 +594,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 							continue
 						}
 						rawLen := sliceVal.Len()
-						sl := reflect.MakeSlice(reflect.SliceOf(fieldConfig.PropConfig.SubType), rawLen, sliceVal.Cap())
+						sl := reflect.MakeSlice(fieldConfig.PropConfig.MapSliceType, rawLen, sliceVal.Cap())
 
 						for i := 0; i < rawLen; i++ {
 							slVal := sliceVal.Index(i)
@@ -607,6 +603,9 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 							} else {
 								sl.Index(i).Set(slVal.Elem().Convert(fieldConfig.PropConfig.SubType))
 							}
+						}
+						if fieldConfig.PropConfig.IsMapSliceTd {
+							sl = sl.Convert(fieldConfig.PropConfig.MapSliceType)
 						}
 						mapVal.SetMapIndex(reflect.ValueOf(mapKey), sl)
 					} else {
@@ -617,6 +616,9 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 							mapVal.SetMapIndex(reflect.ValueOf(mapKey), vVal.Convert(fieldConfig.PropConfig.SubType))
 						}
 					}
+				}
+				if mapVal.Type() != fieldConfig.Type {
+					mapVal = mapVal.Convert(fieldConfig.Type)
 				}
 				indirect.FieldByName(field).Set(mapVal)
 			} else {
@@ -634,6 +636,9 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 					} else {
 						sl.Index(i).Set(slVal.Elem().Convert(fieldConfig.PropConfig.SubType))
 					}
+				}
+				if sl.Type() != fieldConfig.Type {
+					sl = sl.Convert(fieldConfig.Type)
 				}
 				indirect.FieldByName(field).Set(sl)
 			}

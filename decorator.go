@@ -75,9 +75,11 @@ const (
 
 type propConfig struct {
 	// IsMap if false assume slice
-	IsMap      bool
-	IsMapSlice bool
-	SubType    reflect.Type
+	IsMap        bool
+	IsMapSlice   bool
+	IsMapSliceTd bool
+	MapSliceType reflect.Type
+	SubType      reflect.Type
 }
 
 //decorator config defines configuration of GoGM field
@@ -388,6 +390,19 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 				sub := varType.Elem()
 				if sub.Kind() == reflect.Slice {
 					conf.IsMapSlice = true
+					// check if actual slice is type deffed
+					isAliased, aliasType, err := getActualTypeIfAliased(sub)
+					if err != nil {
+						return nil, err
+					}
+					if !isAliased {
+						conf.MapSliceType = sub
+					} else if aliasType != nil && isAliased {
+						conf.MapSliceType = aliasType
+						conf.IsMapSliceTd = true
+					} else {
+						return nil, fmt.Errorf("type found to be aliased but alias type nil")
+					}
 					conf.SubType = sub.Elem()
 				} else {
 					conf.SubType = sub

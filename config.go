@@ -154,7 +154,7 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 			return err
 		}
 
-		log.Infof("mapped type %s", name)
+		log.Debugf("mapped type %s", name)
 		mappedTypes.Set(name, *dc)
 	}
 
