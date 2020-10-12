@@ -546,9 +546,10 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Name:       "props3",
 				Type:       reflect.TypeOf(map[string][]int{}),
 				PropConfig: &propConfig{
-					IsMap:      true,
-					IsMapSlice: true,
-					SubType:    reflect.TypeOf(int(0)),
+					IsMap:        true,
+					IsMapSlice:   true,
+					SubType:      reflect.TypeOf(int(0)),
+					MapSliceType: reflect.TypeOf([]int{}),
 				},
 			},
 			"PropsSliceInterface": {

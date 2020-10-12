@@ -95,6 +95,7 @@ type propTest struct {
 func TestIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
+		return
 	}
 
 	req := require.New(t)
@@ -240,9 +241,9 @@ func testSave(sess *Session, req *require.Assertions) {
 		MapSliceTdPrim: map[string][]tdString{
 			"test": {"test1", "test2"},
 		},
-		SlicePrim:        []string{"test2"},
-		SliceTdPrim:      []tdString{"test3"},
-		TypeDefArr: []string{"test1"},
+		SlicePrim:      []string{"test2"},
+		SliceTdPrim:    []tdString{"test3"},
+		TypeDefArr:     []string{"test1"},
 		TypeDefArrOfTD: []tdString{"test1"},
 		TdMap: map[string]interface{}{
 			"test": "test",

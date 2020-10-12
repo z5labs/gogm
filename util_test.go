@@ -134,6 +134,8 @@ func TestToCypherParamsMap(t *testing.T) {
 		"props0.test": "testvalue",
 		"props2":      []string(nil),
 		"props3":      []int(nil),
+		"props4":      tdArr(nil),
+		"props5":      tdArrOfTd(nil),
 	}, params)
 }
 
