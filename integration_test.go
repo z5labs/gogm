@@ -62,7 +62,7 @@ func TestRawQuery(t *testing.T) {
 		},
 	}))
 
-	raw, _, err := sess.QueryRaw("match (n) where n.uuid=$uuid return n", map[string]interface{}{
+	raw, err := sess.QueryRaw("match (n) where n.uuid=$uuid return n", map[string]interface{}{
 		"uuid": uuid,
 	})
 	req.Nil(err)
