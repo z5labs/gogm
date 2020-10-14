@@ -21,7 +21,6 @@ package gogm
 
 import (
 	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"reflect"
 )
 
@@ -92,7 +91,7 @@ type ISession interface {
 	Query(query string, properties map[string]interface{}, respObj interface{}) error
 
 	//similar to query, but returns raw rows/cols
-	QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, neo4j.ResultSummary, error)
+	QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error)
 
 	//delete everything, this will literally delete everything
 	PurgeDatabase() error

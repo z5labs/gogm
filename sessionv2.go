@@ -28,26 +28,19 @@ import (
 	"github.com/neo4j/neo4j-go-driver/neo4j"
 )
 
-const defaultDepth = 1
-
-const AccessModeRead = neo4j.AccessModeRead
-const AccessModeWrite = neo4j.AccessModeWrite
-
-type SessionConfig neo4j.SessionConfig
-
-type Session struct {
+type SessionV2 struct {
 	neoSess      neo4j.Session
 	tx           neo4j.Transaction
 	DefaultDepth int
 	LoadStrategy LoadStrategy
 }
 
-func NewSession(readonly bool) (*Session, error) {
+func NewSessionV2(readonly bool) (*SessionV2, error) {
 	if driver == nil {
 		return nil, errors.New("driver cannot be nil")
 	}
 
-	session := new(Session)
+	session := new(SessionV2)
 
 	var mode neo4j.AccessMode
 
@@ -69,7 +62,7 @@ func NewSession(readonly bool) (*Session, error) {
 	return session, nil
 }
 
-func NewSessionWithConfig(conf SessionConfig) (*Session, error) {
+func NewSessionWithConfigV2(conf SessionConfig) (*SessionV2, error) {
 	if driver == nil {
 		return nil, errors.New("driver cannot be nil")
 	}
@@ -83,12 +76,12 @@ func NewSessionWithConfig(conf SessionConfig) (*Session, error) {
 		return nil, err
 	}
 
-	return &Session{
+	return &SessionV2{
 		neoSess:      neoSess,
 		DefaultDepth: defaultDepth,
 	}, nil
 }
-func (s *Session) Begin() error {
+func (s *SessionV2) Begin() error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -107,7 +100,7 @@ func (s *Session) Begin() error {
 	return nil
 }
 
-func (s *Session) Rollback() error {
+func (s *SessionV2) Rollback() error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -125,7 +118,7 @@ func (s *Session) Rollback() error {
 	return nil
 }
 
-func (s *Session) RollbackWithError(originalError error) error {
+func (s *SessionV2) RollbackWithError(originalError error) error {
 	err := s.Rollback()
 	if err != nil {
 		return fmt.Errorf("original error: `%s`, rollback error: `%s`", originalError.Error(), err.Error())
@@ -134,7 +127,7 @@ func (s *Session) RollbackWithError(originalError error) error {
 	return originalError
 }
 
-func (s *Session) Commit() error {
+func (s *SessionV2) Commit() error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -152,19 +145,19 @@ func (s *Session) Commit() error {
 	return nil
 }
 
-func (s *Session) Load(respObj interface{}, id string) error {
+func (s *SessionV2) Load(respObj interface{}, id string) error {
 	return s.LoadDepthFilterPagination(respObj, id, s.DefaultDepth, nil, nil, nil)
 }
 
-func (s *Session) LoadDepth(respObj interface{}, id string, depth int) error {
+func (s *SessionV2) LoadDepth(respObj interface{}, id string, depth int) error {
 	return s.LoadDepthFilterPagination(respObj, id, depth, nil, nil, nil)
 }
 
-func (s *Session) LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
+func (s *SessionV2) LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
 	return s.LoadDepthFilterPagination(respObj, id, depth, filter, params, nil)
 }
 
-func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
+func (s *SessionV2) LoadDepthFilterPagination(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
 	respType := reflect.TypeOf(respObj)
 
 	//validate type is ptr
@@ -243,19 +236,19 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	return decode(result, respObj)
 }
 
-func (s *Session) LoadAll(respObj interface{}) error {
+func (s *SessionV2) LoadAll(respObj interface{}) error {
 	return s.LoadAllDepthFilterPagination(respObj, s.DefaultDepth, nil, nil, nil)
 }
 
-func (s *Session) LoadAllDepth(respObj interface{}, depth int) error {
+func (s *SessionV2) LoadAllDepth(respObj interface{}, depth int) error {
 	return s.LoadAllDepthFilterPagination(respObj, depth, nil, nil, nil)
 }
 
-func (s *Session) LoadAllDepthFilter(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error {
+func (s *SessionV2) LoadAllDepthFilter(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error {
 	return s.LoadAllDepthFilterPagination(respObj, depth, filter, params, nil)
 }
 
-func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
+func (s *SessionV2) LoadAllDepthFilterPagination(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
 	rawRespType := reflect.TypeOf(respObj)
 
 	if rawRespType.Kind() != reflect.Ptr {
@@ -338,7 +331,7 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 	return decode(result, respObj)
 }
 
-func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNodeField string, edgeConstraint interface{}, minJumps, maxJumps, depth int, filter dsl.ConditionOperator) error {
+func (s *SessionV2) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNodeField string, edgeConstraint interface{}, minJumps, maxJumps, depth int, filter dsl.ConditionOperator) error {
 	rawRespType := reflect.TypeOf(respObj)
 
 	if rawRespType.Kind() != reflect.Ptr {
@@ -406,11 +399,11 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 	return decode(result, respObj)
 }
 
-func (s *Session) Save(saveObj interface{}) error {
+func (s *SessionV2) Save(saveObj interface{}) error {
 	return s.SaveDepth(saveObj, s.DefaultDepth)
 }
 
-func (s *Session) SaveDepth(saveObj interface{}, depth int) error {
+func (s *SessionV2) SaveDepth(saveObj interface{}, depth int) error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -426,7 +419,7 @@ func (s *Session) SaveDepth(saveObj interface{}, depth int) error {
 	return saveDepth(rf, saveObj, depth)
 }
 
-func (s *Session) Delete(deleteObj interface{}) error {
+func (s *SessionV2) Delete(deleteObj interface{}) error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -446,7 +439,7 @@ func (s *Session) Delete(deleteObj interface{}) error {
 	return deleteNode(rf, deleteObj)
 }
 
-func (s *Session) DeleteUUID(uuid string) error {
+func (s *SessionV2) DeleteUUID(uuid string) error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -462,7 +455,7 @@ func (s *Session) DeleteUUID(uuid string) error {
 	return deleteByUuids(rf, uuid)
 }
 
-func (s *Session) Query(query string, properties map[string]interface{}, respObj interface{}) error {
+func (s *SessionV2) Query(query string, properties map[string]interface{}, respObj interface{}) error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -483,9 +476,9 @@ func (s *Session) Query(query string, properties map[string]interface{}, respObj
 	return decode(res, respObj)
 }
 
-func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error) {
+func (s *SessionV2) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, neo4j.ResultSummary, error) {
 	if s.neoSess == nil {
-		return nil, errors.New("neo4j connection not initialized")
+		return nil, nil, errors.New("neo4j connection not initialized")
 	}
 
 	// handle if in transaction
@@ -498,7 +491,12 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 
 	res, err := rf(query, properties)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	summary, err := res.Summary()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	var result [][]interface{}
@@ -529,10 +527,10 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 		}
 	}
 
-	return result, nil
+	return result, summary, nil
 }
 
-func (s *Session) PurgeDatabase() error {
+func (s *SessionV2) PurgeDatabase() error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -554,7 +552,7 @@ func (s *Session) PurgeDatabase() error {
 	return err
 }
 
-func (s *Session) Close() error {
+func (s *SessionV2) Close() error {
 	if s.neoSess == nil {
 		return fmt.Errorf("cannot close nil connection: %w", ErrInternal)
 	}
