@@ -1,11 +1,12 @@
 package gogm
+
 import (
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/neo4j/neo4j-go-driver/neo4j"
 )
 
 //session version 2 is experimental to start trying breaking changes
-type ISessionV2 interface {
+type SessionV2 interface {
 	//transaction functions
 	ITransaction
 
