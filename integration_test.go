@@ -94,10 +94,10 @@ type propTest struct {
 }
 
 func TestIntegration(t *testing.T) {
-	//if testing.Short() {
-	//	t.Skip()
-	//	return
-	//}
+	if testing.Short() {
+		t.Skip()
+		return
+	}
 
 	req := require.New(t)
 
