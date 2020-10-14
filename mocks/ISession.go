@@ -5,6 +5,7 @@ package mocks
 import (
 	go_cypherdsl "github.com/mindstand/go-cypherdsl"
 	gogm "github.com/mindstand/gogm"
+	"github.com/neo4j/neo4j-go-driver/neo4j"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -239,7 +240,7 @@ func (_m *ISession) Query(query string, properties map[string]interface{}, respO
 }
 
 // QueryRaw provides a mock function with given fields: query, properties
-func (_m *ISession) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error) {
+func (_m *ISession) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, neo4j.ResultSummary, error) {
 	ret := _m.Called(query, properties)
 
 	var r0 [][]interface{}
@@ -251,14 +252,23 @@ func (_m *ISession) QueryRaw(query string, properties map[string]interface{}) ([
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string, map[string]interface{}) error); ok {
+	var r1 neo4j.ResultSummary
+	if rf, ok := ret.Get(1).(func(string, map[string]interface{}) neo4j.ResultSummary); ok {
 		r1 = rf(query, properties)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(0) != nil {
+			r1 = ret.Get(1).(neo4j.ResultSummary)
+		}
 	}
 
-	return r0, r1
+	var r2 error
+	if rf, ok := ret.Get(2).(func(string, map[string]interface{}) error); ok {
+		r2 = rf(query, properties)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // Rollback provides a mock function with given fields:

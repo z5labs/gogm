@@ -483,9 +483,9 @@ func (s *Session) Query(query string, properties map[string]interface{}, respObj
 	return decode(res, respObj)
 }
 
-func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error) {
+func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, neo4j.ResultSummary, error) {
 	if s.neoSess == nil {
-		return nil, errors.New("neo4j connection not initialized")
+		return nil, nil, errors.New("neo4j connection not initialized")
 	}
 
 	// handle if in transaction
@@ -498,7 +498,12 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 
 	res, err := rf(query, properties)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	summary, err := res.Summary()
+	if err != nil {
+		return nil, nil, err
 	}
 
 	var result [][]interface{}
@@ -529,7 +534,7 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 		}
 	}
 
-	return result, nil
+	return result, summary, nil
 }
 
 func (s *Session) PurgeDatabase() error {

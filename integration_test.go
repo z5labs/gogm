@@ -21,6 +21,7 @@ package gogm
 
 import (
 	uuid2 "github.com/google/uuid"
+	"sync"
 
 	"testing"
 	"time"
@@ -61,7 +62,7 @@ func TestRawQuery(t *testing.T) {
 		},
 	}))
 
-	raw, err := sess.QueryRaw("match (n) where n.uuid=$uuid return n", map[string]interface{}{
+	raw, _, err := sess.QueryRaw("match (n) where n.uuid=$uuid return n", map[string]interface{}{
 		"uuid": uuid,
 	})
 	req.Nil(err)
@@ -93,10 +94,10 @@ type propTest struct {
 }
 
 func TestIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-		return
-	}
+	//if testing.Short() {
+	//	t.Skip()
+	//	return
+	//}
 
 	req := require.New(t)
 
@@ -125,8 +126,6 @@ func TestIntegration(t *testing.T) {
 
 	req.Nil(sess.PurgeDatabase())
 
-	req.Nil(sess.Close())
-
 	// Test Opening and Closing Session using SessionConfig
 	sessConf, err := NewSessionWithConfig(SessionConfig{
 		AccessMode: AccessModeRead,
@@ -134,8 +133,31 @@ func TestIntegration(t *testing.T) {
 	req.Nil(err)
 	req.Nil(sessConf.Close())
 
+	//testLoad(req, 500, 5)
+	//req.Nil(sess.PurgeDatabase())
+
+	req.Nil(sess.Close())
+
 	req.Nil(driver.Close())
 
+}
+
+func testLoad(req *require.Assertions, numThreads, msgPerThread int) {
+	var wg sync.WaitGroup
+	wg.Add(numThreads)
+	for i := 0; i < numThreads; i++ {
+		go func(w *sync.WaitGroup, n int) {
+			defer wg.Done()
+			sess, err := NewSession(false)
+			req.Nil(err)
+			req.NotNil(sess)
+			defer sess.Close()
+			for j := 0; j < n; j++ {
+				req.Nil(sess.Save(&a{}))
+			}
+		}(&wg, msgPerThread)
+	}
+	wg.Wait()
 }
 
 // runs with integration test

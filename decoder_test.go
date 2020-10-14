@@ -669,7 +669,7 @@ func TestInnerDecode(t *testing.T) {
 							"props5":           []interface{}{"tdtest"},
 							"props6.test":      1,
 							"props7.test":      []interface{}{"test1", "test2"},
-							"props8.test3":     []interface{}{"test1", "test"},
+							// "props8.test3":     []interface{}{"test1", "test"},
 						},
 					},
 				},
@@ -699,9 +699,7 @@ func TestInnerDecode(t *testing.T) {
 		PropsTest7: map[string]tdArr{
 			"test": []string{"test1", "test2"},
 		},
-		PropsTest8: map[string]tdArrOfTd{
-			"test3": []tdString{"test1", "test"},
-		},
+		PropsTest8: map[string]tdArrOfTd{},
 	}
 
 	req.Nil(innerDecode(vars5, &readin5))
