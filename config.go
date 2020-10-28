@@ -26,6 +26,7 @@ import (
 	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/sirupsen/logrus"
 	"reflect"
+	"time"
 )
 
 var externalLog *logrus.Entry
@@ -70,6 +71,9 @@ type Config struct {
 	// PoolSize is the size of the connection pool for GoGM
 	PoolSize int `yaml:"pool_size" json:"pool_size" mapstructure:"pool_size"`
 
+	MaxRetries        int           `json:"max_retries" yaml:"max_retries" mapstructure:"max_retries"`
+	RetryWaitDuration time.Duration `json:"retry_wait_duration" yaml:"retry_wait_duration" mapstructure:"retry_wait_duration"`
+
 	Realm string `yaml:"realm" json:"realm" mapstructure:"realm"`
 
 	Encrypted bool `yaml:"encrypted" json:"encrypted" mapstructure:"encrypted"`
@@ -77,6 +81,8 @@ type Config struct {
 	// Index Strategy defines the index strategy for GoGM
 	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy" mapstructure:"index_strategy"`
 }
+
+var internalConfig *Config
 
 // ConnectionString builds the neo4j bolt/bolt+routing connection string
 func (c *Config) ConnectionString() string {
@@ -163,7 +169,16 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 		log.WithError(err).Error("failed to validate edges")
 		return err
 	}
+	if conf.MaxRetries < 0 {
+		conf.MaxRetries = 0
+	}
 
+	if conf.RetryWaitDuration == 0 {
+		// default is 1 second
+		conf.RetryWaitDuration = time.Second
+	}
+
+	internalConfig = conf
 	if !isTest {
 		log.Debug("opening connection to neo4j")
 		// todo tls support

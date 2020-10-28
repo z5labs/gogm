@@ -8,8 +8,32 @@ import (
 //session version 2 is experimental to start trying breaking changes
 type SessionV2 interface {
 	//transaction functions
-	ITransaction
+	TransactionV2
 
+	// Begin begins transaction
+	Begin() error
+
+	// ManagedTransaction runs tx work managed for retry
+	ManagedTransaction(work TransactionWork) error
+
+	// closes session
+	Close() error
+}
+
+// TransactionV2 specifies functions for Neo4j ACID transactions
+type TransactionV2 interface {
+	// Rollback rolls back transaction
+	Rollback() error
+	// RollbackWithError wraps original error into rollback error if there is one
+	RollbackWithError(err error) error
+	// Commit commits transaction
+	Commit() error
+
+	// functions the tx can do
+	ogmFunctions
+}
+
+type ogmFunctions interface {
 	//load single object
 	Load(respObj interface{}, id string) error
 
@@ -57,7 +81,6 @@ type SessionV2 interface {
 
 	//delete everything, this will literally delete everything
 	PurgeDatabase() error
-
-	// closes session
-	Close() error
 }
+
+type TransactionWork func(tx TransactionV2) error

@@ -20,7 +20,9 @@
 package gogm
 
 import (
+	"fmt"
 	uuid2 "github.com/google/uuid"
+	assert2 "github.com/stretchr/testify/assert"
 	"sync"
 
 	"testing"
@@ -28,6 +30,74 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestManagedTx(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+		return
+	}
+
+	req := require.New(t)
+	assert := assert2.New(t)
+	conf := Config{
+		Username:          "neo4j",
+		Password:          "changeme",
+		Host:              "0.0.0.0",
+		IsCluster:         false,
+		Port:              7687,
+		PoolSize:          15,
+		IndexStrategy:     IGNORE_INDEX,
+		MaxRetries:        5,
+		RetryWaitDuration: time.Second * 1,
+	}
+
+	req.Nil(Init(&conf, &a{}, &b{}, &c{}))
+	va := a{}
+	va.UUID = uuid2.New().String()
+	vb := b{}
+	vb.UUID = uuid2.New().String()
+	var wg sync.WaitGroup
+	for i := 0; i < 15; i++ {
+		wg.Add(1)
+		go func(assert *assert2.Assertions, wg *sync.WaitGroup, va a, vb b, t int) {
+			defer wg.Done()
+			sess, err := NewSessionV2(false)
+			if !assert.NotNil(sess) || !assert.Nil(err) {
+				fmt.Println("exiting routine")
+				return
+			}
+			for j := 0; j < 30; j++ {
+				//fmt.Printf("pass %v on thread %v\n", j, t)
+				err = sess.ManagedTransaction(func(tx TransactionV2) error {
+					err = tx.SaveDepth(&va, 0)
+					if err != nil {
+						return tx.RollbackWithError(err)
+					}
+
+					err = tx.SaveDepth(&vb, 0)
+					if err != nil {
+						return tx.RollbackWithError(err)
+					}
+
+					va.ManyA = []*b{&vb}
+					vb.ManyB = &va
+
+					err = tx.SaveDepth(&va, 1)
+					if err != nil {
+						return tx.RollbackWithError(err)
+					}
+
+					return sess.Commit()
+				})
+				if !assert.Nil(err) {
+					fmt.Printf("error: %s, exiting thread", err.Error())
+					return
+				}
+			}
+		}(assert, &wg, va, vb, i)
+	}
+	wg.Wait()
+}
 
 // This test is to make sure retuning raw results from neo4j actually work. This
 // proves that the bug causing empty interfaces to be returned has been fixed.

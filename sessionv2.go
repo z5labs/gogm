@@ -23,6 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
+	"time"
 
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/neo4j/neo4j-go-driver/neo4j"
@@ -33,6 +35,7 @@ type SessionV2Impl struct {
 	tx           neo4j.Transaction
 	DefaultDepth int
 	LoadStrategy LoadStrategy
+	mode         neo4j.AccessMode
 }
 
 func NewSessionV2(readonly bool) (*SessionV2Impl, error) {
@@ -50,16 +53,10 @@ func NewSessionV2(readonly bool) (*SessionV2Impl, error) {
 		mode = AccessModeWrite
 	}
 
-	neoSess, err := driver.Session(mode)
-	if err != nil {
-		return nil, err
-	}
-
-	session.neoSess = neoSess
-
+	session.mode = mode
 	session.DefaultDepth = defaultDepth
 
-	return session, nil
+	return session, session.reset()
 }
 
 func NewSessionWithConfigV2(conf SessionConfig) (*SessionV2Impl, error) {
@@ -114,6 +111,11 @@ func (s *SessionV2Impl) Rollback() error {
 		return err
 	}
 
+	err = s.tx.Close()
+	if err != nil {
+		return err
+	}
+
 	s.tx = nil
 	return nil
 }
@@ -121,7 +123,7 @@ func (s *SessionV2Impl) Rollback() error {
 func (s *SessionV2Impl) RollbackWithError(originalError error) error {
 	err := s.Rollback()
 	if err != nil {
-		return fmt.Errorf("original error: `%s`, rollback error: `%s`", originalError.Error(), err.Error())
+		return fmt.Errorf("%s%w", err.Error(), originalError)
 	}
 
 	return originalError
@@ -137,6 +139,11 @@ func (s *SessionV2Impl) Commit() error {
 	}
 
 	err := s.tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	err = s.tx.Close()
 	if err != nil {
 		return err
 	}
@@ -550,6 +557,78 @@ func (s *SessionV2Impl) PurgeDatabase() error {
 
 	_, err = rf(cyp, nil)
 	return err
+}
+
+func (s *SessionV2Impl) isTransientError(err error) bool {
+	return strings.Contains(err.Error(), "Neo.TransientError.Transaction")
+}
+
+func (s *SessionV2Impl) reset() error {
+	s.tx = nil
+
+	if s.neoSess != nil {
+		err := s.neoSess.Close()
+		if err != nil {
+			return err
+		}
+
+		s.neoSess = nil
+	}
+
+	var err error
+	s.neoSess, err = driver.Session(s.mode)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *SessionV2Impl) ManagedTransaction(work TransactionWork) error {
+	if work == nil {
+		return errors.New("transaction work can not be nil")
+	}
+
+	if s.tx != nil {
+		return errors.New("can not start managed transaction with pending transaction")
+	}
+
+	// add 1 to max retries to account for the first run not being a retry
+	for i := 0; i < internalConfig.MaxRetries+1; i++ {
+		err := s.Begin()
+		if err != nil {
+			return err
+		}
+
+		err = work(s)
+		if err == nil {
+			// tx wasn't closed
+			if s.tx != nil {
+				return s.RollbackWithError(errors.New("tx not closed in work function"))
+			}
+			return nil
+		}
+
+		//fmt.Printf("failed on pass %v with error %s\n", i, err.Error())
+		if s.isTransientError(err) {
+			// clean up tx
+			err = s.reset()
+			if err != nil {
+				return fmt.Errorf("failed to rollback after transient error, %w", err)
+			}
+
+			if i+1 == internalConfig.MaxRetries {
+				break
+			}
+
+			time.Sleep(internalConfig.RetryWaitDuration)
+			continue
+		}
+
+		return err
+	}
+
+	return errors.New("max retries met, managed tx failed")
 }
 
 func (s *SessionV2Impl) Close() error {
