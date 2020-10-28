@@ -169,16 +169,22 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 		log.WithError(err).Error("failed to validate edges")
 		return err
 	}
-	if conf.MaxRetries < 0 {
-		conf.MaxRetries = 0
+
+	if isTest && conf != nil {
+		if conf.MaxRetries < 0 {
+			conf.MaxRetries = 0
+		}
+
+		if conf.RetryWaitDuration == 0 {
+			// default is 1 second
+			conf.RetryWaitDuration = time.Second
+		}
+
+		internalConfig = conf
+	} else {
+		internalConfig = &Config{RetryWaitDuration: time.Second, MaxRetries: 0}
 	}
 
-	if conf.RetryWaitDuration == 0 {
-		// default is 1 second
-		conf.RetryWaitDuration = time.Second
-	}
-
-	internalConfig = conf
 	if !isTest {
 		log.Debug("opening connection to neo4j")
 		// todo tls support
