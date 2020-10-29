@@ -10,6 +10,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mindstand/go-cypherdsl v0.2.0
+	github.com/mindstand/gogm v1.4.1
 	github.com/neo4j/neo4j-go-driver v1.8.1-0.20200622090208-4295b59525c9
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/objx v0.2.0 // indirect

@@ -64,7 +64,7 @@ type MyNeo4jObject struct {
 package main
 
 import (
-	"github.com/mindstand/gogm"
+	"github.com/mindstand/gogm/v2"
 	"time"
 )
 
