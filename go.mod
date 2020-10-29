@@ -1,4 +1,4 @@
-module github.com/mindstand/gogm
+module github.com/mindstand/gogm/v2
 
 go 1.13
 
