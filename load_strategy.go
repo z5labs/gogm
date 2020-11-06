@@ -101,14 +101,14 @@ func PathLoadStrategyOne(variable, label string, depth int, additionalConstraint
 			Name:              variable,
 			Field:             "uuid",
 			ConditionOperator: dsl.EqualToOperator,
-			Check:             dsl.ParamString("{uuid}"),
+			Check:             dsl.ParamString("$uuid"),
 		}))
 	} else {
 		builder = builder.Where(dsl.C(&dsl.ConditionConfig{
 			Name:              variable,
 			Field:             "uuid",
 			ConditionOperator: dsl.EqualToOperator,
-			Check:             dsl.ParamString("{uuid}"),
+			Check:             dsl.ParamString("$uuid"),
 		}))
 	}
 
@@ -130,7 +130,7 @@ func PathLoadStrategyEdgeConstraint(startVariable, startLabel, endLabel, endTarg
 	}
 
 	qp, err := dsl.ParamsFromMap(map[string]interface{}{
-		endTargetField: dsl.ParamString(fmt.Sprintf("{%s}", endTargetField)),
+		endTargetField: dsl.ParamString(fmt.Sprintf("$%s", endTargetField)),
 	})
 	if err != nil {
 		return nil, err

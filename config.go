@@ -26,9 +26,12 @@ import (
 	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/sirupsen/logrus"
 	"reflect"
+	"strconv"
+	"strings"
 )
 
 var externalLog *logrus.Entry
+var neoVersion float64
 
 var log = getLogger()
 
@@ -50,6 +53,10 @@ func SetLogger(logger *logrus.Entry) error {
 	}
 	externalLog = logger
 	return nil
+}
+
+func getIsV4() bool {
+	return true
 }
 
 // Config Defined GoGM config
@@ -76,6 +83,7 @@ type Config struct {
 
 	// Index Strategy defines the index strategy for GoGM
 	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy" mapstructure:"index_strategy"`
+	TargetDbs     []string      `yaml:"target_dbs" json:"target_dbs" mapstructure:"target_dbs"`
 }
 
 // ConnectionString builds the neo4j bolt/bolt+routing connection string
@@ -132,6 +140,8 @@ func Reset() {
 	isSetup = false
 }
 
+var internalConfig *Config
+
 // internal setup logic for gogm
 func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 	if isSetup && !isTest {
@@ -143,6 +153,18 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 	if !isTest {
 		if conf == nil {
 			return errors.New("config can not be nil")
+		}
+	}
+
+	if conf != nil {
+		if conf.TargetDbs == nil || len(conf.TargetDbs) == 0 {
+			conf.TargetDbs = []string{"neo4j"}
+		}
+
+		internalConfig = conf
+	} else {
+		internalConfig = &Config{
+			TargetDbs: []string{"neo4j"},
 		}
 	}
 
@@ -173,6 +195,31 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 		}
 		var err error
 		driver, err = neo4j.NewDriver(conf.ConnectionString(), neo4j.BasicAuth(conf.Username, conf.Password, conf.Realm), config)
+		if err != nil {
+			return err
+		}
+
+		// get neoversion
+		sess, err := driver.Session(neo4j.AccessModeRead)
+		if err != nil {
+			return err
+		}
+
+		res, err := sess.Run("return 1", nil)
+		if err != nil {
+			return err
+		} else if err = res.Err(); err != nil {
+			return err
+		}
+
+		sum, err := res.Summary()
+		if err != nil {
+			return err
+		}
+
+		// grab version
+		version := strings.Split(strings.Replace(strings.ToLower(sum.Server().Version()), "neo4j/", "", -1), ".")
+		neoVersion, err = strconv.ParseFloat(version[0], 64)
 		if err != nil {
 			return err
 		}
