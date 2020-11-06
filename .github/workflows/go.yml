@@ -53,15 +53,27 @@ jobs:
       run: go build -v .
     - name: Run Unit Tests
       run: go test ./... -cover -short
-    - name: Start Neo4j Docker
+
+    - name: Start Neo4j V3 Docker
       run: |
-        docker-compose -f .github/docker-compose.yaml up -d
-    - name: Wait for neo4j to be ready
+        docker-compose -f .github/docker-compose-v3.yaml up -d
+    - name: Wait for neo4j v3 to be ready
       run: |
         sleep 45
-    - name: Run Integration Test
+    - name: Run Integration Test on V3
       run: go test ./... -cover -run Integration
-    - name: Stop Neo4j Docker
+    - name: Stop Neo4j Docker on v3
       run: |
-        docker-compose -f .github/docker-compose.yaml down --remove-orphans
+        docker-compose -f .github/docker-compose-v3.yaml down --remove-orphans
 
+    - name: Start Neo4j V4 Docker
+      run: |
+        docker-compose -f .github/docker-compose-v4.yaml up -d
+    - name: Wait for neo4j v4 to be ready
+      run: |
+        sleep 45
+    - name: Run Integration Test on V4
+      run: go test ./... -cover -run Integration
+    - name: Stop Neo4j Docker on v4
+      run: |
+        docker-compose -f .github/docker-compose-v4.yaml down --remove-orphans

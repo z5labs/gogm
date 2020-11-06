@@ -243,7 +243,7 @@ func removeRelations(runFunc neoRunFunc, dels map[string][]int64) error {
 	}
 
 	cyq, err := dsl.QB().
-		Cypher("UNWIND {rows} as row").
+		Cypher("UNWIND $rows as row").
 		Match(dsl.Path().
 			V(dsl.V{
 				Name:   "start",
@@ -260,11 +260,13 @@ func removeRelations(runFunc neoRunFunc, dels map[string][]int64) error {
 		return err
 	}
 
-	_, err = runFunc(cyq, map[string]interface{}{
+	res, err := runFunc(cyq, map[string]interface{}{
 		"rows": params,
 	})
 	if err != nil {
-		return fmt.Errorf("%s, %w", err.Error(), ErrInternal)
+		return fmt.Errorf("%s: %w", err.Error(), ErrInternal)
+	} else if err = res.Err(); err != nil {
+		return fmt.Errorf("%s: %w", err.Error(), ErrInternal)
 	}
 	//todo sanity check to make sure the affects worked
 
@@ -300,7 +302,7 @@ func createNodes(runFunc neoRunFunc, crNodes map[string]map[string]nodeCreateCon
 
 		//todo replace once unwind is fixed and path
 		cyp, err := dsl.QB().
-			Cypher("UNWIND {rows} as row").
+			Cypher("UNWIND $rows as row").
 			Merge(&dsl.MergeConfig{
 				Path: path,
 			}).
@@ -416,7 +418,7 @@ func relateNodes(runFunc neoRunFunc, relations map[string][]relCreateConf, ids m
 		}
 
 		cyp, err := dsl.QB().
-			Cypher("UNWIND {rows} as row").
+			Cypher("UNWIND $rows as row").
 			Match(dsl.Path().V(dsl.V{Name: "startNode"}).Build()).
 			Where(dsl.C(&dsl.ConditionConfig{
 				FieldManipulationFunction: "ID",
@@ -447,10 +449,12 @@ func relateNodes(runFunc neoRunFunc, relations map[string][]relCreateConf, ids m
 			Cypher("SET rel += row.props").
 			ToCypher()
 
-		_, err = runFunc(cyp, map[string]interface{}{
+		res, err := runFunc(cyp, map[string]interface{}{
 			"rows": params,
 		})
 		if err != nil {
+			return err
+		} else if err = res.Err(); err != nil {
 			return err
 		}
 	}
