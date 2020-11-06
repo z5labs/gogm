@@ -2,8 +2,8 @@ version: '3'
 networks:
   lan:
 services:
-  core1:
-    image: neo4j:3.5.17-enterprise
+  core:
+    image: neo4j:3.5-enterprise
     networks:
       - lan
     ports:
