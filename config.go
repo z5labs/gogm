@@ -31,29 +31,17 @@ import (
 	"time"
 )
 
-var externalLog *logrus.Entry
 var neoVersion float64
 
-var log = getLogger()
+var log logrus.FieldLogger
 
-func getLogger() *logrus.Entry {
-	if externalLog == nil {
-		//create default logger
-		toReturn := logrus.New()
-
-		return toReturn.WithField("source", "gogm")
-	}
-
-	return externalLog
+func init() {
+	makeDefaultLogger()
 }
 
-// SetLogger sets logrus logger
-func SetLogger(logger *logrus.Entry) error {
-	if logger == nil {
-		return errors.New("logger can not be nil")
-	}
-	externalLog = logger
-	return nil
+func makeDefaultLogger() {
+	_log := logrus.New()
+	log = _log.WithField("error", "not initialized")
 }
 
 func getIsV4() bool {
@@ -88,6 +76,10 @@ type Config struct {
 	// Index Strategy defines the index strategy for GoGM
 	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy" mapstructure:"index_strategy"`
 	TargetDbs     []string      `yaml:"target_dbs" json:"target_dbs" mapstructure:"target_dbs"`
+
+	Logger logrus.FieldLogger `yaml:"-" json:"-" mapstructure:"-"`
+	// if logger is not nil log level will be ignored
+	LogLevel string `json:"log_level" yaml:"log_level" mapstructure:"log_level"`
 }
 
 // ConnectionString builds the neo4j bolt/bolt+routing connection string
@@ -161,6 +153,23 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 	}
 
 	if conf != nil {
+		if conf.Logger != nil {
+			log = conf.Logger
+		} else {
+			_log := logrus.New()
+
+			// set info if nothing has been set
+			if conf.LogLevel == "" {
+				conf.LogLevel = "INFO"
+			}
+			lvl, err := logrus.ParseLevel(conf.LogLevel)
+			if err != nil {
+				return err
+			}
+			_log.SetLevel(lvl)
+			log = _log
+		}
+
 		if conf.TargetDbs == nil || len(conf.TargetDbs) == 0 {
 			conf.TargetDbs = []string{"neo4j"}
 		}
