@@ -25,6 +25,7 @@ import (
 	"github.com/cornelk/hashmap"
 	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/sirupsen/logrus"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -135,7 +136,7 @@ func Reset() {
 var internalConfig *Config
 
 // internal setup logic for gogm
-func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
+func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) (err error) {
 	if isSetup && !isTest {
 		return errors.New("gogm has already been initialized")
 	} else if isTest && isSetup {
@@ -209,19 +210,25 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 		}
 
 		// get neoversion
-		sess, err := driver.Session(neo4j.AccessModeRead)
-		if err != nil {
-			return err
+		var result neo4j.Result
+		databases := conf.TargetDbs
+		if len(databases) > 0 {
+			for _, database := range databases {
+				result, err = runTestQueryAgainstDatabase(database)
+				if err == nil {
+					break
+				}
+			}
+			if err != nil {
+				return fmt.Errorf("ran test query against all configured test databases without success. Last seen error: %w", err)
+			}
+		} else {
+			result, err = runTestQuery()
+			if err != nil {
+				return err
+			}
 		}
-
-		res, err := sess.Run("return 1", nil)
-		if err != nil {
-			return err
-		} else if err = res.Err(); err != nil {
-			return err
-		}
-
-		sum, err := res.Summary()
+		sum, err := result.Summary()
 		if err != nil {
 			return err
 		}
@@ -275,4 +282,45 @@ func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
 	isSetup = true
 
 	return nil
+}
+
+func runTestQuery() (res neo4j.Result, err error) {
+	session, err := driver.Session(AccessModeRead)
+	if err != nil {
+		return nil, err
+	}
+	return runQuery(session)
+}
+
+func runTestQueryAgainstDatabase(database string) (res neo4j.Result, err error) {
+	session, err := driver.NewSession(neo4j.SessionConfig{
+		AccessMode:   AccessModeRead,
+		DatabaseName: database,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return runQuery(session)
+}
+
+func runQuery(session neo4j.Session) (res neo4j.Result, err error) {
+	defer func() {
+		err = handleClose(session, err)
+	}()
+	res, err = session.Run("return 1", nil)
+	if err == nil {
+		err = res.Err()
+	}
+	return res, err
+}
+
+func handleClose(closer io.Closer, previousError error) error {
+	closeErr := closer.Close()
+	if closeErr == nil {
+		return previousError
+	}
+	if previousError == nil {
+		return closeErr
+	}
+	return fmt.Errorf("close error %v happened after initial error %w", closeErr, previousError)
 }
