@@ -48,9 +48,6 @@ const (
 	//requires assignment (if edge field)
 	directionField = "direction"
 
-	//specifies if the field contains time representation
-	//timeField = "time"
-
 	//specifies if the field is to be indexed
 	indexField = "index"
 
@@ -492,7 +489,7 @@ func (s *structDecoratorConfig) Validate() error {
 }
 
 // getStructDecoratorConfig generates structDecoratorConfig for struct
-func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (*structDecoratorConfig, error) {
+func getStructDecoratorConfig(logger Logger, i interface{}, mappedRelations *relationConfigs) (*structDecoratorConfig, error) {
 	toReturn := &structDecoratorConfig{}
 
 	t := reflect.TypeOf(i)
@@ -564,7 +561,7 @@ func getStructDecoratorConfig(i interface{}, mappedRelations *relationConfigs) (
 
 				endTypeName := ""
 				if reflect.PtrTo(endType).Implements(edgeType) {
-					log.Info(endType.Name())
+					logger.Debug(endType.Name())
 					endVal := reflect.New(endType)
 					var endTypeVal []reflect.Value
 

@@ -1,6 +1,6 @@
 package gogm
 
-import "github.com/neo4j/neo4j-go-driver/neo4j"
+import "github.com/neo4j/neo4j-go-driver/v4/neo4j"
 
 type testNode struct {
 	id     int64

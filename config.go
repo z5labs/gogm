@@ -22,31 +22,12 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	"github.com/cornelk/hashmap"
-	"github.com/neo4j/neo4j-go-driver/neo4j"
-	"github.com/sirupsen/logrus"
-	"reflect"
-	"strconv"
-	"strings"
 	"time"
 )
 
-var neoVersion float64
-
-var log logrus.FieldLogger
-
-func init() {
-	makeDefaultLogger()
-}
-
-func makeDefaultLogger() {
-	_log := logrus.New()
-	log = _log.WithField("error", "not initialized")
-}
-
-func getIsV4() bool {
-	return true
-}
+const (
+	defaultRetryWait = time.Second
+)
 
 // Config Defined GoGM config
 type Config struct {
@@ -77,9 +58,38 @@ type Config struct {
 	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy" mapstructure:"index_strategy"`
 	TargetDbs     []string      `yaml:"target_dbs" json:"target_dbs" mapstructure:"target_dbs"`
 
-	Logger logrus.FieldLogger `yaml:"-" json:"-" mapstructure:"-"`
+	Logger Logger `yaml:"-" json:"-" mapstructure:"-"`
 	// if logger is not nil log level will be ignored
 	LogLevel string `json:"log_level" yaml:"log_level" mapstructure:"log_level"`
+}
+
+func (c *Config) validate() error {
+	if c.Logger == nil {
+		c.Logger = GetDefaultLogger()
+	}
+
+	if c.MaxRetries < 0 {
+		c.MaxRetries = 0
+	}
+
+	if c.RetryWaitDuration <= 0 {
+		// default is 1 second
+		c.RetryWaitDuration = defaultRetryWait
+	}
+
+	if c.Host == "" {
+		return errors.New("hostname not defined")
+	}
+
+	if c.Port <= 0 {
+		return errors.New("port either not specified or invalid")
+	}
+
+	if c.TargetDbs == nil || len(c.TargetDbs) == 0 {
+		c.TargetDbs = []string{"neo4j"}
+	}
+
+	return nil
 }
 
 // ConnectionString builds the neo4j bolt/bolt+routing connection string
@@ -107,191 +117,3 @@ const (
 	// IGNORE_INDEX skips the index step of setup
 	IGNORE_INDEX IndexStrategy = 2
 )
-
-//holds mapped types
-var mappedTypes = &hashmap.HashMap{}
-
-//thread pool
-var driver neo4j.Driver
-
-//relationship + label
-var mappedRelations = &relationConfigs{}
-
-func makeRelMapKey(start, edge, direction, rel string) string {
-	return fmt.Sprintf("%s-%s-%v-%s", start, edge, direction, rel)
-}
-
-var isSetup = false
-
-// Init sets up gogm. Takes in config object and variadic slice of gogm nodes to map.
-// Note: Must pass pointers to nodes!
-func Init(conf *Config, mapTypes ...interface{}) error {
-	return setupInit(false, conf, mapTypes...)
-}
-
-// Resets GoGM configuration
-func Reset() {
-	mappedTypes = &hashmap.HashMap{}
-	mappedRelations = &relationConfigs{}
-	isSetup = false
-}
-
-var internalConfig *Config
-
-// internal setup logic for gogm
-func setupInit(isTest bool, conf *Config, mapTypes ...interface{}) error {
-	if isSetup && !isTest {
-		return errors.New("gogm has already been initialized")
-	} else if isTest && isSetup {
-		mappedRelations = &relationConfigs{}
-	}
-
-	if !isTest {
-		if conf == nil {
-			return errors.New("config can not be nil")
-		}
-	}
-
-	if conf != nil {
-		if conf.Logger != nil {
-			log = conf.Logger
-		} else {
-			_log := logrus.New()
-
-			// set info if nothing has been set
-			if conf.LogLevel == "" {
-				conf.LogLevel = "INFO"
-			}
-			lvl, err := logrus.ParseLevel(conf.LogLevel)
-			if err != nil {
-				return err
-			}
-			_log.SetLevel(lvl)
-			log = _log
-		}
-
-		if conf.TargetDbs == nil || len(conf.TargetDbs) == 0 {
-			conf.TargetDbs = []string{"neo4j"}
-		}
-
-		internalConfig = conf
-	} else {
-		internalConfig = &Config{
-			TargetDbs: []string{"neo4j"},
-		}
-	}
-
-	log.Debug("mapping types")
-	for _, t := range mapTypes {
-		name := reflect.TypeOf(t).Elem().Name()
-		dc, err := getStructDecoratorConfig(t, mappedRelations)
-		if err != nil {
-			return err
-		}
-
-		log.Debugf("mapped type %s", name)
-		mappedTypes.Set(name, *dc)
-	}
-
-	log.Debug("validating edges")
-	if err := mappedRelations.Validate(); err != nil {
-		log.WithError(err).Error("failed to validate edges")
-		return err
-	}
-
-	if isTest && conf != nil {
-		if conf.MaxRetries < 0 {
-			conf.MaxRetries = 0
-		}
-
-		if conf.RetryWaitDuration == 0 {
-			// default is 1 second
-			conf.RetryWaitDuration = time.Second
-		}
-
-		internalConfig = conf
-	} else {
-		internalConfig = &Config{RetryWaitDuration: time.Second, MaxRetries: 0}
-	}
-
-	if !isTest {
-		log.Debug("opening connection to neo4j")
-		// todo tls support
-		config := func(neoConf *neo4j.Config) {
-			neoConf.Encrypted = conf.Encrypted
-			neoConf.MaxConnectionPoolSize = conf.PoolSize
-		}
-		var err error
-		driver, err = neo4j.NewDriver(conf.ConnectionString(), neo4j.BasicAuth(conf.Username, conf.Password, conf.Realm), config)
-		if err != nil {
-			return err
-		}
-
-		// get neoversion
-		sess, err := driver.Session(neo4j.AccessModeRead)
-		if err != nil {
-			return err
-		}
-
-		res, err := sess.Run("return 1", nil)
-		if err != nil {
-			return err
-		} else if err = res.Err(); err != nil {
-			return err
-		}
-
-		sum, err := res.Summary()
-		if err != nil {
-			return err
-		}
-
-		// grab version
-		version := strings.Split(strings.Replace(strings.ToLower(sum.Server().Version()), "neo4j/", "", -1), ".")
-		neoVersion, err = strconv.ParseFloat(version[0], 64)
-		if err != nil {
-			return err
-		}
-	}
-
-	log.Debug("starting index verification step")
-	if !isTest {
-		var err error
-		if conf.IndexStrategy == ASSERT_INDEX {
-			log.Debug("chose ASSERT_INDEX strategy")
-			log.Debug("dropping all known indexes")
-			err = dropAllIndexesAndConstraints()
-			if err != nil {
-				return err
-			}
-
-			log.Debug("creating all mapped indexes")
-			err = createAllIndexesAndConstraints(mappedTypes)
-			if err != nil {
-				return err
-			}
-
-			log.Debug("verifying all indexes")
-			err = verifyAllIndexesAndConstraints(mappedTypes)
-			if err != nil {
-				return err
-			}
-		} else if conf.IndexStrategy == VALIDATE_INDEX {
-			log.Debug("chose VALIDATE_INDEX strategy")
-			log.Debug("verifying all indexes")
-			err = verifyAllIndexesAndConstraints(mappedTypes)
-			if err != nil {
-				return err
-			}
-		} else if conf.IndexStrategy == IGNORE_INDEX {
-			log.Debug("ignoring indexes")
-		} else {
-			return errors.New("unknown index strategy")
-		}
-	}
-
-	log.Debug("setup complete")
-
-	isSetup = true
-
-	return nil
-}

@@ -22,12 +22,12 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	"github.com/neo4j/neo4j-go-driver/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"reflect"
 	"strings"
 )
 
-func decode(result neo4j.Result, respObj interface{}) (err error) {
+func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 	var rows [][]interface{}
 
 	numRows := 0
@@ -39,12 +39,12 @@ func decode(result neo4j.Result, respObj interface{}) (err error) {
 	if numRows == 0 {
 		return ErrNotFound
 	}
-	return innerDecode(rows, respObj)
+	return innerDecode(gogm, rows, respObj)
 }
 
 //decodes raw path response from driver
 //example query `match p=(n)-[*0..5]-() return p`
-func innerDecode(result [][]interface{}, respObj interface{}) (err error) {
+func innerDecode(gogm *Gogm, result [][]interface{}, respObj interface{}) (err error) {
 	//check nil params
 	if result == nil {
 		return fmt.Errorf("result can not be nil, %w", ErrInvalidParams)
@@ -99,14 +99,14 @@ func innerDecode(result [][]interface{}, respObj interface{}) (err error) {
 	labelLookup := map[int64]string{}
 
 	if paths != nil && len(paths) != 0 {
-		err = sortPaths(paths, &nodeLookup, &rels, &pks, primaryLabel, &relMaps)
+		err = sortPaths(gogm, paths, &nodeLookup, &rels, &pks, primaryLabel, &relMaps)
 		if err != nil {
 			return err
 		}
 	}
 
 	if isolatedNodes != nil && len(isolatedNodes) != 0 {
-		err = sortIsolatedNodes(isolatedNodes, &labelLookup, &nodeLookup, &pks, primaryLabel, &relMaps)
+		err = sortIsolatedNodes(gogm, isolatedNodes, &labelLookup, &nodeLookup, &pks, primaryLabel, &relMaps)
 		if err != nil {
 			return err
 		}
@@ -131,18 +131,18 @@ func innerDecode(result [][]interface{}, respObj interface{}) (err error) {
 		}
 
 		//grab reflect value for start
-		start, _, err := getValueAndConfig(relationConfig.StartNodeId, relationConfig.StartNodeType, nodeLookup)
+		start, _, err := getValueAndConfig(gogm, relationConfig.StartNodeId, relationConfig.StartNodeType, nodeLookup)
 		if err != nil {
 			return err
 		}
 
 		//grab reflect value for end
-		end, _, err := getValueAndConfig(relationConfig.EndNodeId, relationConfig.EndNodeType, nodeLookup)
+		end, _, err := getValueAndConfig(gogm, relationConfig.EndNodeId, relationConfig.EndNodeType, nodeLookup)
 		if err != nil {
 			return err
 		}
 
-		startConfig, endConfig, err := mappedRelations.GetConfigs(relationConfig.StartNodeType, relationConfig.EndNodeType,
+		startConfig, endConfig, err := gogm.mappedRelations.GetConfigs(relationConfig.StartNodeType, relationConfig.EndNodeType,
 			relationConfig.EndNodeType, relationConfig.StartNodeType, relationConfig.Type)
 		if err != nil {
 			return err
@@ -213,7 +213,7 @@ func innerDecode(result [][]interface{}, respObj interface{}) (err error) {
 				it = reflect.PtrTo(it)
 			}
 
-			temp, ok := mappedTypes.Get(label) // mappedTypes[boltNode.Labels[0]]
+			temp, ok := gogm.mappedTypes.Get(label) // mappedTypes[boltNode.Labels[0]]
 			if !ok {
 				return fmt.Errorf("can not find mapping for node with label %s - %w", label, ErrInternal)
 			}
@@ -224,7 +224,7 @@ func innerDecode(result [][]interface{}, respObj interface{}) (err error) {
 			}
 
 			//create value
-			val, err := convertToValue(relationConfig.Id, typeConfig, relationConfig.Obj, it)
+			val, err := convertToValue(gogm, relationConfig.Id, typeConfig, relationConfig.Obj, it)
 			if err != nil {
 				return err
 			}
@@ -351,7 +351,7 @@ func getPrimaryLabel(rt reflect.Type) string {
 }
 
 // sortIsolatedNodes process nodes that are returned individually from bolt driver
-func sortIsolatedNodes(isolatedNodes []neo4j.Node, labelLookup *map[int64]string, nodeLookup *map[int64]*reflect.Value, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
+func sortIsolatedNodes(gogm *Gogm, isolatedNodes []neo4j.Node, labelLookup *map[int64]string, nodeLookup *map[int64]*reflect.Value, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
 	if isolatedNodes == nil {
 		return fmt.Errorf("isolatedNodes can not be nil, %w", ErrInternal)
 	}
@@ -364,7 +364,7 @@ func sortIsolatedNodes(isolatedNodes []neo4j.Node, labelLookup *map[int64]string
 		//check if node has already been found by another process
 		if _, ok := (*nodeLookup)[node.Id()]; !ok {
 			//if it hasn't, map it
-			val, err := convertNodeToValue(node)
+			val, err := convertNodeToValue(gogm, node)
 			if err != nil {
 				return err
 			}
@@ -425,7 +425,7 @@ func sortStrictRels(strictRels []neo4j.Relationship, labelLookup *map[int64]stri
 }
 
 // sortPaths sorts nodes and relationships from bolt driver that dont specify the direction explicitly, instead uses the bolt spec to determine direction
-func sortPaths(paths []neo4j.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
+func sortPaths(gogm *Gogm, paths []neo4j.Path, nodeLookup *map[int64]*reflect.Value, rels *map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string, relMaps *map[int64]map[string]*RelationConfig) error {
 	if paths == nil {
 		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
 	}
@@ -447,7 +447,7 @@ func sortPaths(paths []neo4j.Path, nodeLookup *map[int64]*reflect.Value, rels *m
 			}
 			if _, ok := (*nodeLookup)[node.Id()]; !ok {
 				//we haven't parsed this one yet, lets do that now
-				val, err := convertNodeToValue(node)
+				val, err := convertNodeToValue(gogm, node)
 				if err != nil {
 					return err
 				}
@@ -491,7 +491,7 @@ func sortPaths(paths []neo4j.Path, nodeLookup *map[int64]*reflect.Value, rels *m
 }
 
 // getValueAndConfig returns reflect value of specific node and the configuration for the node
-func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) (val *reflect.Value, conf structDecoratorConfig, err error) {
+func getValueAndConfig(gogm *Gogm, id int64, t string, nodeLookup map[int64]*reflect.Value) (val *reflect.Value, conf structDecoratorConfig, err error) {
 	var ok bool
 
 	val, ok = nodeLookup[id]
@@ -499,7 +499,7 @@ func getValueAndConfig(id int64, t string, nodeLookup map[int64]*reflect.Value) 
 		return nil, structDecoratorConfig{}, fmt.Errorf("value for id (%v) not found", id)
 	}
 
-	temp, ok := mappedTypes.Get(t)
+	temp, ok := gogm.mappedTypes.Get(t)
 	if !ok {
 		return nil, structDecoratorConfig{}, fmt.Errorf("no config found for type (%s)", t)
 	}
@@ -516,7 +516,7 @@ var sliceOfEmptyInterface []interface{}
 var emptyInterfaceType = reflect.TypeOf(sliceOfEmptyInterface).Elem()
 
 // convertToValue converts properties map from neo4j to golang reflect value
-func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]interface{}, rtype reflect.Type) (valss *reflect.Value, err error) {
+func convertToValue(gogm *Gogm, graphId int64, conf structDecoratorConfig, props map[string]interface{}, rtype reflect.Type) (valss *reflect.Value, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("%v", r)
@@ -556,7 +556,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 		raw, ok := props[fieldConfig.Name]
 		if !ok {
 			if fieldConfig.IsTypeDef {
-				log.Debugf("skipping field %s since it is typedeffed and not defined", fieldConfig.Name)
+				gogm.logger.Debugf("skipping field %s since it is typedeffed and not defined", fieldConfig.Name)
 				continue
 			}
 		}
@@ -664,7 +664,7 @@ func convertToValue(graphId int64, conf structDecoratorConfig, props map[string]
 }
 
 // convertNodeToValue converts raw bolt node to reflect value
-func convertNodeToValue(boltNode neo4j.Node) (*reflect.Value, error) {
+func convertNodeToValue(gogm *Gogm, boltNode neo4j.Node) (*reflect.Value, error) {
 
 	if boltNode.Labels() == nil || len(boltNode.Labels()) == 0 {
 		return nil, errors.New("boltNode has no labels")
@@ -672,7 +672,7 @@ func convertNodeToValue(boltNode neo4j.Node) (*reflect.Value, error) {
 
 	var typeConfig structDecoratorConfig
 
-	temp, ok := mappedTypes.Get(boltNode.Labels()[0]) // mappedTypes[boltNode.Labels[0]]
+	temp, ok := gogm.mappedTypes.Get(boltNode.Labels()[0]) // mappedTypes[boltNode.Labels[0]]
 	if !ok {
 		return nil, fmt.Errorf("can not find mapping for node with label %s", boltNode.Labels()[0])
 	}
@@ -682,5 +682,5 @@ func convertNodeToValue(boltNode neo4j.Node) (*reflect.Value, error) {
 		return nil, errors.New("unable to cast to struct decorator config")
 	}
 
-	return convertToValue(boltNode.Id(), typeConfig, boltNode.Props(), typeConfig.Type)
+	return convertToValue(gogm, boltNode.Id(), typeConfig, boltNode.Props(), typeConfig.Type)
 }

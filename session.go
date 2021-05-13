@@ -25,7 +25,7 @@ import (
 	"reflect"
 
 	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/neo4j/neo4j-go-driver/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
 const defaultDepth = 1
@@ -35,19 +35,33 @@ const AccessModeWrite = neo4j.AccessModeWrite
 
 type SessionConfig neo4j.SessionConfig
 
+// Deprecated: Session will be removed in a later release in favor of SessionV2
 type Session struct {
+	gogm *Gogm
 	neoSess      neo4j.Session
 	tx           neo4j.Transaction
 	DefaultDepth int
 	LoadStrategy LoadStrategy
 }
 
+// uses global gogm
+// Deprecated: Gogm.NewSession instead
 func NewSession(readonly bool) (*Session, error) {
-	if driver == nil {
-		return nil, errors.New("driver cannot be nil")
+	return newSession(globalGogm, readonly)
+}
+
+func newSession(gogm *Gogm, readonly bool) (*Session, error) {
+	if gogm == nil {
+		return nil, errors.New("gogm instance cannot be nil")
 	}
 
-	session := new(Session)
+	if globalGogm.isNoOp {
+		return nil, errors.New("please set global gogm instance with SetGlobalGogm()")
+	}
+
+	session := &Session{
+		gogm:         gogm,
+	}
 
 	var mode neo4j.AccessMode
 
@@ -57,10 +71,7 @@ func NewSession(readonly bool) (*Session, error) {
 		mode = AccessModeWrite
 	}
 
-	neoSess, err := driver.Session(mode)
-	if err != nil {
-		return nil, err
-	}
+	neoSess := gogm.driver.NewSession(neo4j.SessionConfig{AccessMode: mode})
 
 	session.neoSess = neoSess
 
@@ -69,25 +80,32 @@ func NewSession(readonly bool) (*Session, error) {
 	return session, nil
 }
 
+// Deprecated: Gogm.NewSessionWithConfig instead
 func NewSessionWithConfig(conf SessionConfig) (*Session, error) {
-	if driver == nil {
-		return nil, errors.New("driver cannot be nil")
+	return newSessionWithConfig(globalGogm, conf)
+}
+
+func newSessionWithConfig(gogm *Gogm, conf SessionConfig) (*Session, error) {
+	if gogm == nil {
+		return nil, errors.New("gogm instance is nil")
 	}
 
-	neoSess, err := driver.NewSession(neo4j.SessionConfig{
+	if globalGogm.isNoOp {
+		return nil, errors.New("please set global gogm instance with SetGlobalGogm()")
+	}
+
+	neoSess := gogm.driver.NewSession(neo4j.SessionConfig{
 		AccessMode:   conf.AccessMode,
 		Bookmarks:    conf.Bookmarks,
 		DatabaseName: conf.DatabaseName,
 	})
-	if err != nil {
-		return nil, err
-	}
 
 	return &Session{
 		neoSess:      neoSess,
 		DefaultDepth: defaultDepth,
 	}, nil
 }
+
 func (s *Session) Begin() error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
@@ -240,7 +258,7 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 		return err
 	}
 
-	return decode(result, respObj)
+	return decode(s.gogm, result, respObj)
 }
 
 func (s *Session) LoadAll(respObj interface{}) error {
@@ -335,7 +353,7 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 		return err
 	}
 
-	return decode(result, respObj)
+	return decode(s.gogm, result, respObj)
 }
 
 func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNodeField string, edgeConstraint interface{}, minJumps, maxJumps, depth int, filter dsl.ConditionOperator) error {
@@ -403,7 +421,7 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 		return err
 	}
 
-	return decode(result, respObj)
+	return decode(s.gogm, result, respObj)
 }
 
 func (s *Session) Save(saveObj interface{}) error {
@@ -423,7 +441,7 @@ func (s *Session) SaveDepth(saveObj interface{}, depth int) error {
 		rf = runWrap(s.neoSess)
 	}
 
-	return saveDepth(rf, saveObj, depth)
+	return saveDepth(s.gogm, rf, saveObj, depth)
 }
 
 func (s *Session) Delete(deleteObj interface{}) error {
@@ -480,7 +498,7 @@ func (s *Session) Query(query string, properties map[string]interface{}, respObj
 		return err
 	}
 
-	return decode(res, respObj)
+	return decode(s.gogm, res, respObj)
 }
 
 func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error) {
@@ -505,11 +523,11 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 
 	// we have to wrap everything because the driver only exposes interfaces which are not serializable
 	for res.Next() {
-		valLen := len(res.Record().Values())
-		valCap := cap(res.Record().Values())
+		valLen := len(res.Record().Values)
+		valCap := cap(res.Record().Values)
 		if valLen != 0 {
 			vals := make([]interface{}, valLen, valCap)
-			for i, val := range res.Record().Values() {
+			for i, val := range res.Record().Values {
 				switch val.(type) {
 				case neo4j.Path:
 					vals[i] = newPathWrap(val.(neo4j.Path))
@@ -561,7 +579,7 @@ func (s *Session) Close() error {
 
 	// handle tx
 	if s.tx != nil {
-		log.Warn("attempting to close a session with a pending transaction. Tx is being rolled back")
+		s.gogm.logger.Warn("attempting to close a session with a pending transaction. Tx is being rolled back")
 		err := s.tx.Rollback()
 		if err != nil {
 			return err

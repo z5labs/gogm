@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/neo4j/neo4j-go-driver/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"reflect"
 )
 
@@ -67,7 +67,7 @@ type relCreateConf struct {
 }
 
 // saves target node and connected node to specified depth
-func saveDepth(runFunc neoRunFunc, obj interface{}, depth int) error {
+func saveDepth(gogm *Gogm, runFunc neoRunFunc, obj interface{}, depth int) error {
 	if runFunc == nil {
 		return errors.New("session can not be nil")
 	}
@@ -116,7 +116,7 @@ func saveDepth(runFunc neoRunFunc, obj interface{}, depth int) error {
 
 	rootVal := reflect.ValueOf(obj)
 
-	err := parseStruct("", "", false, dsl.DirectionBoth, nil, &rootVal, 0, depth, &nodes, &relations, &oldRels, &newNodes, &nodeRef, &visited)
+	err := parseStruct(gogm, "", "", false, dsl.DirectionBoth, nil, &rootVal, 0, depth, &nodes, &relations, &oldRels, &newNodes, &nodeRef, &visited)
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func saveDepth(runFunc neoRunFunc, obj interface{}, depth int) error {
 		return err
 	}
 
-	err = generateCurRels("", &rootVal, 0, depth, &curRels)
+	err = generateCurRels(gogm,"", &rootVal, 0, depth, &curRels)
 	if err != nil {
 		return err
 	}
@@ -329,7 +329,7 @@ func createNodes(runFunc neoRunFunc, crNodes map[string]map[string]nodeCreateCon
 		}
 
 		for res.Next() {
-			row := res.Record().Values()
+			row := res.Record().Values
 			if len(row) != 2 {
 				continue
 			}
@@ -480,7 +480,7 @@ func parseValidate(currentDepth, maxDepth int, current *reflect.Value, nodesPtr 
 }
 
 // generates load map for updated structs
-func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxDepth int, curRels *map[string]map[string]*RelationConfig) error {
+func generateCurRels(gogm *Gogm, parentId string, current *reflect.Value, currentDepth, maxDepth int, curRels *map[string]map[string]*RelationConfig) error {
 	if currentDepth > maxDepth {
 		return nil
 	}
@@ -505,7 +505,7 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 	}
 
 	//get the config
-	actual, ok := mappedTypes.Get(tString)
+	actual, ok := gogm.mappedTypes.Get(tString)
 	if !ok {
 		return fmt.Errorf("struct config not found type (%s)", tString)
 	}
@@ -536,7 +536,7 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 			for i := 0; i < slLen; i++ {
 				relVal := relField.Index(i)
 
-				newParentId, _, _, _, _, followVal, followId, _, err := processStruct(conf, &relVal, uuid, parentId)
+				newParentId, _, _, _, _, followVal, followId, _, err := processStruct(gogm, conf, &relVal, uuid, parentId)
 				if err != nil {
 					return err
 				}
@@ -551,13 +551,13 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 
 				(*curRels)[uuid][conf.FieldName].Ids = append((*curRels)[uuid][conf.FieldName].Ids, followId)
 
-				err = generateCurRels(newParentId, followVal, currentDepth+1, maxDepth, curRels)
+				err = generateCurRels(gogm, newParentId, followVal, currentDepth+1, maxDepth, curRels)
 				if err != nil {
 					return err
 				}
 			}
 		} else {
-			newParentId, _, _, _, _, followVal, followId, _, err := processStruct(conf, &relField, uuid, parentId)
+			newParentId, _, _, _, _, followVal, followId, _, err := processStruct(gogm, conf, &relField, uuid, parentId)
 			if err != nil {
 				return err
 			}
@@ -572,7 +572,7 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 
 			(*curRels)[uuid][conf.FieldName].Ids = append((*curRels)[uuid][conf.FieldName].Ids, followId)
 
-			err = generateCurRels(newParentId, followVal, currentDepth+1, maxDepth, curRels)
+			err = generateCurRels(gogm, newParentId, followVal, currentDepth+1, maxDepth, curRels)
 			if err != nil {
 				return err
 			}
@@ -584,7 +584,7 @@ func generateCurRels(parentId string, current *reflect.Value, currentDepth, maxD
 }
 
 // parses tree of structs
-func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, current *reflect.Value,
+func parseStruct(gogm *Gogm, parentId, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, current *reflect.Value,
 	currentDepth, maxDepth int, nodesPtr *map[string]map[string]nodeCreateConf, relationsPtr *map[string][]relCreateConf, oldRels *map[string]map[string]*RelationConfig,
 	newNodes *[]*string, nodeRef *map[string]*reflect.Value, visited *[]string) error {
 	//check if its done
@@ -592,7 +592,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 		return nil
 	}
 
-	log.Debugf("on cycle %v", currentDepth)
+	gogm.logger.Debugf("on cycle %v", currentDepth)
 
 	//validate params
 	err := parseValidate(currentDepth, maxDepth, current, nodesPtr, relationsPtr)
@@ -607,7 +607,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 	}
 
 	//get the config
-	actual, ok := mappedTypes.Get(tString)
+	actual, ok := gogm.mappedTypes.Get(tString)
 	if !ok {
 		return fmt.Errorf("struct config not found type (%s)", tString)
 	}
@@ -737,7 +737,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 			for i := 0; i < slLen; i++ {
 				relVal := relField.Index(i)
 
-				newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, _, _, err := processStruct(conf, &relVal, id, parentId)
+				newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, _, _, err := processStruct(gogm, conf, &relVal, id, parentId)
 				if err != nil {
 					return err
 				}
@@ -747,13 +747,13 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 				//	continue
 				//}
 
-				err = parseStruct(newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr, oldRels, newNodes, nodeRef, visited)
+				err = parseStruct(gogm, newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr, oldRels, newNodes, nodeRef, visited)
 				if err != nil {
 					return err
 				}
 			}
 		} else {
-			newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, _, _, err := processStruct(conf, &relField, id, parentId)
+			newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, _, _, err := processStruct(gogm, conf, &relField, id, parentId)
 			if err != nil {
 				return err
 			}
@@ -762,7 +762,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 			//	continue
 			//}
 
-			err = parseStruct(newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr, oldRels, newNodes, nodeRef, visited)
+			err = parseStruct(gogm, newParentId, newEdgeLabel, newParentIdStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodesPtr, relationsPtr, oldRels, newNodes, nodeRef, visited)
 			if err != nil {
 				return err
 			}
@@ -773,7 +773,7 @@ func parseStruct(parentId, edgeLabel string, parentIsStart bool, direction dsl.D
 }
 
 // processStruct generates configuration for individual struct for saving
-func processStruct(fieldConf decoratorConfig, relVal *reflect.Value, id, oldParentId string) (parentId, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, followVal *reflect.Value, followId int64, skip bool, err error) {
+func processStruct(gogm *Gogm, fieldConf decoratorConfig, relVal *reflect.Value, id, oldParentId string) (parentId, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, followVal *reflect.Value, followId int64, skip bool, err error) {
 	edgeLabel = fieldConf.Relationship
 
 	relValName, err := getTypeName(relVal.Type())
@@ -781,7 +781,7 @@ func processStruct(fieldConf decoratorConfig, relVal *reflect.Value, id, oldPare
 		return "", "", false, 0, nil, nil, -1, false, err
 	}
 
-	actual, ok := mappedTypes.Get(relValName)
+	actual, ok := gogm.mappedTypes.Get(relValName)
 	if !ok {
 		return "", "", false, 0, nil, nil, -1, false, fmt.Errorf("cannot find config for %s", edgeLabel)
 	}

@@ -27,10 +27,11 @@ import (
 	"time"
 
 	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/neo4j/neo4j-go-driver/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
 type SessionV2Impl struct {
+	gogm *Gogm
 	neoSess      neo4j.Session
 	tx           neo4j.Transaction
 	DefaultDepth int
@@ -38,40 +39,21 @@ type SessionV2Impl struct {
 	mode         neo4j.AccessMode
 }
 
-func NewSessionV2(readonly bool) (*SessionV2Impl, error) {
-	if driver == nil {
-		return nil, errors.New("driver cannot be nil")
+func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, error) {
+	if gogm == nil {
+		return nil, errors.New("gogm instance can not be nil")
 	}
 
-	session := new(SessionV2Impl)
-
-	var mode neo4j.AccessMode
-
-	if readonly {
-		mode = AccessModeRead
-	} else {
-		mode = AccessModeWrite
+	if globalGogm.isNoOp {
+		return nil, errors.New("please set global gogm instance with SetGlobalGogm()")
 	}
 
-	session.mode = mode
-	session.DefaultDepth = defaultDepth
-
-	return session, session.reset()
-}
-
-func NewSessionWithConfigV2(conf SessionConfig) (*SessionV2Impl, error) {
-	if driver == nil {
-		return nil, errors.New("driver cannot be nil")
-	}
-
-	neoSess, err := driver.NewSession(neo4j.SessionConfig{
+	neoSess := gogm.driver.NewSession(neo4j.SessionConfig{
 		AccessMode:   conf.AccessMode,
 		Bookmarks:    conf.Bookmarks,
 		DatabaseName: conf.DatabaseName,
+		FetchSize: conf.FetchSize,
 	})
-	if err != nil {
-		return nil, err
-	}
 
 	return &SessionV2Impl{
 		neoSess:      neoSess,
