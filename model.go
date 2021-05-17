@@ -45,9 +45,9 @@ type NodeWrap struct {
 
 func newNodeWrap(node neo4j.Node) *NodeWrap {
 	return &NodeWrap{
-		Id:     node.Id(),
-		Labels: node.Labels(),
-		Props:  node.Props(),
+		Id:     node.Id,
+		Labels: node.Labels,
+		Props:  node.Props,
 	}
 }
 
@@ -59,7 +59,7 @@ type PathWrap struct {
 
 func newPathWrap(path neo4j.Path) *PathWrap {
 	pw := new(PathWrap)
-	nodes := path.Nodes()
+	nodes := path.Nodes
 	if nodes != nil && len(nodes) != 0 {
 		nds := make([]*NodeWrap, len(nodes), cap(nodes))
 		for i, n := range nodes {
@@ -69,7 +69,7 @@ func newPathWrap(path neo4j.Path) *PathWrap {
 		pw.Nodes = nds
 	}
 
-	rels := path.Relationships()
+	rels := path.Relationships
 	if rels != nil && len(rels) != 0 {
 		newRels := make([]*RelationshipWrap, len(rels), cap(rels))
 		for i, rel := range rels {
@@ -93,10 +93,10 @@ type RelationshipWrap struct {
 
 func newRelationshipWrap(rel neo4j.Relationship) *RelationshipWrap {
 	return &RelationshipWrap{
-		Id:      rel.Id(),
-		StartId: rel.StartId(),
-		EndId:   rel.EndId(),
-		Type:    rel.Type(),
-		Props:   rel.Props(),
+		Id:      rel.Id,
+		StartId: rel.StartId,
+		EndId:   rel.EndId,
+		Type:    rel.Type,
+		Props:   rel.Props,
 	}
 }

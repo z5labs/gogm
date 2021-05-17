@@ -43,6 +43,7 @@ type IEdge interface {
 
 //inspiration from -- https://github.com/neo4j/neo4j-ogm/blob/master/core/src/main/java/org/neo4j/ogm/session/Session.java
 
+// deprecated
 //session object for ogm interactions
 type ISession interface {
 	//transaction functions

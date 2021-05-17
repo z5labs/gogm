@@ -29,16 +29,18 @@ import (
 func TestParseStruct(t *testing.T) {
 	req := require.New(t)
 
-	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
+	gogm, err := getTestGogm()
+	req.Nil(err)
+	req.NotNil(gogm)
 
-	parseO2O(req)
+	parseO2O(gogm, req)
 
-	parseM2O(req)
+	parseM2O(gogm, req)
 
-	parseM2M(req)
+	parseM2M(gogm, req)
 }
 
-func parseO2O(req *require.Assertions) {
+func parseO2O(gogm *Gogm, req *require.Assertions) {
 	//test single save
 	comp1 := &a{
 		TestField:         "test",
@@ -88,8 +90,8 @@ func parseO2O(req *require.Assertions) {
 	val := reflect.ValueOf(comp1)
 	nodeRef := map[string]*reflect.Value{}
 
-	req.Nil(parseStruct("", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
-	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
+	req.Nil(parseStruct(gogm, "", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
+	req.Nil(generateCurRels(gogm, "", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
@@ -101,7 +103,7 @@ func parseO2O(req *require.Assertions) {
 	req.EqualValues(oldRels, curRels)
 }
 
-func parseM2O(req *require.Assertions) {
+func parseM2O(gogm *Gogm, req *require.Assertions) {
 	//test single save
 	a1 := &a{
 		TestField:         "test",
@@ -145,8 +147,8 @@ func parseM2O(req *require.Assertions) {
 
 	val := reflect.ValueOf(a1)
 	nodeRef := map[string]*reflect.Value{}
-	req.Nil(parseStruct("", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
-	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
+	req.Nil(parseStruct(gogm, "", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
+	req.Nil(generateCurRels(gogm, "", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
@@ -154,7 +156,7 @@ func parseM2O(req *require.Assertions) {
 	req.EqualValues(oldRels, curRels)
 }
 
-func parseM2M(req *require.Assertions) {
+func parseM2M(gogm *Gogm, req *require.Assertions) {
 	//test single save
 	a1 := &a{
 		TestField:         "test",
@@ -202,8 +204,8 @@ func parseM2M(req *require.Assertions) {
 
 	val := reflect.ValueOf(a1)
 
-	req.Nil(parseStruct("", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
-	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
+	req.Nil(parseStruct(gogm, "", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
+	req.Nil(generateCurRels(gogm, "", &val, 0, 5, &curRels))
 	req.Equal(2, len(nodes))
 	req.Equal(1, len(nodes["a"]))
 	req.Equal(1, len(nodes["b"]))
@@ -214,7 +216,9 @@ func parseM2M(req *require.Assertions) {
 func TestCalculateCurRels(t *testing.T) {
 	req := require.New(t)
 
-	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}))
+	gogm, err := getTestGogm()
+	req.Nil(err)
+	req.NotNil(gogm)
 
 	//test single save
 	a1 := &a{
@@ -263,8 +267,8 @@ func TestCalculateCurRels(t *testing.T) {
 
 	val := reflect.ValueOf(a1)
 
-	req.Nil(parseStruct("", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
-	req.Nil(generateCurRels("", &val, 0, 5, &curRels))
+	req.Nil(parseStruct(gogm, "", "", false, dsl.DirectionBoth, nil, &val, 0, 5, &nodes, &relations, &oldRels, &ids, &nodeRef, &[]string{}))
+	req.Nil(generateCurRels(gogm, "", &val, 0, 5, &curRels))
 	req.Equal(1, len(curRels))
 }
 

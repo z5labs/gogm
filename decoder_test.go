@@ -22,6 +22,7 @@ package gogm
 import (
 	"errors"
 	"github.com/cornelk/hashmap"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
@@ -55,10 +56,11 @@ func toHashmapStructdecconf(m map[string]structDecoratorConfig) *hashmap.HashMap
 }
 
 func TestConvertNodeToValue(t *testing.T) {
-
 	req := require.New(t)
-
-	mappedTypes = toHashmapStructdecconf(map[string]structDecoratorConfig{
+	gogm, err := getTestGogm()
+	req.Nil(err)
+	req.NotNil(gogm)
+	mappedTypes := toHashmapStructdecconf(map[string]structDecoratorConfig{
 		"TestStruct": {
 			Type: reflect.TypeOf(TestStruct{}),
 			Fields: map[string]decoratorConfig{
@@ -80,17 +82,18 @@ func TestConvertNodeToValue(t *testing.T) {
 			IsVertex: true,
 		},
 	})
+	gogm.mappedTypes = mappedTypes
 
-	bn := testNode{
-		id: 10,
-		props: map[string]interface{}{
+	bn := neo4j.Node{
+		Id: 10,
+		Props: map[string]interface{}{
 			"uuid":        "dadfasdfasdf",
 			"other_field": "dafsdfasd",
 		},
-		labels: []string{"TestStruct"},
+		Labels: []string{"TestStruct"},
 	}
 
-	val, err := convertNodeToValue(bn)
+	val, err := convertNodeToValue(gogm, bn)
 	req.Nil(err)
 	req.NotNil(val)
 	req.EqualValues(TestStruct{
@@ -99,14 +102,14 @@ func TestConvertNodeToValue(t *testing.T) {
 		OtherField: "dafsdfasd",
 	}, val.Interface().(TestStruct))
 
-	bn = testNode{
-		id: 10,
-		props: map[string]interface{}{
+	bn = neo4j.Node{
+		Id: 10,
+		Props: map[string]interface{}{
 			"uuid":        "dadfasdfasdf",
 			"other_field": "dafsdfasd",
 			"t":           "dadfasdf",
 		},
-		labels: []string{"TestStruct"},
+		Labels: []string{"TestStruct"},
 	}
 
 	var te structDecoratorConfig
@@ -121,7 +124,7 @@ func TestConvertNodeToValue(t *testing.T) {
 		Name: "test",
 	}
 	mappedTypes.Set("TestStruct", te)
-	val, err = convertNodeToValue(bn)
+	val, err = convertNodeToValue(gogm, bn)
 	req.Nil(err)
 	req.NotNil(val)
 }
@@ -220,70 +223,97 @@ type propsTest struct {
 	PropsTest8 tdMapTdSliceOfTd       `gogm:"name=props8;properties"`
 }
 
+func getTestGogm() (*Gogm, error) {
+	g := &Gogm{
+		config: &Config{
+			Logger:   GetDefaultLogger(),
+			LogLevel: "DEBUG",
+		},
+		logger:          GetDefaultLogger(),
+		neoVersion:      4,
+		mappedTypes:     &hashmap.HashMap{},
+		driver:          nil,
+		mappedRelations: &relationConfigs{},
+		ogmTypes:        []interface{}{&a{}, &b{}, &c{}, &f{}, &propsTest{}},
+		isNoOp:          false,
+	}
+
+	err := g.parseOgmTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	return g, nil
+}
+
 func TestDecode(t *testing.T) {
 
 	req := require.New(t)
-	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}, &f{}, &propsTest{}))
+	gogm, err := getTestGogm()
+	req.Nil(err)
+	req.NotNil(gogm)
 
 	var fNode f
 	t1 := testResult{
 		empty: true,
 	}
 
-	req.True(errors.Is(decode(&t1, &fNode), ErrNotFound))
+	req.True(errors.Is(decode(gogm, &t1, &fNode), ErrNotFound))
 
 	t1.empty = false
 
-	req.Nil(decode(&t1, &fNode))
+	req.Contains(decode(gogm, &t1, &fNode).Error(), "no primary nodes to return")
 }
 
 func TestInnerDecode(t *testing.T) {
 	req := require.New(t)
 
-	req.Nil(setupInit(true, nil, &a{}, &b{}, &c{}, &f{}, &propsTest{}))
+	gogm, err := getTestGogm()
+	req.Nil(err)
+	req.NotNil(gogm)
 
 	//	req.EqualValues(3, mappedTypes.Len())
 
 	vars10 := [][]interface{}{
 		{
-			testPath{
-				nodes: []*testNode{
+			neo4j.Path{
+				Nodes: []neo4j.Node{
 					{
-						labels: []string{"f"},
-						props: map[string]interface{}{
+						Labels: []string{"f"},
+						Props: map[string]interface{}{
 							"uuid": "0",
 						},
-						id: 0,
+						Id: 0,
 					},
 					{
-						labels: []string{"f"},
-						props: map[string]interface{}{
+						Labels: []string{"f"},
+						Props: map[string]interface{}{
 							"uuid": "1",
 						},
-						id: 1,
+						Id: 1,
 					},
 					{
-						labels: []string{"f"},
-						props: map[string]interface{}{
+						Labels: []string{"f"},
+						Props: map[string]interface{}{
 							"uuid": "2",
 						},
-						id: 2,
+						Id: 2,
 					},
 				},
-				relNodes: []*testRelationship{
+				Relationships: []neo4j.Relationship{
 					{
-						id:      3,
-						startId: 0,
-						endId:   1,
-						_type:   "test",
-						props:   nil,
+						Id:      3,
+						StartId: 0,
+						EndId:   1,
+						Type:    "test",
+						Props:   nil,
 					},
 					{
-						id:      4,
-						startId: 1,
-						endId:   2,
-						_type:   "test",
-						props:   nil,
+						Id:      4,
+						StartId: 1,
+						EndId:   2,
+						Type:    "test",
+						Props:   nil,
 					},
 				},
 			},
@@ -317,7 +347,7 @@ func TestInnerDecode(t *testing.T) {
 	f2.Children = []*f{&f1}
 
 	var readin10 []*f
-	req.Nil(innerDecode(vars10, &readin10))
+	req.Nil(innerDecode(gogm, vars10, &readin10))
 	req.True(len(readin10) == 3)
 	for _, r := range readin10 {
 		if r.Id == 0 {
@@ -342,33 +372,33 @@ func TestInnerDecode(t *testing.T) {
 
 	vars := [][]interface{}{
 		{
-			testPath{
-				nodes: []*testNode{
+			neo4j.Path{
+				Nodes: []neo4j.Node{
 					{
-						labels: []string{"b"},
-						props: map[string]interface{}{
+						Labels: []string{"b"},
+						Props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						id: 2,
+						Id: 2,
 					},
 					{
-						labels: []string{"a"},
-						props: map[string]interface{}{
+						Labels: []string{"a"},
+						Props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfasd",
 						},
-						id: 1,
+						Id: 1,
 					},
 				},
-				relNodes: []*testRelationship{
+				Relationships: []neo4j.Relationship{
 					{
-						id:      1,
-						startId: 1,
-						endId:   2,
-						_type:   "test_rel",
-						props:   nil,
+						Id:      1,
+						StartId: 1,
+						EndId:   2,
+						Type:    "test_rel",
+						Props:   nil,
 					},
 				},
 			},
@@ -399,7 +429,7 @@ func TestInnerDecode(t *testing.T) {
 	comp.SingleA = comp22
 	comp22.Single = comp
 
-	req.Nil(innerDecode(vars, &readin))
+	req.Nil(innerDecode(gogm, vars, &readin))
 	req.EqualValues(comp.TestField, readin.TestField)
 	req.EqualValues(comp.UUID, readin.UUID)
 	req.EqualValues(comp.Id, readin.Id)
@@ -409,7 +439,7 @@ func TestInnerDecode(t *testing.T) {
 
 	var readinSlicePtr []*a
 
-	req.Nil(innerDecode(vars, &readinSlicePtr))
+	req.Nil(innerDecode(gogm, vars, &readinSlicePtr))
 	req.EqualValues(comp.TestField, readinSlicePtr[0].TestField)
 	req.EqualValues(comp.UUID, readinSlicePtr[0].UUID)
 	req.EqualValues(comp.Id, readinSlicePtr[0].Id)
@@ -419,7 +449,7 @@ func TestInnerDecode(t *testing.T) {
 
 	var readinSlice []a
 
-	req.Nil(innerDecode(vars, &readinSlice))
+	req.Nil(innerDecode(gogm, vars, &readinSlice))
 	req.EqualValues(comp.TestField, readinSlice[0].TestField)
 	req.EqualValues(comp.UUID, readinSlice[0].UUID)
 	req.EqualValues(comp.Id, readinSlice[0].Id)
@@ -429,33 +459,33 @@ func TestInnerDecode(t *testing.T) {
 
 	vars2 := [][]interface{}{
 		{
-			testPath{
-				nodes: []*testNode{
+			neo4j.Path{
+				Nodes: []neo4j.Node{
 					{
-						labels: []string{"a"},
-						props: map[string]interface{}{
+						Labels: []string{"a"},
+						Props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfasd",
 						},
-						id: 1,
+						Id: 1,
 					},
 					{
-						labels: []string{"b"},
-						props: map[string]interface{}{
+						Labels: []string{"b"},
+						Props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						id: 2,
+						Id: 2,
 					},
 				},
-				relNodes: []*testRelationship{
+				Relationships: []neo4j.Relationship{
 					{
-						id:      5,
-						startId: 1,
-						endId:   2,
-						_type:   "special_single",
-						props: map[string]interface{}{
+						Id:      5,
+						StartId: 1,
+						EndId:   2,
+						Type:    "special_single",
+						Props: map[string]interface{}{
 							"test": "testing",
 							"uuid": "asdfasdafsd",
 						},
@@ -497,7 +527,7 @@ func TestInnerDecode(t *testing.T) {
 	comp2.SingleSpecA = c1
 	b2.SingleSpec = c1
 
-	req.Nil(innerDecode(vars2, &readin2))
+	req.Nil(innerDecode(gogm, vars2, &readin2))
 	req.EqualValues(comp2.TestField, readin2.TestField)
 	req.EqualValues(comp2.UUID, readin2.UUID)
 	req.EqualValues(comp2.Id, readin2.Id)
@@ -507,33 +537,33 @@ func TestInnerDecode(t *testing.T) {
 
 	vars3 := [][]interface{}{
 		{
-			testPath{
-				nodes: []*testNode{
+			neo4j.Path{
+				Nodes: []neo4j.Node{
 					{
-						labels: []string{"a"},
-						props: map[string]interface{}{
+						Labels: []string{"a"},
+						Props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfasd",
 						},
-						id: 1,
+						Id: 1,
 					},
 					{
-						labels: []string{"b"},
-						props: map[string]interface{}{
+						Labels: []string{"b"},
+						Props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						id: 2,
+						Id: 2,
 					},
 				},
-				relNodes: []*testRelationship{
+				Relationships: []neo4j.Relationship{
 					{
-						id:      5,
-						startId: 1,
-						endId:   2,
-						_type:   "multib",
-						props:   nil,
+						Id:      5,
+						StartId: 1,
+						EndId:   2,
+						Type:    "multib",
+						Props:   nil,
 					},
 				},
 			},
@@ -560,7 +590,7 @@ func TestInnerDecode(t *testing.T) {
 		},
 	}
 
-	req.Nil(innerDecode(vars3, &readin3))
+	req.Nil(innerDecode(gogm, vars3, &readin3))
 	req.EqualValues(comp3.TestField, readin3.TestField)
 	req.EqualValues(comp3.UUID, readin3.UUID)
 	req.EqualValues(comp3.Id, readin3.Id)
@@ -572,33 +602,33 @@ func TestInnerDecode(t *testing.T) {
 
 	vars4 := [][]interface{}{
 		{
-			testPath{
-				nodes: []*testNode{
+			neo4j.Path{
+				Nodes: []neo4j.Node{
 					{
-						labels: []string{"a"},
-						props: map[string]interface{}{
+						Labels: []string{"a"},
+						Props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfasd",
 						},
-						id: 1,
+						Id: 1,
 					},
 					{
-						labels: []string{"b"},
-						props: map[string]interface{}{
+						Labels: []string{"b"},
+						Props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						id: 2,
+						Id: 2,
 					},
 				},
-				relNodes: []*testRelationship{
+				Relationships: []neo4j.Relationship{
 					{
-						id:      5,
-						startId: 1,
-						endId:   2,
-						_type:   "special_multi",
-						props: map[string]interface{}{
+						Id:      5,
+						StartId: 1,
+						EndId:   2,
+						Type:    "special_multi",
+						Props: map[string]interface{}{
 							"test": "testing",
 							"uuid": "asdfasdafsd",
 						},
@@ -639,7 +669,7 @@ func TestInnerDecode(t *testing.T) {
 	comp4.MultiSpecA = append(comp4.MultiSpecA, &c4)
 	b3.MultiSpec = append(b3.MultiSpec, &c4)
 
-	req.Nil(innerDecode(vars4, &readin4))
+	req.Nil(innerDecode(gogm, vars4, &readin4))
 	req.EqualValues(b3.TestField, readin4.TestField)
 	req.EqualValues(b3.UUID, readin4.UUID)
 	req.EqualValues(b3.Id, readin4.Id)
@@ -653,12 +683,12 @@ func TestInnerDecode(t *testing.T) {
 
 	vars5 := [][]interface{}{
 		{
-			testPath{
-				nodes: []*testNode{
+			neo4j.Path{
+				Nodes: []neo4j.Node{
 					{
-						id:     1,
-						labels: []string{"propsTest"},
-						props: map[string]interface{}{
+						Id:     1,
+						Labels: []string{"propsTest"},
+						Props: map[string]interface{}{
 							"uuid":             var5uuid,
 							"props0.test.test": "test",
 							"props0.test2":     1,
@@ -702,7 +732,7 @@ func TestInnerDecode(t *testing.T) {
 		PropsTest8: map[string]tdArrOfTd{},
 	}
 
-	req.Nil(innerDecode(vars5, &readin5))
+	req.Nil(innerDecode(gogm, vars5, &readin5))
 	req.EqualValues(r.Id, readin5.Id)
 	req.EqualValues(r.UUID, readin5.UUID)
 	req.EqualValues(r.PropTest0["test"], readin5.PropTest0["test"])
@@ -719,25 +749,25 @@ func TestInnerDecode(t *testing.T) {
 	//multi single
 	vars6 := [][]interface{}{
 		{
-			testPath{
-				nodes: []*testNode{
+			neo4j.Path{
+				Nodes: []neo4j.Node{
 					{
-						labels: []string{"b"},
-						props: map[string]interface{}{
+						Labels: []string{"b"},
+						Props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						id: 2,
+						Id: 2,
 					},
 					{
-						labels: []string{"b"},
-						props: map[string]interface{}{
+						Labels: []string{"b"},
+						Props: map[string]interface{}{
 							"test_field": "test",
 							"uuid":       "dasdfas",
 							"test_time":  fTime,
 						},
-						id: 3,
+						Id: 3,
 					},
 				},
 			},
@@ -759,22 +789,21 @@ func TestInnerDecode(t *testing.T) {
 	//	Id: 3,
 	//}
 
-	req.Nil(innerDecode(vars6, &readin6))
+	req.Nil(innerDecode(gogm, vars6, &readin6))
 	req.True(len(readin6) == 2)
 
 	vars7 := [][]interface{}{
 		{
-			testPath{
-				nodes:    nil,
-				relNodes: nil,
-				indexes:  nil,
+			neo4j.Path{
+				Nodes:         nil,
+				Relationships: nil,
 			},
 		},
 	}
 
 	var readin7 []*b
 
-	emptyErr := innerDecode(vars7, &readin7)
+	emptyErr := innerDecode(gogm, vars7, &readin7)
 
 	req.NotNil(emptyErr)
 	req.True(errors.As(emptyErr, &ErrNotFound))
@@ -782,17 +811,16 @@ func TestInnerDecode(t *testing.T) {
 
 	vars8 := [][]interface{}{
 		{
-			testPath{
-				nodes:    nil,
-				relNodes: nil,
-				indexes:  nil,
+			neo4j.Path{
+				Nodes:         nil,
+				Relationships: nil,
 			},
 		},
 	}
 
 	var readin8 b
 
-	emptyErr = innerDecode(vars8, &readin8)
+	emptyErr = innerDecode(gogm, vars8, &readin8)
 
 	req.NotNil(emptyErr)
 	req.True(errors.As(emptyErr, &ErrNotFound))
@@ -800,10 +828,10 @@ func TestInnerDecode(t *testing.T) {
 
 	vars9 := [][]interface{}{
 		{
-			testNode{
-				id:     55,
-				labels: []string{"b"},
-				props: map[string]interface{}{
+			neo4j.Node{
+				Id:     55,
+				Labels: []string{"b"},
+				Props: map[string]interface{}{
 					"test_field": "test",
 					"uuid":       "dasdfas",
 					"test_time":  fTime,
@@ -812,7 +840,7 @@ func TestInnerDecode(t *testing.T) {
 		},
 	}
 	var readin9 b
-	req.Nil(innerDecode(vars9, &readin9))
+	req.Nil(innerDecode(gogm, vars9, &readin9))
 	req.Equal("test", readin9.TestField)
 	req.Equal(int64(55), readin9.Id)
 	req.Equal("dasdfas", readin9.UUID)

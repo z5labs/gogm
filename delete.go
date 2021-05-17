@@ -22,15 +22,16 @@ package gogm
 import (
 	"errors"
 	dsl "github.com/mindstand/go-cypherdsl"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"reflect"
 )
 
 // deleteNode is used to remove nodes from the database
-func deleteNode(runFunc neoRunFunc, deleteObj interface{}) error {
+func deleteNode(deleteObj interface{}) (neo4j.TransactionWork, error) {
 	rawType := reflect.TypeOf(deleteObj)
 
 	if rawType.Kind() != reflect.Ptr && rawType.Kind() != reflect.Slice {
-		return errors.New("delete obj can only be ptr or slice")
+		return nil, errors.New("delete obj can only be ptr or slice")
 	}
 
 	var ids []int64
@@ -39,7 +40,7 @@ func deleteNode(runFunc neoRunFunc, deleteObj interface{}) error {
 		delValue := reflect.ValueOf(deleteObj).Elem()
 		id, ok := delValue.FieldByName("Id").Interface().(int64)
 		if !ok {
-			return errors.New("unable to cast id to int64")
+			return nil, errors.New("unable to cast id to int64")
 		}
 
 		ids = append(ids, id)
@@ -64,65 +65,69 @@ func deleteNode(runFunc neoRunFunc, deleteObj interface{}) error {
 
 			id, ok := val.FieldByName("Id").Interface().(int64)
 			if !ok {
-				return errors.New("unable to cast id to int64")
+				return nil, errors.New("unable to cast id to int64")
 			}
 
 			ids = append(ids, id)
 		}
 	}
 
-	return deleteByIds(runFunc, ids...)
+	return deleteByIds(ids...), nil
 }
 
 // deleteByIds deletes node by graph ids
-func deleteByIds(runFunc neoRunFunc, ids ...int64) error {
-	cyp, err := dsl.QB().
-		Cypher("UNWIND {rows} as row").
-		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
-		Where(dsl.C(&dsl.ConditionConfig{
-			FieldManipulationFunction: "ID",
-			Name:                      "n",
-			ConditionOperator:         dsl.EqualToOperator,
-			Check:                     dsl.ParamString("row"),
-		})).
-		Delete(true, "n").
-		ToCypher()
-	if err != nil {
-		return err
-	}
+func deleteByIds(ids ...int64) neo4j.TransactionWork {
+	return func(tx neo4j.Transaction) (interface{}, error) {
+		cyp, err := dsl.QB().
+			Cypher("UNWIND {rows} as row").
+			Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
+			Where(dsl.C(&dsl.ConditionConfig{
+				FieldManipulationFunction: "ID",
+				Name:                      "n",
+				ConditionOperator:         dsl.EqualToOperator,
+				Check:                     dsl.ParamString("row"),
+			})).
+			Delete(true, "n").
+			ToCypher()
+		if err != nil {
+			return nil, err
+		}
 
-	_, err = runFunc(cyp, map[string]interface{}{
-		"rows": ids,
-	})
-	if err != nil {
-		return err
-	}
+		_, err = tx.Run(cyp, map[string]interface{}{
+			"rows": ids,
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	return nil
+		return nil, nil
+	}
 }
 
 // deleteByUuids deletes nodes by uuids
-func deleteByUuids(runFunc neoRunFunc, ids ...string) error {
-	cyp, err := dsl.QB().
-		Cypher("UNWIND {rows} as row").
-		Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
-		Where(dsl.C(&dsl.ConditionConfig{
-			Name:              "n",
-			Field:             "uuid",
-			ConditionOperator: dsl.EqualToOperator,
-			Check:             dsl.ParamString("row"),
-		})).
-		Delete(true, "n").
-		ToCypher()
-	if err != nil {
-		return err
-	}
-	_, err = runFunc(cyp, map[string]interface{}{
-		"rows": ids,
-	})
-	if err != nil {
-		return err
-	}
+func deleteByUuids(ids ...string) neo4j.TransactionWork {
+	return func(tx neo4j.Transaction) (interface{}, error) {
+		cyp, err := dsl.QB().
+			Cypher("UNWIND {rows} as row").
+			Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
+			Where(dsl.C(&dsl.ConditionConfig{
+				Name:              "n",
+				Field:             "uuid",
+				ConditionOperator: dsl.EqualToOperator,
+				Check:             dsl.ParamString("row"),
+			})).
+			Delete(true, "n").
+			ToCypher()
+		if err != nil {
+			return nil, err
+		}
+		_, err = tx.Run(cyp, map[string]interface{}{
+			"rows": ids,
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	return nil
+		return nil, nil
+	}
 }

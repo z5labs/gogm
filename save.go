@@ -32,17 +32,17 @@ const maxSaveDepth = 10
 const defaultSaveDepth = 1
 
 // neoRunFunc typedefs function signature from neo4j driver
-type neoRunFunc func(cypher string, params map[string]interface{}) (neo4j.Result, error)
+//type neoRunFunc func(cypher string, params map[string]interface{}) (neo4j.Result, error)
 
 // runWrap is used to wrap the session run function into a consistent function signature
-func runWrap(sess neo4j.Session) neoRunFunc {
-	return func(cypher string, params map[string]interface{}) (neo4j.Result, error) {
-		if sess == nil {
-			return nil, fmt.Errorf("session can not be nil, %w", ErrInternal)
-		}
-		return sess.Run(cypher, params)
-	}
-}
+//func runWrap(sess neo4j.Session) neoRunFunc {
+//	return func(cypher string, params map[string]interface{}) (neo4j.Result, error) {
+//		if sess == nil {
+//			return nil, fmt.Errorf("session can not be nil, %w", ErrInternal)
+//		}
+//		return sess.Run(cypher, params)
+//	}
+//}
 
 // nodeCreateConf holds configuration for creating new nodes
 type nodeCreateConf struct {
@@ -67,105 +67,103 @@ type relCreateConf struct {
 }
 
 // saves target node and connected node to specified depth
-func saveDepth(gogm *Gogm, runFunc neoRunFunc, obj interface{}, depth int) error {
-	if runFunc == nil {
-		return errors.New("session can not be nil")
-	}
-
-	if obj == nil {
-		return errors.New("obj can not be nil")
-	}
-
-	if depth < 0 {
-		return errors.New("cannot save a depth less than 0")
-	}
-
-	if depth > maxSaveDepth {
-		return fmt.Errorf("saving depth of (%v) is currently not supported, maximum depth is (%v), %w", depth, maxSaveDepth, ErrConfiguration)
-	}
-
-	//validate that obj is a pointer
-	rawType := reflect.TypeOf(obj)
-
-	if rawType.Kind() != reflect.Ptr {
-		return fmt.Errorf("obj must be of type pointer, not %T", obj)
-	}
-
-	//validate that the dereference type is a struct
-	derefType := rawType.Elem()
-
-	if derefType.Kind() != reflect.Struct {
-		return fmt.Errorf("dereference type can not be of type %T", obj)
-	}
-
-	//signature is [LABEL][UUID]{config}
-	nodes := map[string]map[string]nodeCreateConf{}
-
-	//signature is [LABEL] []{config}
-	relations := map[string][]relCreateConf{}
-
-	// node id -- [field] config
-	oldRels := map[string]map[string]*RelationConfig{}
-	curRels := map[string]map[string]*RelationConfig{}
-
-	// uuid -> reflect value
-	nodeRef := map[string]*reflect.Value{}
-
-	newNodes := []*string{}
-	visited := []string{}
-
-	rootVal := reflect.ValueOf(obj)
-
-	err := parseStruct(gogm, "", "", false, dsl.DirectionBoth, nil, &rootVal, 0, depth, &nodes, &relations, &oldRels, &newNodes, &nodeRef, &visited)
-	if err != nil {
-		return err
-	}
-
-	ids, err := createNodes(runFunc, nodes, &nodeRef)
-	if err != nil {
-		return err
-	}
-
-	err = generateCurRels(gogm,"", &rootVal, 0, depth, &curRels)
-	if err != nil {
-		return err
-	}
-
-	dels := calculateDels(oldRels, curRels)
-
-	//fix the cur rels and write them to their perspective nodes
-	for uuid, val := range nodeRef {
-		loadConf, ok := (curRels)[uuid]
-		if !ok {
-			return fmt.Errorf("load config not found for node [%s]", uuid)
+func saveDepth(gogm *Gogm, obj interface{}, depth int) neo4j.TransactionWork {
+	return func(tx neo4j.Transaction) (interface{}, error) {
+		if obj == nil {
+			return nil, errors.New("obj can not be nil")
 		}
 
-		//handle if its a pointer
-		if val.Kind() == reflect.Ptr {
-			*val = val.Elem()
+		if depth < 0 {
+			return nil, errors.New("cannot save a depth less than 0")
 		}
 
-		reflect.Indirect(*val).FieldByName("LoadMap").Set(reflect.ValueOf(loadConf))
-	}
+		if depth > maxSaveDepth {
+			return nil, fmt.Errorf("saving depth of (%v) is currently not supported, maximum depth is (%v), %w", depth, maxSaveDepth, ErrConfiguration)
+		}
 
-	//execute concurrently
-	//calculate dels
+		//validate that obj is a pointer
+		rawType := reflect.TypeOf(obj)
 
-	if len(dels) != 0 {
-		err := removeRelations(runFunc, dels)
+		if rawType.Kind() != reflect.Ptr {
+			return nil, fmt.Errorf("obj must be of type pointer, not %T", obj)
+		}
+
+		//validate that the dereference type is a struct
+		derefType := rawType.Elem()
+
+		if derefType.Kind() != reflect.Struct {
+			return nil, fmt.Errorf("dereference type can not be of type %T", obj)
+		}
+
+		//signature is [LABEL][UUID]{config}
+		nodes := map[string]map[string]nodeCreateConf{}
+
+		//signature is [LABEL] []{config}
+		relations := map[string][]relCreateConf{}
+
+		// node id -- [field] config
+		oldRels := map[string]map[string]*RelationConfig{}
+		curRels := map[string]map[string]*RelationConfig{}
+
+		// uuid -> reflect value
+		nodeRef := map[string]*reflect.Value{}
+
+		newNodes := []*string{}
+		visited := []string{}
+
+		rootVal := reflect.ValueOf(obj)
+
+		err := parseStruct(gogm, "", "", false, dsl.DirectionBoth, nil, &rootVal, 0, depth, &nodes, &relations, &oldRels, &newNodes, &nodeRef, &visited)
 		if err != nil {
-			return err
+			return nil, err
 		}
-	}
 
-	if len(relations) != 0 {
-		err := relateNodes(runFunc, relations, ids)
+		ids, err := createNodes(tx, nodes, &nodeRef)
 		if err != nil {
-			return err
+			return nil, err
 		}
-	}
 
-	return nil
+		err = generateCurRels(gogm, "", &rootVal, 0, depth, &curRels)
+		if err != nil {
+			return nil, err
+		}
+
+		dels := calculateDels(oldRels, curRels)
+
+		//fix the cur rels and write them to their perspective nodes
+		for uuid, val := range nodeRef {
+			loadConf, ok := (curRels)[uuid]
+			if !ok {
+				return nil, fmt.Errorf("load config not found for node [%s]", uuid)
+			}
+
+			//handle if its a pointer
+			if val.Kind() == reflect.Ptr {
+				*val = val.Elem()
+			}
+
+			reflect.Indirect(*val).FieldByName("LoadMap").Set(reflect.ValueOf(loadConf))
+		}
+
+		//execute concurrently
+		//calculate dels
+
+		if len(dels) != 0 {
+			err := removeRelations(tx, dels)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if len(relations) != 0 {
+			err := relateNodes(tx, relations, ids)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return obj, nil
+	}
 }
 
 // calculates which relationships to delete
@@ -217,13 +215,9 @@ func calculateDels(oldRels, curRels map[string]map[string]*RelationConfig) map[s
 }
 
 // removes relationships between specified nodes
-func removeRelations(runFunc neoRunFunc, dels map[string][]int64) error {
+func removeRelations(transaction neo4j.Transaction, dels map[string][]int64) error {
 	if dels == nil || len(dels) == 0 {
 		return nil
-	}
-
-	if runFunc == nil {
-		return fmt.Errorf("runFunc can not be nil, %w", ErrInternal)
 	}
 
 	var params []interface{}
@@ -260,7 +254,7 @@ func removeRelations(runFunc neoRunFunc, dels map[string][]int64) error {
 		return err
 	}
 
-	res, err := runFunc(cyq, map[string]interface{}{
+	res, err := transaction.Run(cyq, map[string]interface{}{
 		"rows": params,
 	})
 	if err != nil {
@@ -274,7 +268,7 @@ func removeRelations(runFunc neoRunFunc, dels map[string][]int64) error {
 }
 
 // creates nodes
-func createNodes(runFunc neoRunFunc, crNodes map[string]map[string]nodeCreateConf, nodeRef *map[string]*reflect.Value) (map[string]int64, error) {
+func createNodes(transaction neo4j.Transaction, crNodes map[string]map[string]nodeCreateConf, nodeRef *map[string]*reflect.Value) (map[string]int64, error) {
 	idMap := map[string]int64{}
 
 	for label, nodes := range crNodes {
@@ -319,7 +313,7 @@ func createNodes(runFunc neoRunFunc, crNodes map[string]map[string]nodeCreateCon
 			}).
 			ToCypher()
 
-		res, err := runFunc(cyp, map[string]interface{}{
+		res, err := transaction.Run(cyp, map[string]interface{}{
 			"rows": rows,
 		})
 		if err != nil {
@@ -359,7 +353,7 @@ func createNodes(runFunc neoRunFunc, crNodes map[string]map[string]nodeCreateCon
 }
 
 // relateNodes connects nodes together using edge config
-func relateNodes(runFunc neoRunFunc, relations map[string][]relCreateConf, ids map[string]int64) error {
+func relateNodes(transaction neo4j.Transaction, relations map[string][]relCreateConf, ids map[string]int64) error {
 	if relations == nil || len(relations) == 0 {
 		return errors.New("relations can not be nil or empty")
 	}
@@ -449,7 +443,7 @@ func relateNodes(runFunc neoRunFunc, relations map[string][]relCreateConf, ids m
 			Cypher("SET rel += row.props").
 			ToCypher()
 
-		res, err := runFunc(cyp, map[string]interface{}{
+		res, err := transaction.Run(cyp, map[string]interface{}{
 			"rows": params,
 		})
 		if err != nil {

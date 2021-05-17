@@ -90,6 +90,11 @@ func TestGetTypeName(t *testing.T) {
 }
 
 func TestToCypherParamsMap(t *testing.T) {
+	req := require.New(t)
+	gogm, err := getTestGogm()
+	req.Nil(err)
+	req.NotNil(gogm)
+
 	val := a{
 		BaseNode: BaseNode{
 			Id:   0,
@@ -98,7 +103,7 @@ func TestToCypherParamsMap(t *testing.T) {
 		TestField: "testvalue",
 	}
 
-	config, err := getStructDecoratorConfig(&val, mappedRelations)
+	config, err := getStructDecoratorConfig(gogm.logger, &val, gogm.mappedRelations)
 	require.Nil(t, err)
 
 	params, err := toCypherParamsMap(reflect.ValueOf(val), *config)
@@ -124,7 +129,7 @@ func TestToCypherParamsMap(t *testing.T) {
 		PropsTest3: nil,
 	}
 
-	config, err = getStructDecoratorConfig(&p, mappedRelations)
+	config, err = getStructDecoratorConfig(gogm.logger, &p, gogm.mappedRelations)
 	require.Nil(t, err)
 
 	params, err = toCypherParamsMap(reflect.ValueOf(&p), *config)

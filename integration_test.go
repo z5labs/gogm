@@ -20,9 +20,11 @@
 package gogm
 
 import (
+	"context"
 	"fmt"
 	uuid2 "github.com/google/uuid"
 	assert2 "github.com/stretchr/testify/assert"
+	"log"
 	"sync"
 
 	"testing"
@@ -40,18 +42,21 @@ func TestManagedTx(t *testing.T) {
 	req := require.New(t)
 	assert := assert2.New(t)
 	conf := Config{
-		Username:          "neo4j",
-		Password:          "changeme",
-		Host:              "0.0.0.0",
-		IsCluster:         false,
-		Port:              7687,
-		PoolSize:          15,
-		IndexStrategy:     IGNORE_INDEX,
-		MaxRetries:        5,
-		RetryWaitDuration: time.Second * 1,
+		Username:                  "neo4j",
+		Password:                  "changeme",
+		Host:                      "0.0.0.0",
+		IsCluster:                 false,
+		Port:                      7687,
+		PoolSize:                  15,
+		DefaultTransactionTimeout: time.Second * 40,
+		IndexStrategy:             IGNORE_INDEX,
 	}
 
-	req.Nil(Init(&conf, &a{}, &b{}, &c{}))
+	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{})
+	req.Nil(err)
+	req.NotNil(gogm)
+	defer gogm.Close()
+
 	va := a{}
 	va.UUID = uuid2.New().String()
 	vb := b{}
@@ -61,33 +66,36 @@ func TestManagedTx(t *testing.T) {
 		wg.Add(1)
 		go func(assert *assert2.Assertions, wg *sync.WaitGroup, va a, vb b, t int) {
 			defer wg.Done()
-			sess, err := NewSessionV2(false)
+			sess, err := gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
 			if !assert.NotNil(sess) || !assert.Nil(err) {
 				fmt.Println("exiting routine")
 				return
 			}
+
+			defer sess.Close()
 			for j := 0; j < 30; j++ {
 				//fmt.Printf("pass %v on thread %v\n", j, t)
-				err = sess.ManagedTransaction(func(tx TransactionV2) error {
-					err = tx.SaveDepth(&va, 0)
+				ctx := context.Background()
+				err = sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
+					err = tx.SaveDepth(ctx, &va, 0)
 					if err != nil {
-						return tx.RollbackWithError(err)
+						return err
 					}
 
-					err = tx.SaveDepth(&vb, 0)
+					err = tx.SaveDepth(ctx, &vb, 0)
 					if err != nil {
-						return tx.RollbackWithError(err)
+						return err
 					}
 
 					va.ManyA = []*b{&vb}
 					vb.ManyB = &va
 
-					err = tx.SaveDepth(&va, 1)
+					err = tx.SaveDepth(ctx, &va, 1)
 					if err != nil {
-						return tx.RollbackWithError(err)
+						return err
 					}
 
-					return sess.Commit()
+					return nil
 				})
 				if !assert.Nil(err) {
 					fmt.Printf("error: %s, exiting thread", err.Error())
@@ -119,10 +127,14 @@ func TestRawQuery(t *testing.T) {
 		IndexStrategy: IGNORE_INDEX,
 	}
 
-	req.Nil(Init(&conf, &a{}, &b{}, &c{}))
-
-	sess, err := NewSession(false)
+	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{})
 	req.Nil(err)
+	req.NotNil(gogm)
+	defer gogm.Close()
+
+	sess, err := gogm.NewSession(SessionConfig{AccessMode: AccessModeWrite})
+	req.Nil(err)
+	defer sess.Close()
 
 	uuid := uuid2.New().String()
 
@@ -133,6 +145,48 @@ func TestRawQuery(t *testing.T) {
 	}))
 
 	raw, err := sess.QueryRaw("match (n) where n.uuid=$uuid return n", map[string]interface{}{
+		"uuid": uuid,
+	})
+	req.Nil(err)
+	req.NotEmpty(raw)
+}
+
+func TestRawQueryV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+		return
+	}
+
+	req := require.New(t)
+
+	conf := Config{
+		Username:      "neo4j",
+		Password:      "password",
+		Host:          "0.0.0.0",
+		IsCluster:     false,
+		Port:          7687,
+		PoolSize:      15,
+		IndexStrategy: IGNORE_INDEX,
+	}
+
+	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{})
+	req.Nil(err)
+	req.NotNil(gogm)
+	defer gogm.Close()
+
+	sess, err := gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+	req.Nil(err)
+	defer sess.Close()
+
+	uuid := uuid2.New().String()
+
+	req.Nil(sess.Save(context.Background(), &a{
+		BaseNode: BaseNode{
+			UUID: uuid,
+		},
+	}))
+
+	raw, _, err := sess.QueryRaw(context.Background(),"match (n) where n.uuid=$uuid return n", map[string]interface{}{
 		"uuid": uuid,
 	})
 	req.Nil(err)
@@ -181,14 +235,16 @@ func TestIntegration(t *testing.T) {
 		IndexStrategy: IGNORE_INDEX,
 	}
 
-	req.Nil(Init(&conf, &a{}, &b{}, &c{}, &propTest{}))
+	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{}, &propTest{})
+	req.Nil(err)
+	req.NotNil(gogm)
 
 	log.Println("opening session")
 
 	log.Println("testIndexManagement")
 	testIndexManagement(req)
 
-	sess, err := NewSession(false)
+	sess, err := gogm.NewSession(SessionConfig{AccessMode: AccessModeWrite})
 	req.Nil(err)
 
 	log.Println("test save")
@@ -197,7 +253,7 @@ func TestIntegration(t *testing.T) {
 	req.Nil(sess.PurgeDatabase())
 
 	// Test Opening and Closing Session using SessionConfig
-	sessConf, err := NewSessionWithConfig(SessionConfig{
+	sessConf, err := gogm.NewSession(SessionConfig{
 		AccessMode: AccessModeRead,
 	})
 	req.Nil(err)
@@ -208,7 +264,58 @@ func TestIntegration(t *testing.T) {
 
 	req.Nil(sess.Close())
 
-	req.Nil(driver.Close())
+	req.Nil(gogm.Close())
+}
+
+func TestIntegrationV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+		return
+	}
+
+	req := require.New(t)
+
+	conf := Config{
+		Username:      "neo4j",
+		Password:      "changeme",
+		Host:          "0.0.0.0",
+		IsCluster:     false,
+		Port:          7687,
+		PoolSize:      15,
+		IndexStrategy: IGNORE_INDEX,
+	}
+
+	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{}, &propTest{})
+	req.Nil(err)
+	req.NotNil(gogm)
+
+	log.Println("opening session")
+
+	log.Println("testIndexManagement")
+	testIndexManagement(req)
+
+	sess, err := gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+	req.Nil(err)
+
+	log.Println("test save")
+	testSaveV2(sess, req)
+
+	_, _, err = sess.QueryRaw(context.Background(),"match (n) detach delete n", nil)
+	req.Nil(err)
+
+	// Test Opening and Closing Session using SessionConfig
+	sessConf, err := gogm.NewSession(SessionConfig{
+		AccessMode: AccessModeRead,
+	})
+	req.Nil(err)
+	req.Nil(sessConf.Close())
+
+	//testLoad(req, 500, 5)
+	//req.Nil(sess.PurgeDatabase())
+
+	req.Nil(sess.Close())
+
+	req.Nil(gogm.Close())
 
 }
 
@@ -231,7 +338,7 @@ func testLoad(req *require.Assertions, numThreads, msgPerThread int) {
 }
 
 // runs with integration test
-func testSave(sess *Session, req *require.Assertions) {
+func testSave(sess ISession, req *require.Assertions) {
 	req.Nil(sess.Begin())
 	a2 := &a{
 		TestField: "test",
@@ -352,6 +459,141 @@ func testSave(sess *Session, req *require.Assertions) {
 
 	var prop2 propTest
 	req.Nil(sess.Load(&prop2, prop1.UUID))
+
+	req.EqualValues(prop1.MapInterface, prop2.MapInterface)
+	req.EqualValues(prop1.MapPrim, prop2.MapPrim)
+	req.EqualValues(prop1.MapTdPrim, prop2.MapTdPrim)
+	req.EqualValues(prop1.MapSlicePrim, prop2.MapSlicePrim)
+	req.EqualValues(prop1.MapSliceTdPrim, prop2.MapSliceTdPrim)
+	req.EqualValues(prop1.SlicePrim, prop2.SlicePrim)
+	req.EqualValues(prop1.SliceTdPrim, prop2.SliceTdPrim)
+	req.EqualValues(prop1.TypeDefArr, prop2.TypeDefArr)
+	req.EqualValues(prop1.TypeDefArrOfTD, prop2.TypeDefArrOfTD)
+	req.EqualValues(prop1.TdMap, prop2.TdMap)
+	req.EqualValues(prop1.TdMapOfTdSlice, prop2.TdMapOfTdSlice)
+	req.EqualValues(prop1.TdMapTdSliceOfTd, prop2.TdMapTdSliceOfTd)
+}
+
+func testSaveV2(sess SessionV2, req *require.Assertions) {
+	ctx := context.Background()
+	req.Nil(sess.Begin(ctx))
+	a2 := &a{
+		TestField: "test",
+		PropTest0: map[string]interface{}{
+			"test.test": "test",
+			"test2":     1,
+		},
+		PropTest1: map[string]string{
+			"test": "test",
+		},
+		PropsTest2: []string{"test", "test"},
+		PropsTest3: []int{1, 2},
+	}
+
+	b2 := &b{
+		TestField: "test",
+		TestTime:  time.Now().UTC(),
+	}
+
+	b3 := &b{
+		TestField: "dasdfasd",
+	}
+
+	c1 := &c{
+		Start: a2,
+		End:   b2,
+		Test:  "testing",
+	}
+
+	a2.SingleSpecA = c1
+	a2.ManyA = []*b{b3}
+	b2.SingleSpec = c1
+	b3.ManyB = a2
+
+	req.Nil(sess.SaveDepth(ctx, a2, 5))
+
+	req.Nil(sess.Commit(ctx))
+	req.Nil(sess.Begin(ctx))
+
+	req.EqualValues(map[string]*RelationConfig{
+		"SingleSpecA": {
+			Ids:          []int64{b2.Id},
+			RelationType: Single,
+		},
+		"ManyA": {
+			Ids:          []int64{b3.Id},
+			RelationType: Multi,
+		},
+	}, a2.LoadMap)
+	req.EqualValues(map[string]*RelationConfig{
+		"SingleSpec": {
+			Ids:          []int64{a2.Id},
+			RelationType: Single,
+		},
+	}, b2.LoadMap)
+	req.EqualValues(map[string]*RelationConfig{
+		"ManyB": {
+			Ids:          []int64{a2.Id},
+			RelationType: Single,
+		},
+	}, b3.LoadMap)
+	a2.SingleSpecA = nil
+	b2.SingleSpec = nil
+
+	req.Nil(sess.SaveDepth(ctx, a2, 5))
+	req.Nil(sess.Commit(ctx))
+	req.Nil(a2.SingleSpecA)
+	req.Nil(b2.SingleSpec)
+
+	//test save something that isn't connected to anything
+	singleSave := &a{
+		TestField:         "test",
+		TestTypeDefString: "dasdfas",
+		TestTypeDefInt:    600,
+		ManyA:             []*b{},
+		MultiA:            []*b{},
+		Created:           time.Now().UTC(),
+	}
+
+	req.Nil(sess.SaveDepth(ctx, singleSave, 1))
+
+	// property test
+	prop1 := propTest{
+		BaseNode: BaseNode{},
+		MapInterface: map[string]interface{}{
+			"test": int64(1),
+		},
+		MapPrim: map[string]string{
+			"test": "test1",
+		},
+		MapTdPrim: map[string]tdString{
+			"test": "test2",
+		},
+		MapSlicePrim: map[string][]string{
+			"test": {"test1", "test2"},
+		},
+		MapSliceTdPrim: map[string][]tdString{
+			"test": {"test1", "test2"},
+		},
+		SlicePrim:      []string{"test2"},
+		SliceTdPrim:    []tdString{"test3"},
+		TypeDefArr:     []string{"test1"},
+		TypeDefArrOfTD: []tdString{"test1"},
+		TdMap: map[string]interface{}{
+			"test": "test",
+		},
+		TdMapOfTdSlice: map[string]tdArr{
+			"test": []string{"test1", "test2"},
+		},
+		TdMapTdSliceOfTd: map[string]tdArrOfTd{
+			"test": []tdString{"test1", "test2"},
+		},
+	}
+
+	req.Nil(sess.SaveDepth(ctx, &prop1, 0))
+
+	var prop2 propTest
+	req.Nil(sess.LoadDepth(ctx, &prop2, prop1.UUID, 0))
 
 	req.EqualValues(prop1.MapInterface, prop2.MapInterface)
 	req.EqualValues(prop1.MapPrim, prop2.MapPrim)

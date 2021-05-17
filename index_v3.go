@@ -1,6 +1,7 @@
 package gogm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/adam-hanna/arrayOperations"
@@ -9,15 +10,15 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
-func resultToStringArrV3(res neo4j.Result) ([]string, error) {
-	if res == nil {
+func resultToStringArrV3(result [][]interface{}) ([]string, error) {
+	if result == nil {
 		return nil, errors.New("result is nil")
 	}
 
-	var result []string
+	var _result []string
 
-	for res.Next() {
-		val := res.Record().Values()
+	for _, res := range result {
+		val := res
 		// nothing to parse
 		if val == nil || len(val) == 0 {
 			continue
@@ -28,104 +29,87 @@ func resultToStringArrV3(res neo4j.Result) ([]string, error) {
 			return nil, fmt.Errorf("unable to parse [%T] to string. Value is %v: %w", val[0], val[0], ErrInternal)
 		}
 
-		result = append(result, str)
+		_result = append(_result, str)
 	}
 
-	return result, nil
+	return _result, nil
 }
 
 //drops all known indexes
-func dropAllIndexesAndConstraintsV3() error {
-	sess, err := driver.Session(neo4j.AccessModeWrite)
+func dropAllIndexesAndConstraintsV3(gogm *Gogm) error {
+	sess, err := gogm.NewSessionV2(SessionConfig{
+		AccessMode: neo4j.AccessModeWrite,
+	})
 	if err != nil {
 		return err
 	}
 	defer sess.Close()
 
-	res, err := sess.Run("CALL db.constraints", nil)
-	if err != nil {
-		return err
-	}
+	ctx := context.Background()
 
-	constraints, err := resultToStringArrV3(res)
-	if err != nil {
-		return err
-	}
-
-	//if there is anything, get rid of it
-	if len(constraints) != 0 {
-		tx, err := sess.BeginTransaction()
+	return sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
+		vals, _, err := tx.QueryRaw(ctx, "CALL db.constraints", nil)
 		if err != nil {
 			return err
 		}
 
-		for _, constraint := range constraints {
-			log.Debugf("dropping constraint '%s'", constraint)
-			_, err := tx.Run(fmt.Sprintf("DROP %s", constraint), nil)
-			if err != nil {
-				oerr := err
-				err = tx.Rollback()
+		constraints, err := resultToStringArrV3(vals)
+		if err != nil {
+			return err
+		}
+
+		//if there is anything, get rid of it
+		if len(constraints) != 0 {
+			for _, constraint := range constraints {
+				gogm.logger.Debugf("dropping constraint '%s'", constraint)
+				_, _, err := tx.QueryRaw(ctx, fmt.Sprintf("DROP %s", constraint), nil)
 				if err != nil {
-					return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
+					return tx.RollbackWithError(ctx, err)
+				}
+			}
+		}
+
+		vals, _, err = tx.QueryRaw(ctx, "CALL db.indexes()", nil)
+		if err != nil {
+			return err
+		}
+
+		indexes, err := resultToStringArrV3(vals)
+		if err != nil {
+			return err
+		}
+
+		//if there is anything, get rid of it
+		if len(indexes) != 0 {
+			for _, index := range indexes {
+				if len(index) == 0 {
+					return errors.New("invalid index config")
 				}
 
-				return oerr
-			}
-		}
-
-		err = tx.Commit()
-		if err != nil {
-			return err
-		}
-	}
-
-	res, err = sess.Run("CALL db.indexes()", nil)
-	if err != nil {
-		return err
-	}
-
-	indexes, err := resultToStringArrV3(res)
-	if err != nil {
-		return err
-	}
-
-	//if there is anything, get rid of it
-	if len(indexes) != 0 {
-		tx, err := sess.BeginTransaction()
-		if err != nil {
-			return err
-		}
-
-		for _, index := range indexes {
-			if len(index) == 0 {
-				return errors.New("invalid index config")
-			}
-
-			_, err := tx.Run(fmt.Sprintf("DROP %s", index), nil)
-			if err != nil {
-				oerr := err
-				err = tx.Rollback()
+				_, _, err := tx.QueryRaw(ctx, fmt.Sprintf("DROP %s", index), nil)
 				if err != nil {
-					return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
+					return tx.RollbackWithError(ctx, err)
 				}
-
-				return oerr
 			}
-		}
 
-		return tx.Commit()
-	} else {
-		return nil
-	}
+			return tx.Commit(ctx)
+		} else {
+			return nil
+		}
+	})
 }
 
 //creates all indexes
-func createAllIndexesAndConstraintsV3(mappedTypes *hashmap.HashMap) error {
-	sess, err := driver.Session(neo4j.AccessModeWrite)
+func createAllIndexesAndConstraintsV3(gogm *Gogm, mappedTypes *hashmap.HashMap) error {
+	sess, err := gogm.NewSessionV2(SessionConfig{
+		AccessMode: neo4j.AccessModeWrite,
+	})
 	if err != nil {
 		return err
 	}
 	defer sess.Close()
+
+	ctx := context.Background()
 
 	//validate that we have to do anything
 	if mappedTypes == nil || mappedTypes.Len() == 0 {
@@ -134,88 +118,77 @@ func createAllIndexesAndConstraintsV3(mappedTypes *hashmap.HashMap) error {
 
 	numIndexCreated := 0
 
-	tx, err := sess.BeginTransaction()
-	if err != nil {
-		return err
-	}
+	return sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
+		//index and/or create unique constraints wherever necessary
+		//for node, structConfig := range mappedTypes{
+		for nodes := range mappedTypes.Iter() {
+			node := nodes.Key.(string)
+			structConfig := nodes.Value.(structDecoratorConfig)
+			if structConfig.Fields == nil || len(structConfig.Fields) == 0 {
+				continue
+			}
 
-	//index and/or create unique constraints wherever necessary
-	//for node, structConfig := range mappedTypes{
-	for nodes := range mappedTypes.Iter() {
-		node := nodes.Key.(string)
-		structConfig := nodes.Value.(structDecoratorConfig)
-		if structConfig.Fields == nil || len(structConfig.Fields) == 0 {
-			continue
-		}
+			var indexFields []string
 
-		var indexFields []string
+			for _, config := range structConfig.Fields {
+				//pk is a special unique key
+				if config.PrimaryKey || config.Unique {
+					numIndexCreated++
 
-		for _, config := range structConfig.Fields {
-			//pk is a special unique key
-			if config.PrimaryKey || config.Unique {
+					cyp, err := dsl.QB().Create(dsl.NewConstraint(&dsl.ConstraintConfig{
+						Unique: true,
+						Name:   node,
+						Type:   structConfig.Label,
+						Field:  config.Name,
+					})).ToCypher()
+					if err != nil {
+						return err
+					}
+
+					_, _, err = tx.QueryRaw(ctx, cyp, nil)
+					if err != nil {
+						return tx.RollbackWithError(ctx, err)
+					}
+				} else if config.Index {
+					indexFields = append(indexFields, config.Name)
+				}
+			}
+
+			//create composite index
+			if len(indexFields) > 0 {
 				numIndexCreated++
-
-				cyp, err := dsl.QB().Create(dsl.NewConstraint(&dsl.ConstraintConfig{
-					Unique: true,
-					Name:   node,
+				cyp, err := dsl.QB().Create(dsl.NewIndex(&dsl.IndexConfig{
 					Type:   structConfig.Label,
-					Field:  config.Name,
+					Fields: indexFields,
 				})).ToCypher()
 				if err != nil {
 					return err
 				}
 
-				_, err = tx.Run(cyp, nil)
+				_, _, err = tx.QueryRaw(ctx, cyp, nil)
 				if err != nil {
-					oerr := err
-					err = tx.Rollback()
-					if err != nil {
-						return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
-					}
-
-					return oerr
+					return tx.RollbackWithError(ctx, err)
 				}
-			} else if config.Index {
-				indexFields = append(indexFields, config.Name)
 			}
 		}
 
-		//create composite index
-		if len(indexFields) > 0 {
-			numIndexCreated++
-			cyp, err := dsl.QB().Create(dsl.NewIndex(&dsl.IndexConfig{
-				Type:   structConfig.Label,
-				Fields: indexFields,
-			})).ToCypher()
-			if err != nil {
-				return err
-			}
+		gogm.logger.Debugf("created (%v) indexes", numIndexCreated)
 
-			_, err = tx.Run(cyp, nil)
-			if err != nil {
-				oerr := err
-				err = tx.Rollback()
-				if err != nil {
-					return fmt.Errorf("failed to rollback, original error was %s", oerr.Error())
-				}
-
-				return oerr
-			}
-		}
-	}
-
-	log.Debugf("created (%v) indexes", numIndexCreated)
-
-	return tx.Commit()
+		return tx.Commit(ctx)
+	})
 }
 
 //verifies all indexes
-func verifyAllIndexesAndConstraintsV3(mappedTypes *hashmap.HashMap) error {
-	sess, err := driver.Session(neo4j.AccessModeWrite)
+func verifyAllIndexesAndConstraintsV3(gogm *Gogm, mappedTypes *hashmap.HashMap) error {
+	sess, err := gogm.NewSessionV2(SessionConfig{
+		AccessMode: neo4j.AccessModeRead,
+	})
 	if err != nil {
 		return err
 	}
 	defer sess.Close()
+
+	ctx := context.Background()
 
 	//validate that we have to do anything
 	if mappedTypes == nil || mappedTypes.Len() == 0 {
@@ -261,7 +234,7 @@ func verifyAllIndexesAndConstraintsV3(mappedTypes *hashmap.HashMap) error {
 	}
 
 	//get whats there now
-	foundResult, err := sess.Run("CALL db.constraints", nil)
+	foundResult, _, err := sess.QueryRaw(ctx, "CALL db.constraints", nil)
 	if err != nil {
 		return err
 	}
@@ -271,7 +244,7 @@ func verifyAllIndexesAndConstraintsV3(mappedTypes *hashmap.HashMap) error {
 		return err
 	}
 
-	foundInxdexResult, err := sess.Run("CALL db.indexes()", nil)
+	foundInxdexResult, _, err := sess.QueryRaw(ctx, "CALL db.indexes()", nil)
 	if err != nil {
 		return err
 	}
@@ -287,7 +260,7 @@ func verifyAllIndexesAndConstraintsV3(mappedTypes *hashmap.HashMap) error {
 		return fmt.Errorf("found differences in remote vs ogm for found indexes, %v", delta)
 	}
 
-	log.Debug(delta)
+	gogm.logger.Debugf("%+v", delta)
 
 	var founds []string
 
@@ -300,7 +273,7 @@ func verifyAllIndexesAndConstraintsV3(mappedTypes *hashmap.HashMap) error {
 		return fmt.Errorf("found differences in remote vs ogm for found constraints, %v", delta)
 	}
 
-	log.Debug(delta)
+	gogm.logger.Debugf("%+v", delta)
 
 	return nil
 }

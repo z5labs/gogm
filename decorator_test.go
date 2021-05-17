@@ -22,6 +22,7 @@ package gogm
 import (
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/stretchr/testify/require"
+	"log"
 	"reflect"
 	"testing"
 )
@@ -455,7 +456,9 @@ func (i *uuidlessEdge) GetLabels() []string {
 func TestGetStructDecoratorConfig(t *testing.T) {
 	req := require.New(t)
 
-	conf, err := getStructDecoratorConfig(&validStruct{}, mappedRelations)
+	mappedRelations := &relationConfigs{}
+
+	conf, err := getStructDecoratorConfig(G().logger, &validStruct{}, mappedRelations)
 	req.Nil(err)
 	req.NotNil(conf)
 	checkObj := structDecoratorConfig{
@@ -584,35 +587,35 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 	}
 	req.EqualValues(checkObj, *conf)
 
-	conf, err = getStructDecoratorConfig(&mostlyValidStruct{}, mappedRelations)
+	conf, err = getStructDecoratorConfig(G().logger, &mostlyValidStruct{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, err = getStructDecoratorConfig(&emptyStruct{}, mappedRelations)
+	conf, err = getStructDecoratorConfig(G().logger, &emptyStruct{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, err = getStructDecoratorConfig(&invalidStructDecorator{}, mappedRelations)
+	conf, err = getStructDecoratorConfig(G().logger, &invalidStructDecorator{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, err = getStructDecoratorConfig(&invalidStructProperties{}, mappedRelations)
+	conf, err = getStructDecoratorConfig(G().logger, &invalidStructProperties{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, err = getStructDecoratorConfig(&invalidEdge{}, mappedRelations)
+	conf, err = getStructDecoratorConfig(G().logger, &invalidEdge{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, err = getStructDecoratorConfig(&invalidNameStruct{}, mappedRelations)
+	conf, err = getStructDecoratorConfig(G().logger, &invalidNameStruct{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, err = getStructDecoratorConfig(&invalidIgnoreStruct{}, mappedRelations)
+	conf, err = getStructDecoratorConfig(G().logger, &invalidIgnoreStruct{}, mappedRelations)
 	req.NotNil(err)
 	req.Nil(conf)
 
-	conf, err = getStructDecoratorConfig(&uuidlessEdge{}, mappedRelations)
+	conf, err = getStructDecoratorConfig(G().logger, &uuidlessEdge{}, mappedRelations)
 	log.Println("ERR::", err)
 	req.NotNil(err)
 	req.Nil(conf)

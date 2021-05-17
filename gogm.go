@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var globalGogm = &Gogm{isNoOp: true}
+var globalGogm = &Gogm{isNoOp: true, logger: GetDefaultLogger()}
 
 // SetGlobalGogm sets the global instance of gogm
 func SetGlobalGogm(gogm *Gogm) {
@@ -70,10 +70,35 @@ func NewGogm(config *Config, mapTypes ...interface{}) (*Gogm, error) {
 }
 
 func (g *Gogm) init() error {
+	err := g.validate()
+	if err != nil {
+		return err
+	}
+
+	err = g.parseOgmTypes()
+	if err != nil {
+		return err
+	}
+
+	g.logger.Debug("establishing neo connection")
+	err = g.initDriver()
+	if err != nil {
+		return err
+	}
+
+	g.logger.Debug("initializing indices")
+	return g.initIndex()
+}
+
+func (g *Gogm) validate() error {
 	if g.config.TargetDbs == nil || len(g.config.TargetDbs) == 0 {
 		g.config.TargetDbs = []string{"neo4j"}
 	}
 
+	return nil
+}
+
+func (g *Gogm) parseOgmTypes() error {
 	g.logger.Debug("mapping types")
 	for _, t := range g.ogmTypes {
 		name := reflect.TypeOf(t).Elem().Name()
@@ -94,14 +119,7 @@ func (g *Gogm) init() error {
 		return fmt.Errorf("failed to validate edges, %w", err)
 	}
 
-	g.logger.Debug("establishing neo connection")
-	err = g.initDriver()
-	if err != nil {
-		return err
-	}
-
-	g.logger.Debug("initializing indices")
-	return g.initIndex()
+	return nil
 }
 
 func (g *Gogm) initDriver() error {
@@ -121,12 +139,14 @@ func (g *Gogm) initDriver() error {
 		return fmt.Errorf("failed to verify connectivity, %w", err)
 	}
 
+	// set driver
+	g.driver = driver
+
 	// get neoversion
 	sess := driver.NewSession(neo4j.SessionConfig{
 		AccessMode:   neo4j.AccessModeRead,
 		DatabaseName: "neo4j",
 	})
-
 
 	res, err := sess.Run("return 1", nil)
 	if err != nil {
@@ -154,19 +174,19 @@ func (g *Gogm) initIndex() error {
 	case ASSERT_INDEX:
 		g.logger.Debug("chose ASSERT_INDEX strategy")
 		g.logger.Debug("dropping all known indexes")
-		err := dropAllIndexesAndConstraints()
+		err := dropAllIndexesAndConstraints(g)
 		if err != nil {
 			return err
 		}
 
 		g.logger.Debug("creating all mapped indexes")
-		err = createAllIndexesAndConstraints(g.mappedTypes)
+		err = createAllIndexesAndConstraints(g, g.mappedTypes)
 		if err != nil {
 			return err
 		}
 
 		g.logger.Debug("verifying all indexes")
-		err = verifyAllIndexesAndConstraints(g.mappedTypes)
+		err = verifyAllIndexesAndConstraints(g, g.mappedTypes)
 		if err != nil {
 			return err
 		}
@@ -174,7 +194,7 @@ func (g *Gogm) initIndex() error {
 	case VALIDATE_INDEX:
 		g.logger.Debug("chose VALIDATE_INDEX strategy")
 		g.logger.Debug("verifying all indexes")
-		err := verifyAllIndexesAndConstraints(g.mappedTypes)
+		err := verifyAllIndexesAndConstraints(g, g.mappedTypes)
 		if err != nil {
 			return err
 		}
@@ -223,4 +243,3 @@ func (g *Gogm) NewSessionV2(conf SessionConfig) (SessionV2, error) {
 
 	return newSessionWithConfigV2(g, conf)
 }
-

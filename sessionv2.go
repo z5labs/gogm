@@ -20,6 +20,7 @@
 package gogm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -31,12 +32,12 @@ import (
 )
 
 type SessionV2Impl struct {
-	gogm *Gogm
+	gogm         *Gogm
 	neoSess      neo4j.Session
 	tx           neo4j.Transaction
 	DefaultDepth int
 	LoadStrategy LoadStrategy
-	mode         neo4j.AccessMode
+	conf         SessionConfig
 }
 
 func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, error) {
@@ -44,23 +45,30 @@ func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, err
 		return nil, errors.New("gogm instance can not be nil")
 	}
 
-	if globalGogm.isNoOp {
+	if gogm.isNoOp {
 		return nil, errors.New("please set global gogm instance with SetGlobalGogm()")
+	}
+
+	if gogm.driver == nil {
+		return nil, errors.New("gogm driver not initialized")
 	}
 
 	neoSess := gogm.driver.NewSession(neo4j.SessionConfig{
 		AccessMode:   conf.AccessMode,
 		Bookmarks:    conf.Bookmarks,
 		DatabaseName: conf.DatabaseName,
-		FetchSize: conf.FetchSize,
+		FetchSize:    neo4j.FetchDefault,
 	})
 
 	return &SessionV2Impl{
 		neoSess:      neoSess,
 		DefaultDepth: defaultDepth,
+		conf:         conf,
+		gogm:         gogm,
+		LoadStrategy: PATH_LOAD_STRATEGY,
 	}, nil
 }
-func (s *SessionV2Impl) Begin() error {
+func (s *SessionV2Impl) Begin(ctx context.Context) error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -70,7 +78,6 @@ func (s *SessionV2Impl) Begin() error {
 	}
 
 	var err error
-
 	s.tx, err = s.neoSess.BeginTransaction()
 	if err != nil {
 		return err
@@ -79,7 +86,7 @@ func (s *SessionV2Impl) Begin() error {
 	return nil
 }
 
-func (s *SessionV2Impl) Rollback() error {
+func (s *SessionV2Impl) Rollback(ctx context.Context) error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -102,8 +109,8 @@ func (s *SessionV2Impl) Rollback() error {
 	return nil
 }
 
-func (s *SessionV2Impl) RollbackWithError(originalError error) error {
-	err := s.Rollback()
+func (s *SessionV2Impl) RollbackWithError(ctx context.Context, originalError error) error {
+	err := s.Rollback(ctx)
 	if err != nil {
 		return fmt.Errorf("%s%w", err.Error(), originalError)
 	}
@@ -111,7 +118,7 @@ func (s *SessionV2Impl) RollbackWithError(originalError error) error {
 	return originalError
 }
 
-func (s *SessionV2Impl) Commit() error {
+func (s *SessionV2Impl) Commit(ctx context.Context) error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -134,19 +141,19 @@ func (s *SessionV2Impl) Commit() error {
 	return nil
 }
 
-func (s *SessionV2Impl) Load(respObj interface{}, id string) error {
-	return s.LoadDepthFilterPagination(respObj, id, s.DefaultDepth, nil, nil, nil)
+func (s *SessionV2Impl) Load(ctx context.Context, respObj interface{}, id string) error {
+	return s.LoadDepthFilterPagination(ctx, respObj, id, s.DefaultDepth, nil, nil, nil)
 }
 
-func (s *SessionV2Impl) LoadDepth(respObj interface{}, id string, depth int) error {
-	return s.LoadDepthFilterPagination(respObj, id, depth, nil, nil, nil)
+func (s *SessionV2Impl) LoadDepth(ctx context.Context, respObj interface{}, id string, depth int) error {
+	return s.LoadDepthFilterPagination(ctx, respObj, id, depth, nil, nil, nil)
 }
 
-func (s *SessionV2Impl) LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
-	return s.LoadDepthFilterPagination(respObj, id, depth, filter, params, nil)
+func (s *SessionV2Impl) LoadDepthFilter(ctx context.Context, respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
+	return s.LoadDepthFilterPagination(ctx, respObj, id, depth, filter, params, nil)
 }
 
-func (s *SessionV2Impl) LoadDepthFilterPagination(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
+func (s *SessionV2Impl) LoadDepthFilterPagination(ctx context.Context, respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
 	respType := reflect.TypeOf(respObj)
 
 	//validate type is ptr
@@ -204,40 +211,27 @@ func (s *SessionV2Impl) LoadDepthFilterPagination(respObj interface{}, id string
 		params["uuid"] = id
 	}
 
-	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
 	cyp, err := query.ToCypher()
 	if err != nil {
 		return err
 	}
 
-	result, err := rf(cyp, params)
-	if err != nil {
-		return err
-	}
-
-	return decode(result, respObj)
+	return s.runReadOnly(cyp, params, respObj)
 }
 
-func (s *SessionV2Impl) LoadAll(respObj interface{}) error {
-	return s.LoadAllDepthFilterPagination(respObj, s.DefaultDepth, nil, nil, nil)
+func (s *SessionV2Impl) LoadAll(ctx context.Context, respObj interface{}) error {
+	return s.LoadAllDepthFilterPagination(ctx, respObj, s.DefaultDepth, nil, nil, nil)
 }
 
-func (s *SessionV2Impl) LoadAllDepth(respObj interface{}, depth int) error {
-	return s.LoadAllDepthFilterPagination(respObj, depth, nil, nil, nil)
+func (s *SessionV2Impl) LoadAllDepth(ctx context.Context, respObj interface{}, depth int) error {
+	return s.LoadAllDepthFilterPagination(ctx, respObj, depth, nil, nil, nil)
 }
 
-func (s *SessionV2Impl) LoadAllDepthFilter(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error {
-	return s.LoadAllDepthFilterPagination(respObj, depth, filter, params, nil)
+func (s *SessionV2Impl) LoadAllDepthFilter(ctx context.Context, respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error {
+	return s.LoadAllDepthFilterPagination(ctx, respObj, depth, filter, params, nil)
 }
 
-func (s *SessionV2Impl) LoadAllDepthFilterPagination(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
+func (s *SessionV2Impl) LoadAllDepthFilterPagination(ctx context.Context, respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
 	rawRespType := reflect.TypeOf(respObj)
 
 	if rawRespType.Kind() != reflect.Ptr {
@@ -299,116 +293,53 @@ func (s *SessionV2Impl) LoadAllDepthFilterPagination(respObj interface{}, depth 
 			Limit(pagination.LimitPerPage)
 	}
 
-	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
 	cyp, err := query.ToCypher()
 	if err != nil {
 		return err
 	}
 
-	result, err := rf(cyp, params)
-	if err != nil {
-		return err
-	}
-
-	return decode(result, respObj)
+	return s.runReadOnly(cyp, params, respObj)
 }
 
-func (s *SessionV2Impl) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNodeField string, edgeConstraint interface{}, minJumps, maxJumps, depth int, filter dsl.ConditionOperator) error {
-	rawRespType := reflect.TypeOf(respObj)
-
-	if rawRespType.Kind() != reflect.Ptr {
-		return fmt.Errorf("respObj must be a pointer to a slice, instead it is %T", respObj)
-	}
-
-	//deref to a slice
-	respType := rawRespType.Elem()
-
-	//validate type is ptr
-	if respType.Kind() != reflect.Slice {
-		return fmt.Errorf("respObj must be type slice, instead it is %T", respObj)
-	}
-
-	//"deref" reflect interface type
-	respType = respType.Elem()
-
-	if respType.Kind() == reflect.Ptr {
-		//slice of pointers
-		respType = respType.Elem()
-	}
-
-	//get the type name -- this maps directly to the label
-	respObjName := respType.Name()
-
-	//will need to keep track of these variables
-	varName := "n"
-
-	var query dsl.Cypher
-	var err error
-
-	//make the query based off of the load strategy
-	switch s.LoadStrategy {
-	case PATH_LOAD_STRATEGY:
-		query, err = PathLoadStrategyEdgeConstraint(varName, respObjName, endNodeType, endNodeField, minJumps, maxJumps, depth, filter)
+func (s *SessionV2Impl) runReadOnly(cyp string, params map[string]interface{}, respObj interface{}) error {
+	// if in tx, run normally else run in managed tx
+	if s.tx != nil {
+		result, err := s.tx.Run(cyp, params)
 		if err != nil {
 			return err
 		}
-	case SCHEMA_LOAD_STRATEGY:
-		return errors.New("schema load strategy not supported yet")
-	default:
-		return errors.New("unknown load strategy")
-	}
 
-	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
+		return decode(s.gogm, result, respObj)
 	}
+	// run inside managed transaction if not already in a transaction
+	_, err := s.neoSess.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
+		res, err := tx.Run(cyp, params)
+		if err != nil {
+			return nil, err
+		}
 
-	cyp, err := query.ToCypher()
-	if err != nil {
-		return err
-	}
-
-	result, err := rf(cyp, map[string]interface{}{
-		endNodeField: edgeConstraint,
+		return nil, decode(s.gogm, res, respObj)
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed auto read tx, %w", err)
 	}
 
-	return decode(result, respObj)
+	return nil
 }
 
-func (s *SessionV2Impl) Save(saveObj interface{}) error {
-	return s.SaveDepth(saveObj, s.DefaultDepth)
+func (s *SessionV2Impl) Save(ctx context.Context, saveObj interface{}) error {
+	return s.SaveDepth(ctx, saveObj, s.DefaultDepth)
 }
 
-func (s *SessionV2Impl) SaveDepth(saveObj interface{}, depth int) error {
+func (s *SessionV2Impl) SaveDepth(ctx context.Context, saveObj interface{}, depth int) error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
 
-	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
-	return saveDepth(rf, saveObj, depth)
+	return s.runWrite(saveDepth(s.gogm, saveObj, depth))
 }
 
-func (s *SessionV2Impl) Delete(deleteObj interface{}) error {
+func (s *SessionV2Impl) Delete(ctx context.Context, deleteObj interface{}) error {
 	if s.neoSess == nil {
 		return errors.New("neo4j connection not initialized")
 	}
@@ -418,72 +349,96 @@ func (s *SessionV2Impl) Delete(deleteObj interface{}) error {
 	}
 
 	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
-	return deleteNode(rf, deleteObj)
-}
-
-func (s *SessionV2Impl) DeleteUUID(uuid string) error {
-	if s.neoSess == nil {
-		return errors.New("neo4j connection not initialized")
-	}
-
-	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
-	return deleteByUuids(rf, uuid)
-}
-
-func (s *SessionV2Impl) Query(query string, properties map[string]interface{}, respObj interface{}) error {
-	if s.neoSess == nil {
-		return errors.New("neo4j connection not initialized")
-	}
-
-	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
-	res, err := rf(query, properties)
+	workFunc, err := deleteNode(deleteObj)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to generate work func for delete, %w", err)
 	}
 
-	return decode(res, respObj)
+	return s.runWrite(workFunc)
 }
 
-func (s *SessionV2Impl) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, neo4j.ResultSummary, error) {
+func (s *SessionV2Impl) DeleteUUID(ctx context.Context, uuid string) error {
+	if s.neoSess == nil {
+		return errors.New("neo4j connection not initialized")
+	}
+
+	// handle if in transaction
+	return s.runWrite(deleteByUuids(uuid))
+}
+
+func (s *SessionV2Impl) runWrite(work neo4j.TransactionWork) error {
+	// if already in a transaction
+	if s.tx != nil {
+		_, err := work(s.tx)
+		if err != nil {
+			return fmt.Errorf("failed to save in manual tx, %w", err)
+		}
+
+		return nil
+	}
+
+	_, err := s.neoSess.WriteTransaction(work)
+	if err != nil {
+		return fmt.Errorf("failed to save in auto transaction, %w", err)
+	}
+
+	return nil
+}
+
+func (s *SessionV2Impl) Query(ctx context.Context, query string, properties map[string]interface{}, respObj interface{}) error {
+	if s.neoSess == nil {
+		return errors.New("neo4j connection not initialized")
+	}
+
+	if s.conf.AccessMode == neo4j.AccessModeRead {
+		return s.runReadOnly(query, properties, respObj)
+	}
+
+	return s.runWrite(func(tx neo4j.Transaction) (interface{}, error) {
+		res, err := tx.Run(query, properties)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, decode(s.gogm, res, respObj)
+	})
+}
+
+func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties map[string]interface{}) ([][]interface{}, neo4j.ResultSummary, error) {
 	if s.neoSess == nil {
 		return nil, nil, errors.New("neo4j connection not initialized")
 	}
 
-	// handle if in transaction
-	var rf neoRunFunc
+	var res neo4j.Result
+	var err error
 	if s.tx != nil {
-		rf = s.tx.Run
+		res, err = s.tx.Run(query, properties)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to execute query, %w", err)
+		}
 	} else {
-		rf = runWrap(s.neoSess)
+		var ires interface{}
+		if s.conf.AccessMode == AccessModeRead {
+			ires, err = s.neoSess.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
+				return tx.Run(query, properties)
+			})
+		} else {
+			ires, err = s.neoSess.WriteTransaction(func(tx neo4j.Transaction) (interface{}, error) {
+				return tx.Run(query, properties)
+			})
+		}
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to run auto transaction, %w", err)
+		}
+
+		var ok bool
+		res, ok = ires.(neo4j.Result)
+		if !ok {
+			return nil, nil, fmt.Errorf("failed to cast %T to neo4j.Result", ires)
+		}
 	}
 
-	res, err := rf(query, properties)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	summary, err := res.Summary()
+	summary, err := res.Consume()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -492,11 +447,11 @@ func (s *SessionV2Impl) QueryRaw(query string, properties map[string]interface{}
 
 	// we have to wrap everything because the driver only exposes interfaces which are not serializable
 	for res.Next() {
-		valLen := len(res.Record().Values())
-		valCap := cap(res.Record().Values())
+		valLen := len(res.Record().Values)
+		valCap := cap(res.Record().Values)
 		if valLen != 0 {
 			vals := make([]interface{}, valLen, valCap)
-			for i, val := range res.Record().Values() {
+			for i, val := range res.Record().Values {
 				switch val.(type) {
 				case neo4j.Path:
 					vals[i] = newPathWrap(val.(neo4j.Path))
@@ -519,28 +474,6 @@ func (s *SessionV2Impl) QueryRaw(query string, properties map[string]interface{}
 	return result, summary, nil
 }
 
-func (s *SessionV2Impl) PurgeDatabase() error {
-	if s.neoSess == nil {
-		return errors.New("neo4j connection not initialized")
-	}
-
-	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
-	cyp, err := dsl.QB().Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).Delete(true, "n").ToCypher()
-	if err != nil {
-		return err
-	}
-
-	_, err = rf(cyp, nil)
-	return err
-}
-
 func (s *SessionV2Impl) isTransientError(err error) bool {
 	return strings.Contains(err.Error(), "Neo.TransientError.Transaction")
 }
@@ -557,16 +490,17 @@ func (s *SessionV2Impl) reset() error {
 		s.neoSess = nil
 	}
 
-	var err error
-	s.neoSess, err = driver.Session(s.mode)
-	if err != nil {
-		return err
-	}
+	s.neoSess = s.gogm.driver.NewSession(neo4j.SessionConfig{
+		AccessMode:   s.conf.AccessMode,
+		Bookmarks:    s.conf.Bookmarks,
+		DatabaseName: s.conf.DatabaseName,
+		FetchSize:    s.conf.FetchSize,
+	})
 
 	return nil
 }
 
-func (s *SessionV2Impl) ManagedTransaction(work TransactionWork) error {
+func (s *SessionV2Impl) ManagedTransaction(ctx context.Context, work TransactionWork) error {
 	if work == nil {
 		return errors.New("transaction work can not be nil")
 	}
@@ -575,42 +509,44 @@ func (s *SessionV2Impl) ManagedTransaction(work TransactionWork) error {
 		return errors.New("can not start managed transaction with pending transaction")
 	}
 
-	// add 1 to max retries to account for the first run not being a retry
-	for i := 0; i < internalConfig.MaxRetries+1; i++ {
-		err := s.Begin()
-		if err != nil {
-			return err
-		}
-
-		err = work(s)
-		if err == nil {
-			// tx wasn't closed
-			if s.tx != nil {
-				return s.RollbackWithError(errors.New("tx not closed in work function"))
-			}
-			return nil
-		}
-
-		//fmt.Printf("failed on pass %v with error %s\n", i, err.Error())
-		if s.isTransientError(err) {
-			// clean up tx
-			err = s.reset()
-			if err != nil {
-				return fmt.Errorf("failed to rollback after transient error, %w", err)
-			}
-
-			if i+1 == internalConfig.MaxRetries {
-				break
-			}
-
-			time.Sleep(internalConfig.RetryWaitDuration)
-			continue
-		}
-
-		return err
+	txWork := func(tx neo4j.Transaction) (interface{}, error) {
+		s.tx = tx
+		return nil, work(s)
 	}
 
-	return errors.New("max retries met, managed tx failed")
+	defer s.clearTx()
+	var deadline time.Time
+	var ok bool
+
+	// handle timeout info
+	if ctx != nil {
+		deadline, ok = ctx.Deadline()
+		if !ok {
+			deadline = time.Now().Add(s.gogm.config.DefaultTransactionTimeout)
+		}
+	} else {
+		deadline = time.Now().Add(s.gogm.config.DefaultTransactionTimeout)
+	}
+
+	if s.conf.AccessMode == AccessModeWrite {
+		_, err := s.neoSess.WriteTransaction(txWork, neo4j.WithTxTimeout(deadline.Sub(time.Now())))
+		if err != nil {
+			return fmt.Errorf("failed managed write tx, %w", err)
+		}
+
+		return nil
+	}
+
+	_, err := s.neoSess.ReadTransaction(txWork)
+	if err != nil {
+		return fmt.Errorf("failed managed write tx, %w", err)
+	}
+
+	return nil
+}
+
+func (s *SessionV2Impl) clearTx() {
+	s.tx = nil
 }
 
 func (s *SessionV2Impl) Close() error {
@@ -620,7 +556,7 @@ func (s *SessionV2Impl) Close() error {
 
 	// handle tx
 	if s.tx != nil {
-		log.Warn("attempting to close a session with a pending transaction. Tx is being rolled back")
+		s.gogm.logger.Warn("attempting to close a session with a pending transaction. Tx is being rolled back")
 		err := s.tx.Rollback()
 		if err != nil {
 			return err

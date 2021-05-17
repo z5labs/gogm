@@ -7,19 +7,19 @@ import (
 
 type Logger interface {
 	Debug(s string)
-	Debugf(s string, vals... interface{})
+	Debugf(s string, vals ...interface{})
 
 	Info(s string)
-	Infof(s string, vals... interface{})
+	Infof(s string, vals ...interface{})
 
 	Warn(s string)
-	Warnf(s string, vals... interface{})
+	Warnf(s string, vals ...interface{})
 
 	Error(s string)
-	Errorf(s string, vals... interface{})
+	Errorf(s string, vals ...interface{})
 
 	Fatal(s string)
-	Fatalf(s string, vals... interface{})
+	Fatalf(s string, vals ...interface{})
 }
 
 type wrapNeoLogger struct {
@@ -38,21 +38,20 @@ func (wn *wrapNeoLogger) Error(name string, id string, err error) {
 func (wn *wrapNeoLogger) Warnf(name string, id string, msg string, args ...interface{}) {
 	arr := []interface{}{name, id}
 	arr = append(arr, args...)
-	wn.log.Warnf("[name=%s] [id=%s] " + msg, arr...)
+	wn.log.Warnf("[name=%s] [id=%s] "+msg, arr...)
 }
 func (wn *wrapNeoLogger) Infof(name string, id string, msg string, args ...interface{}) {
 	arr := []interface{}{name, id}
 	arr = append(arr, args...)
-	wn.log.Infof("[name=%s] [id=%s] " + msg, arr...)
+	wn.log.Infof("[name=%s] [id=%s] "+msg, arr...)
 }
 func (wn *wrapNeoLogger) Debugf(name string, id string, msg string, args ...interface{}) {
 	arr := []interface{}{name, id}
 	arr = append(arr, args...)
-	wn.log.Debugf("[name=%s] [id=%s] " + msg, arr...)
+	wn.log.Debugf("[name=%s] [id=%s] "+msg, arr...)
 }
 
 type defaultLogger struct {
-
 }
 
 func (d defaultLogger) Debug(s string) {
@@ -60,7 +59,7 @@ func (d defaultLogger) Debug(s string) {
 }
 
 func (d defaultLogger) Debugf(s string, vals ...interface{}) {
-	log.Printf("[DEBUG] " + s + "\n", vals...)
+	log.Printf("[DEBUG] "+s+"\n", vals...)
 }
 
 func (d defaultLogger) Info(s string) {
@@ -68,7 +67,7 @@ func (d defaultLogger) Info(s string) {
 }
 
 func (d defaultLogger) Infof(s string, vals ...interface{}) {
-	log.Printf("[INFO] " + s + "\n", vals...)
+	log.Printf("[INFO] "+s+"\n", vals...)
 }
 
 func (d defaultLogger) Warn(s string) {
@@ -76,7 +75,7 @@ func (d defaultLogger) Warn(s string) {
 }
 
 func (d defaultLogger) Warnf(s string, vals ...interface{}) {
-	log.Printf("[WARN] " + s + "\n", vals...)
+	log.Printf("[WARN] "+s+"\n", vals...)
 }
 
 func (d defaultLogger) Error(s string) {
@@ -84,7 +83,7 @@ func (d defaultLogger) Error(s string) {
 }
 
 func (d defaultLogger) Errorf(s string, vals ...interface{}) {
-	log.Printf("[ERROR] " + s + "\n", vals...)
+	log.Printf("[ERROR] "+s+"\n", vals...)
 }
 
 func (d defaultLogger) Fatal(s string) {
@@ -92,11 +91,9 @@ func (d defaultLogger) Fatal(s string) {
 }
 
 func (d defaultLogger) Fatalf(s string, vals ...interface{}) {
-	log.Fatalf("[FATAL] " + s + "\n", vals...)
+	log.Fatalf("[FATAL] "+s+"\n", vals...)
 }
 
 func GetDefaultLogger() Logger {
 	return &defaultLogger{}
 }
-
-

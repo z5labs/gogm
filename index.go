@@ -24,28 +24,28 @@ import (
 )
 
 //drops all known indexes
-func dropAllIndexesAndConstraints() error {
-	if neoVersion >= 4 {
-		return dropAllIndexesAndConstraintsV4()
+func dropAllIndexesAndConstraints(gogm *Gogm) error {
+	if gogm.neoVersion >= 4 {
+		return dropAllIndexesAndConstraintsV4(gogm)
 	}
 
-	return dropAllIndexesAndConstraintsV3()
+	return dropAllIndexesAndConstraintsV3(gogm)
 }
 
 //creates all indexes
-func createAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
-	if neoVersion >= 4 {
-		return createAllIndexesAndConstraintsV4(mappedTypes)
+func createAllIndexesAndConstraints(gogm *Gogm, mappedTypes *hashmap.HashMap) error {
+	if gogm.neoVersion >= 4 {
+		return createAllIndexesAndConstraintsV4(gogm, mappedTypes)
 	}
 
-	return createAllIndexesAndConstraintsV3(mappedTypes)
+	return createAllIndexesAndConstraintsV3(gogm, mappedTypes)
 }
 
 //verifies all indexes
-func verifyAllIndexesAndConstraints(mappedTypes *hashmap.HashMap) error {
-	if neoVersion >= 4 {
-		return verifyAllIndexesAndConstraintsV4(mappedTypes)
+func verifyAllIndexesAndConstraints(gogm *Gogm, mappedTypes *hashmap.HashMap) error {
+	if gogm.neoVersion >= 4 {
+		return verifyAllIndexesAndConstraintsV4(gogm, mappedTypes)
 	}
 
-	return verifyAllIndexesAndConstraintsV3(mappedTypes)
+	return verifyAllIndexesAndConstraintsV3(gogm, mappedTypes)
 }

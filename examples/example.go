@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/mindstand/gogm/v2"
 	"reflect"
@@ -99,13 +100,13 @@ func main() {
 
 	// register all vertices and edges
 	// this is so that GoGM doesn't have to do reflect processing of each edge in real time
-	err := gogm.Init(&config, &VertexA{}, &VertexB{}, &EdgeC{})
+	_gogm, err := gogm.NewGogm(&config, &VertexA{}, &VertexB{}, &EdgeC{})
 	if err != nil {
 		panic(err)
 	}
 
 	//param is readonly, we're going to make stuff so we're going to do read write
-	sess, err := gogm.NewSession(false)
+	sess, err := _gogm.NewSessionV2(gogm.SessionConfig{AccessMode: gogm.AccessModeWrite})
 	if err != nil {
 		panic(err)
 	}
@@ -125,14 +126,14 @@ func main() {
 	bVal.Single = aVal
 	aVal.SingleA = bVal
 
-	err = sess.SaveDepth(aVal, 2)
+	err = sess.SaveDepth(context.Background(), aVal, 2)
 	if err != nil {
 		panic(err)
 	}
 
 	//load the object we just made (save will set the uuid)
 	var readin VertexA
-	err = sess.Load(&readin, aVal.UUID)
+	err = sess.Load(context.Background(), &readin, aVal.UUID)
 	if err != nil {
 		panic(err)
 	}

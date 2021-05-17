@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	defaultRetryWait = time.Second
+	defaultRetryWait = time.Second * 10
 )
 
 // Config Defined GoGM config
@@ -47,8 +47,7 @@ type Config struct {
 	// PoolSize is the size of the connection pool for GoGM
 	PoolSize int `yaml:"pool_size" json:"pool_size" mapstructure:"pool_size"`
 
-	MaxRetries        int           `json:"max_retries" yaml:"max_retries" mapstructure:"max_retries"`
-	RetryWaitDuration time.Duration `json:"retry_wait_duration" yaml:"retry_wait_duration" mapstructure:"retry_wait_duration"`
+	DefaultTransactionTimeout time.Duration `json:"default_transaction_timeout" yaml:"default_transaction_timeout" mapstructure:"default_transaction_timeout"`
 
 	Realm string `yaml:"realm" json:"realm" mapstructure:"realm"`
 
@@ -68,13 +67,9 @@ func (c *Config) validate() error {
 		c.Logger = GetDefaultLogger()
 	}
 
-	if c.MaxRetries < 0 {
-		c.MaxRetries = 0
-	}
-
-	if c.RetryWaitDuration <= 0 {
+	if c.DefaultTransactionTimeout <= 0 {
 		// default is 1 second
-		c.RetryWaitDuration = defaultRetryWait
+		c.DefaultTransactionTimeout = defaultRetryWait
 	}
 
 	if c.Host == "" {

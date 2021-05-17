@@ -32,7 +32,7 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 
 	numRows := 0
 	for result.Next() {
-		rows = append(rows, result.Record().Values())
+		rows = append(rows, result.Record().Values)
 		numRows++
 	}
 
@@ -357,29 +357,25 @@ func sortIsolatedNodes(gogm *Gogm, isolatedNodes []neo4j.Node, labelLookup *map[
 	}
 
 	for _, node := range isolatedNodes {
-		if node == nil {
-			return fmt.Errorf("node should not be nil, %w", ErrInternal)
-		}
-
 		//check if node has already been found by another process
-		if _, ok := (*nodeLookup)[node.Id()]; !ok {
+		if _, ok := (*nodeLookup)[node.Id]; !ok {
 			//if it hasn't, map it
 			val, err := convertNodeToValue(gogm, node)
 			if err != nil {
 				return err
 			}
 
-			(*nodeLookup)[node.Id()] = val
-			(*relMaps)[node.Id()] = map[string]*RelationConfig{}
+			(*nodeLookup)[node.Id] = val
+			(*relMaps)[node.Id] = map[string]*RelationConfig{}
 
 			//primary to return
-			if node.Labels() != nil && len(node.Labels()) != 0 && node.Labels()[0] == pkLabel {
-				*pks = append(*pks, node.Id())
+			if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
+				*pks = append(*pks, node.Id)
 			}
 
 			//set label map
-			if _, ok := (*labelLookup)[node.Id()]; !ok && len(node.Labels()) != 0 && node.Labels()[0] == pkLabel {
-				(*labelLookup)[node.Id()] = node.Labels()[0]
+			if _, ok := (*labelLookup)[node.Id]; !ok && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
+				(*labelLookup)[node.Id] = node.Labels[0]
 			}
 		}
 	}
@@ -394,29 +390,25 @@ func sortStrictRels(strictRels []neo4j.Relationship, labelLookup *map[int64]stri
 	}
 
 	for _, rel := range strictRels {
-		if rel == nil {
-			return errors.New("path can not be nil")
-		}
-
-		if _, ok := (*rels)[rel.Id()]; !ok {
-			startLabel, ok := (*labelLookup)[rel.StartId()]
+		if _, ok := (*rels)[rel.Id]; !ok {
+			startLabel, ok := (*labelLookup)[rel.StartId]
 			if !ok {
-				return fmt.Errorf("label not found for node [%v], %w", rel.Id(), ErrInternal)
+				return fmt.Errorf("label not found for node [%v], %w", rel.Id, ErrInternal)
 			}
 
-			endLabel, ok := (*labelLookup)[rel.EndId()]
+			endLabel, ok := (*labelLookup)[rel.EndId]
 			if !ok {
-				return fmt.Errorf("label not found for node [%v], %w", rel.EndId(), ErrInternal)
+				return fmt.Errorf("label not found for node [%v], %w", rel.EndId, ErrInternal)
 			}
 
-			(*rels)[rel.Id()] = &neoEdgeConfig{
-				Id:            rel.Id(),
-				StartNodeId:   rel.StartId(),
+			(*rels)[rel.Id] = &neoEdgeConfig{
+				Id:            rel.Id,
+				StartNodeId:   rel.StartId,
 				StartNodeType: startLabel,
-				EndNodeId:     rel.EndId(),
+				EndNodeId:     rel.EndId,
 				EndNodeType:   endLabel,
-				Obj:           rel.Props(),
-				Type:          rel.Type(),
+				Obj:           rel.Props,
+				Type:          rel.Type,
 			}
 		}
 	}
@@ -431,57 +423,53 @@ func sortPaths(gogm *Gogm, paths []neo4j.Path, nodeLookup *map[int64]*reflect.Va
 	}
 
 	for _, path := range paths {
-		if path == nil {
-			return errors.New("path can not be nil")
-		}
-
-		if path.Nodes() == nil || len(path.Nodes()) == 0 {
+		if path.Nodes == nil || len(path.Nodes) == 0 {
 			return fmt.Errorf("no nodes found, %w", ErrNotFound)
 		}
 
-		labelLookup := make(map[int64]string, len(path.Nodes()))
+		labelLookup := make(map[int64]string, len(path.Nodes))
 
-		for _, node := range path.Nodes() {
-			if _, ok := labelLookup[node.Id()]; !ok && len(node.Labels()) != 0 {
-				labelLookup[node.Id()] = node.Labels()[0]
+		for _, node := range path.Nodes {
+			if _, ok := labelLookup[node.Id]; !ok && len(node.Labels) != 0 {
+				labelLookup[node.Id] = node.Labels[0]
 			}
-			if _, ok := (*nodeLookup)[node.Id()]; !ok {
+			if _, ok := (*nodeLookup)[node.Id]; !ok {
 				//we haven't parsed this one yet, lets do that now
 				val, err := convertNodeToValue(gogm, node)
 				if err != nil {
 					return err
 				}
 
-				(*nodeLookup)[node.Id()] = val
-				(*relMaps)[node.Id()] = map[string]*RelationConfig{}
+				(*nodeLookup)[node.Id] = val
+				(*relMaps)[node.Id] = map[string]*RelationConfig{}
 
 				//primary to return
-				if node.Labels() != nil && len(node.Labels()) != 0 && node.Labels()[0] == pkLabel {
-					*pks = append(*pks, node.Id())
+				if node.Labels != nil && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
+					*pks = append(*pks, node.Id)
 				}
 			}
 		}
 
-		for _, rel := range path.Relationships() {
-			startLabel, ok := labelLookup[rel.StartId()]
+		for _, rel := range path.Relationships {
+			startLabel, ok := labelLookup[rel.StartId]
 			if !ok {
-				return fmt.Errorf("label not found for node with graphId [%v], %w", rel.StartId(), ErrInternal)
+				return fmt.Errorf("label not found for node with graphId [%v], %w", rel.StartId, ErrInternal)
 			}
 
-			endLabel, ok := labelLookup[rel.EndId()]
+			endLabel, ok := labelLookup[rel.EndId]
 			if !ok {
-				return fmt.Errorf("label not found for node with graphId [%v], %w", rel.EndId(), ErrInternal)
+				return fmt.Errorf("label not found for node with graphId [%v], %w", rel.EndId, ErrInternal)
 			}
 
-			if _, ok := (*rels)[rel.Id()]; !ok {
-				(*rels)[rel.Id()] = &neoEdgeConfig{
-					Id:            rel.Id(),
-					StartNodeId:   rel.StartId(),
+			if _, ok := (*rels)[rel.Id]; !ok {
+				(*rels)[rel.Id] = &neoEdgeConfig{
+					Id:            rel.Id,
+					StartNodeId:   rel.StartId,
 					StartNodeType: startLabel,
-					EndNodeId:     rel.EndId(),
+					EndNodeId:     rel.EndId,
 					EndNodeType:   endLabel,
-					Obj:           rel.Props(),
-					Type:          rel.Type(),
+					Obj:           rel.Props,
+					Type:          rel.Type,
 				}
 			}
 		}
@@ -666,15 +654,15 @@ func convertToValue(gogm *Gogm, graphId int64, conf structDecoratorConfig, props
 // convertNodeToValue converts raw bolt node to reflect value
 func convertNodeToValue(gogm *Gogm, boltNode neo4j.Node) (*reflect.Value, error) {
 
-	if boltNode.Labels() == nil || len(boltNode.Labels()) == 0 {
+	if boltNode.Labels == nil || len(boltNode.Labels) == 0 {
 		return nil, errors.New("boltNode has no labels")
 	}
 
 	var typeConfig structDecoratorConfig
 
-	temp, ok := gogm.mappedTypes.Get(boltNode.Labels()[0]) // mappedTypes[boltNode.Labels[0]]
+	temp, ok := gogm.mappedTypes.Get(boltNode.Labels[0]) // mappedTypes[boltNode.Labels[0]]
 	if !ok {
-		return nil, fmt.Errorf("can not find mapping for node with label %s", boltNode.Labels()[0])
+		return nil, fmt.Errorf("can not find mapping for node with label %s", boltNode.Labels[0])
 	}
 
 	typeConfig, ok = temp.(structDecoratorConfig)
@@ -682,5 +670,5 @@ func convertNodeToValue(gogm *Gogm, boltNode neo4j.Node) (*reflect.Value, error)
 		return nil, errors.New("unable to cast to struct decorator config")
 	}
 
-	return convertToValue(gogm, boltNode.Id(), typeConfig, boltNode.Props(), typeConfig.Type)
+	return convertToValue(gogm, boltNode.Id, typeConfig, boltNode.Props, typeConfig.Type)
 }

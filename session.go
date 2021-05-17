@@ -37,11 +37,12 @@ type SessionConfig neo4j.SessionConfig
 
 // Deprecated: Session will be removed in a later release in favor of SessionV2
 type Session struct {
-	gogm *Gogm
+	gogm         *Gogm
 	neoSess      neo4j.Session
 	tx           neo4j.Transaction
 	DefaultDepth int
 	LoadStrategy LoadStrategy
+	mode         neo4j.AccessMode
 }
 
 // uses global gogm
@@ -55,12 +56,17 @@ func newSession(gogm *Gogm, readonly bool) (*Session, error) {
 		return nil, errors.New("gogm instance cannot be nil")
 	}
 
-	if globalGogm.isNoOp {
+	if gogm.isNoOp {
 		return nil, errors.New("please set global gogm instance with SetGlobalGogm()")
+	}
+
+	if gogm.driver == nil {
+		return nil, errors.New("gogm driver not initialized")
 	}
 
 	session := &Session{
 		gogm:         gogm,
+		LoadStrategy: PATH_LOAD_STRATEGY,
 	}
 
 	var mode neo4j.AccessMode
@@ -71,9 +77,10 @@ func newSession(gogm *Gogm, readonly bool) (*Session, error) {
 		mode = AccessModeWrite
 	}
 
-	neoSess := gogm.driver.NewSession(neo4j.SessionConfig{AccessMode: mode})
+	neoSess := gogm.driver.NewSession(neo4j.SessionConfig{AccessMode: mode, FetchSize: neo4j.FetchDefault})
 
 	session.neoSess = neoSess
+	session.mode = mode
 
 	session.DefaultDepth = defaultDepth
 
@@ -90,19 +97,26 @@ func newSessionWithConfig(gogm *Gogm, conf SessionConfig) (*Session, error) {
 		return nil, errors.New("gogm instance is nil")
 	}
 
-	if globalGogm.isNoOp {
+	if gogm.isNoOp {
 		return nil, errors.New("please set global gogm instance with SetGlobalGogm()")
 	}
 
+	if gogm.driver == nil {
+		return nil, errors.New("gogm driver not initialized")
+	}
 	neoSess := gogm.driver.NewSession(neo4j.SessionConfig{
 		AccessMode:   conf.AccessMode,
 		Bookmarks:    conf.Bookmarks,
 		DatabaseName: conf.DatabaseName,
+		FetchSize:    neo4j.FetchDefault,
 	})
 
 	return &Session{
 		neoSess:      neoSess,
 		DefaultDepth: defaultDepth,
+		mode:         conf.AccessMode,
+		gogm:         gogm,
+		LoadStrategy: PATH_LOAD_STRATEGY,
 	}, nil
 }
 
@@ -241,24 +255,12 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	}
 
 	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
 	cyp, err := query.ToCypher()
 	if err != nil {
 		return err
 	}
 
-	result, err := rf(cyp, params)
-	if err != nil {
-		return err
-	}
-
-	return decode(s.gogm, result, respObj)
+	return s.runReadOnly(cyp, params, respObj)
 }
 
 func (s *Session) LoadAll(respObj interface{}) error {
@@ -336,24 +338,12 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 	}
 
 	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
 	cyp, err := query.ToCypher()
 	if err != nil {
 		return err
 	}
 
-	result, err := rf(cyp, params)
-	if err != nil {
-		return err
-	}
-
-	return decode(s.gogm, result, respObj)
+	return s.runReadOnly(cyp, params, respObj)
 }
 
 func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNodeField string, edgeConstraint interface{}, minJumps, maxJumps, depth int, filter dsl.ConditionOperator) error {
@@ -402,26 +392,40 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 	}
 
 	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
 	cyp, err := query.ToCypher()
 	if err != nil {
 		return err
 	}
 
-	result, err := rf(cyp, map[string]interface{}{
+	return s.runReadOnly(cyp, map[string]interface{}{
 		endNodeField: edgeConstraint,
+	}, respObj)
+}
+
+func (s *Session) runReadOnly(cyp string, params map[string]interface{}, respObj interface{}) error {
+	// if in tx, run normally else run in managed tx
+	if s.tx != nil {
+		result, err := s.tx.Run(cyp, params)
+		if err != nil {
+			return err
+		}
+
+		return decode(s.gogm, result, respObj)
+	}
+	// run inside managed transaction if not already in a transaction
+	_, err := s.neoSess.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
+		res, err := tx.Run(cyp, params)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, decode(s.gogm, res, respObj)
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed auto read tx, %w", err)
 	}
 
-	return decode(s.gogm, result, respObj)
+	return nil
 }
 
 func (s *Session) Save(saveObj interface{}) error {
@@ -434,14 +438,7 @@ func (s *Session) SaveDepth(saveObj interface{}, depth int) error {
 	}
 
 	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
-	return saveDepth(s.gogm, rf, saveObj, depth)
+	return s.runWrite(saveDepth(s.gogm, saveObj, depth))
 }
 
 func (s *Session) Delete(deleteObj interface{}) error {
@@ -454,14 +451,12 @@ func (s *Session) Delete(deleteObj interface{}) error {
 	}
 
 	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
+	workFunc, err := deleteNode(deleteObj)
+	if err != nil {
+		return fmt.Errorf("failed to generate work func for delete, %w", err)
 	}
 
-	return deleteNode(rf, deleteObj)
+	return s.runWrite(workFunc)
 }
 
 func (s *Session) DeleteUUID(uuid string) error {
@@ -470,14 +465,26 @@ func (s *Session) DeleteUUID(uuid string) error {
 	}
 
 	// handle if in transaction
-	var rf neoRunFunc
+	return s.runWrite(deleteByUuids(uuid))
+}
+
+func (s *Session) runWrite(work neo4j.TransactionWork) error {
+	// if already in a transaction
 	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
+		_, err := work(s.tx)
+		if err != nil {
+			return fmt.Errorf("failed to save in manual tx, %w", err)
+		}
+
+		return nil
 	}
 
-	return deleteByUuids(rf, uuid)
+	_, err := s.neoSess.WriteTransaction(work)
+	if err != nil {
+		return fmt.Errorf("failed to save in auto transaction, %w", err)
+	}
+
+	return nil
 }
 
 func (s *Session) Query(query string, properties map[string]interface{}, respObj interface{}) error {
@@ -485,20 +492,18 @@ func (s *Session) Query(query string, properties map[string]interface{}, respObj
 		return errors.New("neo4j connection not initialized")
 	}
 
-	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
+	if s.mode == neo4j.AccessModeRead {
+		return s.runReadOnly(query, properties, respObj)
 	}
 
-	res, err := rf(query, properties)
-	if err != nil {
-		return err
-	}
+	return s.runWrite(func(tx neo4j.Transaction) (interface{}, error) {
+		res, err := tx.Run(query, properties)
+		if err != nil {
+			return nil, err
+		}
 
-	return decode(s.gogm, res, respObj)
+		return nil, decode(s.gogm, res, respObj)
+	})
 }
 
 func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][]interface{}, error) {
@@ -506,17 +511,33 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 		return nil, errors.New("neo4j connection not initialized")
 	}
 
-	// handle if in transaction
-	var rf neoRunFunc
+	var res neo4j.Result
+	var err error
 	if s.tx != nil {
-		rf = s.tx.Run
+		res, err = s.tx.Run(query, properties)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute query, %w", err)
+		}
 	} else {
-		rf = runWrap(s.neoSess)
-	}
+		var ires interface{}
+		if s.mode == AccessModeRead {
+			ires, err = s.neoSess.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
+				return tx.Run(query, properties)
+			})
+		} else {
+			ires, err = s.neoSess.WriteTransaction(func(tx neo4j.Transaction) (interface{}, error) {
+				return tx.Run(query, properties)
+			})
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to run auto transaction, %w", err)
+		}
 
-	res, err := rf(query, properties)
-	if err != nil {
-		return nil, err
+		var ok bool
+		res, ok = ires.(neo4j.Result)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast %T to neo4j.Result", ires)
+		}
 	}
 
 	var result [][]interface{}
@@ -556,20 +577,14 @@ func (s *Session) PurgeDatabase() error {
 	}
 
 	// handle if in transaction
-	var rf neoRunFunc
-	if s.tx != nil {
-		rf = s.tx.Run
-	} else {
-		rf = runWrap(s.neoSess)
-	}
-
 	cyp, err := dsl.QB().Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).Delete(true, "n").ToCypher()
 	if err != nil {
 		return err
 	}
 
-	_, err = rf(cyp, nil)
-	return err
+	return s.runWrite(func(tx neo4j.Transaction) (interface{}, error) {
+		return tx.Run(cyp, nil)
+	})
 }
 
 func (s *Session) Close() error {
