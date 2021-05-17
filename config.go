@@ -60,6 +60,8 @@ type Config struct {
 	Logger Logger `yaml:"-" json:"-" mapstructure:"-"`
 	// if logger is not nil log level will be ignored
 	LogLevel string `json:"log_level" yaml:"log_level" mapstructure:"log_level"`
+
+	OpentracingEnabled bool `json:"opentracing_enabled" yaml:"opentracing_enabled" mapstructure:"opentracing_enabled"`
 }
 
 func (c *Config) validate() error {
