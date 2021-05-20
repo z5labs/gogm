@@ -24,8 +24,8 @@ import (
 	"reflect"
 )
 
-// IEdge specifies required functions for special edge nodes
-type IEdge interface {
+// Edge specifies required functions for special edge nodes
+type Edge interface {
 	// GetStartNode gets start node of edge
 	GetStartNode() interface{}
 	// GetStartNodeType gets reflect type of start node

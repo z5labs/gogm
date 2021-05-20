@@ -19,7 +19,43 @@
 
 package gogm
 
-import "github.com/neo4j/neo4j-go-driver/v4/neo4j"
+const loadMapField = "LoadMap"
+
+// BaseNode contains fields that ALL GoGM nodes are required to have
+type BaseNode struct {
+	// Id is the GraphId that neo4j uses internally
+	Id int64 `json:"-" gogm:"name=id"`
+
+	// LoadMap represents the state of how a node was loaded for neo4j.
+	// This is used to determine if relationships are removed on save
+	// field -- relations
+	LoadMap map[string]*RelationConfig `json:"-" gogm:"-"`
+}
+
+type BaseUUIDNode struct {
+	BaseNode
+	// UUID is the unique identifier GoGM uses as a primary key
+	UUID string `json:"uuid" gogm:"pk;name=uuid"`
+}
+
+// Specifies Type of testRelationship
+type RelationType int
+
+const (
+	// Side of relationship can only point to 0 or 1 other nodes
+	Single RelationType = 0
+
+	// Side of relationship can point to 0+ other nodes
+	Multi RelationType = 1
+)
+
+// RelationConfig specifies how relationships are loaded
+type RelationConfig struct {
+	// stores graph ids
+	Ids []int64 `json:"-" gomg:"-"`
+	// specifies relationship type
+	RelationType RelationType `json:"-"  gomg:"-"`
+}
 
 // specifies how edges are loaded
 type neoEdgeConfig struct {
@@ -34,69 +70,4 @@ type neoEdgeConfig struct {
 	Obj map[string]interface{}
 
 	Type string
-}
-
-// NodeWrap wraps the neo4j node struct because it is private
-type NodeWrap struct {
-	Id     int64                  `json:"id"`
-	Labels []string               `json:"labels"`
-	Props  map[string]interface{} `json:"props"`
-}
-
-func newNodeWrap(node neo4j.Node) *NodeWrap {
-	return &NodeWrap{
-		Id:     node.Id,
-		Labels: node.Labels,
-		Props:  node.Props,
-	}
-}
-
-// PathWrap wraps the neo4j path struct because it is private
-type PathWrap struct {
-	Nodes    []*NodeWrap         `json:"nodes"`
-	RelNodes []*RelationshipWrap `json:"rel_nodes"`
-}
-
-func newPathWrap(path neo4j.Path) *PathWrap {
-	pw := new(PathWrap)
-	nodes := path.Nodes
-	if nodes != nil && len(nodes) != 0 {
-		nds := make([]*NodeWrap, len(nodes), cap(nodes))
-		for i, n := range nodes {
-			nds[i] = newNodeWrap(n)
-		}
-
-		pw.Nodes = nds
-	}
-
-	rels := path.Relationships
-	if rels != nil && len(rels) != 0 {
-		newRels := make([]*RelationshipWrap, len(rels), cap(rels))
-		for i, rel := range rels {
-			newRels[i] = newRelationshipWrap(rel)
-		}
-
-		pw.RelNodes = newRels
-	}
-
-	return pw
-}
-
-// RelationshipWrap wraps the neo4j relationship struct because it is private
-type RelationshipWrap struct {
-	Id      int64                  `json:"id"`
-	StartId int64                  `json:"start_id"`
-	EndId   int64                  `json:"end_id"`
-	Type    string                 `json:"type"`
-	Props   map[string]interface{} `json:"props"`
-}
-
-func newRelationshipWrap(rel neo4j.Relationship) *RelationshipWrap {
-	return &RelationshipWrap{
-		Id:      rel.Id,
-		StartId: rel.StartId,
-		EndId:   rel.EndId,
-		Type:    rel.Type,
-		Props:   rel.Props,
-	}
 }

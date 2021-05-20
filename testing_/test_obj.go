@@ -22,7 +22,7 @@ package testing_
 import "github.com/mindstand/gogm/v2"
 
 type ExampleObject struct {
-	gogm.BaseNode
+	gogm.BaseUUIDNode
 
 	Children []*ExampleObject `json:"children" gogm:"direction=incoming;relationship=test"`
 	Parents  *ExampleObject   `gogm:"direction=outgoing;relationship=test" json:"parents"`

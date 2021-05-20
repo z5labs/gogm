@@ -289,7 +289,7 @@ func (d *decoratorConfig) Validate() error {
 	return nil
 }
 
-var edgeType = reflect.TypeOf(new(IEdge)).Elem()
+var edgeType = reflect.TypeOf(new(Edge)).Elem()
 
 // newDecoratorConfig generates decorator config for field
 // takes in the raw tag, name of the field and reflect type
@@ -503,7 +503,7 @@ func getStructDecoratorConfig(logger Logger, i interface{}, mappedRelations *rel
 	isEdge := false
 
 	//check if its an edge
-	if _, ok := i.(IEdge); ok {
+	if _, ok := i.(Edge); ok {
 		isEdge = true
 	}
 

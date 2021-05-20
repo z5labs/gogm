@@ -133,7 +133,7 @@ func (i *IntegrationTestSuite) TestRawQuery() {
 	uuid := uuid2.New().String()
 
 	req.Nil(sess.Save(&a{
-		BaseNode: BaseNode{
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: uuid,
 		},
 	}))
@@ -154,7 +154,7 @@ func (i *IntegrationTestSuite) TestRawQueryV2() {
 	uuid := uuid2.New().String()
 
 	req.Nil(sess.Save(context.Background(), &a{
-		BaseNode: BaseNode{
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: uuid,
 		},
 	}))
@@ -174,7 +174,7 @@ type tdMapTdSlice map[string]tdArr
 type tdMapTdSliceOfTd map[string]tdArrOfTd
 
 type propTest struct {
-	BaseNode
+	BaseUUIDNode
 
 	MapInterface   map[string]interface{} `gogm:"name=prop1;properties"`
 	MapPrim        map[string]string      `gogm:"name=prop2;properties"`
@@ -344,7 +344,7 @@ func testSave(sess ISession, req *require.Assertions) {
 
 	// property test
 	prop1 := propTest{
-		BaseNode: BaseNode{},
+		BaseUUIDNode : BaseUUIDNode{},
 		MapInterface: map[string]interface{}{
 			"test": int64(1),
 		},
@@ -480,7 +480,7 @@ func testSaveV2(sess SessionV2, req *require.Assertions) {
 
 	// property test
 	prop1 := propTest{
-		BaseNode: BaseNode{},
+		BaseUUIDNode: BaseUUIDNode{},
 		MapInterface: map[string]interface{}{
 			"test": int64(1),
 		},

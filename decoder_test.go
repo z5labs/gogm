@@ -133,13 +133,13 @@ type tdString string
 type tdInt int
 
 type f struct {
-	BaseNode
+	BaseUUIDNode
 	Parents  []*f `gogm:"direction=outgoing;relationship=test"`
 	Children []*f `gogm:"direction=incoming;relationship=test"`
 }
 
 type a struct {
-	BaseNode
+	BaseUUIDNode
 	PropTest0         map[string]interface{} `gogm:"properties;name=props0"`
 	PropTest1         map[string]string      `gogm:"properties;name=props1"`
 	PropsTest2        []string               `gogm:"properties;name=props2"`
@@ -156,7 +156,7 @@ type a struct {
 }
 
 type b struct {
-	BaseNode
+	BaseUUIDNode
 	TestField  string    `gogm:"name=test_field"`
 	TestTime   time.Time `gogm:"name=test_time"`
 	Single     *a        `gogm:"direction=outgoing;relationship=test_rel"`
@@ -167,7 +167,7 @@ type b struct {
 }
 
 type c struct {
-	BaseNode
+	BaseUUIDNode
 	Start *a
 	End   *b
 	Test  string `gogm:"name=test"`
@@ -321,23 +321,32 @@ func TestInnerDecode(t *testing.T) {
 	}
 
 	f0 := f{
-		BaseNode: BaseNode{
-			Id:   0,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "0",
+			BaseNode: BaseNode{
+				Id:   0,
+
+			},
 		},
 	}
 
 	f1 := f{
-		BaseNode: BaseNode{
-			Id:   1,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "1",
+			BaseNode: BaseNode{
+				Id:   1,
+
+			},
 		},
 	}
 
 	f2 := f{
-		BaseNode: BaseNode{
-			Id:   2,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "2",
+			BaseNode: BaseNode{
+				Id:   2,
+
+			},
 		},
 	}
 
@@ -408,9 +417,12 @@ func TestInnerDecode(t *testing.T) {
 	var readin a
 
 	comp := &a{
-		BaseNode: BaseNode{
-			Id:   1,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
+			BaseNode: BaseNode{
+				Id:   1,
+
+			},
 		},
 		TestField:         "test",
 		TestTypeDefInt:    600,
@@ -418,9 +430,12 @@ func TestInnerDecode(t *testing.T) {
 	}
 
 	comp22 := &b{
-		BaseNode: BaseNode{
-			Id:   2,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfas",
+			BaseNode: BaseNode{
+				Id:   2,
+
+			},
 		},
 		TestField: "test",
 		TestTime:  fTime,
@@ -498,26 +513,35 @@ func TestInnerDecode(t *testing.T) {
 	var readin2 a
 
 	comp2 := &a{
-		BaseNode: BaseNode{
-			Id:   1,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
+			BaseNode: BaseNode{
+				Id:   1,
+
+			},
 		},
 		TestField: "test",
 	}
 
 	b2 := &b{
-		BaseNode: BaseNode{
-			Id:   2,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfas",
+			BaseNode: BaseNode{
+				Id:   2,
+
+			},
 		},
 		TestField: "test",
 		TestTime:  fTime,
 	}
 
 	c1 := &c{
-		BaseNode: BaseNode{
-			Id:   34,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "asdfasdafsd",
+			BaseNode: BaseNode{
+				Id:   34,
+
+			},
 		},
 		Start: comp2,
 		End:   b2,
@@ -573,17 +597,23 @@ func TestInnerDecode(t *testing.T) {
 	var readin3 a
 
 	comp3 := a{
-		BaseNode: BaseNode{
-			Id:   1,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
+			BaseNode: BaseNode{
+				Id:   1,
+
+			},
 		},
 		TestField: "test",
 		MultiA: []*b{
 			{
 				TestField: "test",
-				BaseNode: BaseNode{
-					Id:   2,
+				BaseUUIDNode: BaseUUIDNode{
 					UUID: "dasdfas",
+					BaseNode: BaseNode{
+						Id:   2,
+
+					},
 				},
 				TestTime: fTime,
 			},
@@ -642,23 +672,29 @@ func TestInnerDecode(t *testing.T) {
 
 	comp4 := &a{
 		TestField: "test",
-		BaseNode: BaseNode{
-			Id:   1,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
+			BaseNode: BaseNode{
+				Id:   1,
+
+			},
 		},
 	}
 
 	b3 := &b{
 		TestField: "test",
-		BaseNode: BaseNode{
-			Id:   2,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfas",
+			BaseNode: BaseNode{
+				Id:   2,
+
+			},
 		},
 		TestTime: fTime,
 	}
 
 	c4 := c{
-		BaseNode: BaseNode{
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "asdfasdafsd",
 		},
 		Start: comp4,

@@ -46,26 +46,30 @@ func parseO2O(gogm *Gogm, req *require.Assertions) {
 		TestField:         "test",
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
-		BaseNode: BaseNode{
-			Id:   1,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "comp1uuid",
-			LoadMap: map[string]*RelationConfig{
-				"SingleSpecA": {
-					Ids:          []int64{2},
-					RelationType: Single,
+			BaseNode: BaseNode{
+				Id:   1,
+				LoadMap: map[string]*RelationConfig{
+					"SingleSpecA": {
+						Ids:          []int64{2},
+						RelationType: Single,
+					},
 				},
 			},
 		},
 	}
 
 	b1 := &b{
-		BaseNode: BaseNode{
-			Id:   2,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "b1uuid",
-			LoadMap: map[string]*RelationConfig{
-				"SingleSpec": {
-					Ids:          []int64{1},
-					RelationType: Single,
+			BaseNode: BaseNode{
+				Id:   2,
+				LoadMap: map[string]*RelationConfig{
+					"SingleSpec": {
+						Ids:          []int64{1},
+						RelationType: Single,
+					},
 				},
 			},
 		},
@@ -109,13 +113,15 @@ func parseM2O(gogm *Gogm, req *require.Assertions) {
 		TestField:         "test",
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
-		BaseNode: BaseNode{
-			Id:   1,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "a1uuid",
-			LoadMap: map[string]*RelationConfig{
-				"ManyA": {
-					Ids:          []int64{2},
-					RelationType: Multi,
+			BaseNode: BaseNode{
+				Id:   1,
+				LoadMap: map[string]*RelationConfig{
+					"ManyA": {
+						Ids:          []int64{2},
+						RelationType: Multi,
+					},
 				},
 			},
 		},
@@ -124,16 +130,19 @@ func parseM2O(gogm *Gogm, req *require.Assertions) {
 
 	b1 := &b{
 		TestField: "test",
-		BaseNode: BaseNode{
-			Id:   2,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "b1uuid",
-			LoadMap: map[string]*RelationConfig{
-				"ManyB": {
-					Ids:          []int64{1},
-					RelationType: Single,
+			BaseNode: BaseNode{
+				Id:   2,
+				LoadMap: map[string]*RelationConfig{
+					"ManyB": {
+						Ids:          []int64{1},
+						RelationType: Single,
+					},
 				},
 			},
 		},
+
 	}
 
 	b1.ManyB = a1
@@ -162,13 +171,17 @@ func parseM2M(gogm *Gogm, req *require.Assertions) {
 		TestField:         "test",
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
-		BaseNode: BaseNode{
-			Id:   1,
+
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "a1uuid",
-			LoadMap: map[string]*RelationConfig{
-				"MultiA": {
-					Ids:          []int64{2},
-					RelationType: Multi,
+			BaseNode: BaseNode{
+				Id:   1,
+
+				LoadMap: map[string]*RelationConfig{
+					"MultiA": {
+						Ids:          []int64{2},
+						RelationType: Multi,
+					},
 				},
 			},
 		},
@@ -178,16 +191,19 @@ func parseM2M(gogm *Gogm, req *require.Assertions) {
 
 	b1 := &b{
 		TestField: "test",
-		BaseNode: BaseNode{
-			Id:   2,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "b1uuid",
-			LoadMap: map[string]*RelationConfig{
-				"Multi": {
-					Ids:          []int64{1},
-					RelationType: Multi,
+			BaseNode: BaseNode{
+				Id:   2,
+				LoadMap: map[string]*RelationConfig{
+					"Multi": {
+						Ids:          []int64{1},
+						RelationType: Multi,
+					},
 				},
 			},
 		},
+
 		Multi: []*a{},
 	}
 
@@ -225,13 +241,15 @@ func TestCalculateCurRels(t *testing.T) {
 		TestField:         "test",
 		TestTypeDefString: "dasdfas",
 		TestTypeDefInt:    600,
-		BaseNode: BaseNode{
-			Id:   1,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "a1uuid",
-			LoadMap: map[string]*RelationConfig{
-				"MultiA": {
-					Ids:          []int64{2},
-					RelationType: Multi,
+			BaseNode: BaseNode{
+				Id:   1,
+				LoadMap: map[string]*RelationConfig{
+					"MultiA": {
+						Ids:          []int64{2},
+						RelationType: Multi,
+					},
 				},
 			},
 		},

@@ -32,18 +32,22 @@ func TestLinking(t *testing.T) {
 	id2 := "aasdfasdfa"
 
 	obj1 := &ExampleObject{
-		BaseNode: gogm.BaseNode{
-			Id:      0,
+		BaseUUIDNode: gogm.BaseUUIDNode{
 			UUID:    id1,
-			LoadMap: map[string]*gogm.RelationConfig{},
+			BaseNode: gogm.BaseNode{
+				Id:      0,
+				LoadMap: map[string]*gogm.RelationConfig{},
+			},
 		},
 	}
 
 	obj2 := &ExampleObject{
-		BaseNode: gogm.BaseNode{
-			Id:      1,
+		BaseUUIDNode: gogm.BaseUUIDNode{
 			UUID:    id2,
-			LoadMap: map[string]*gogm.RelationConfig{},
+			BaseNode: gogm.BaseNode{
+				Id:      1,
+				LoadMap: map[string]*gogm.RelationConfig{},
+			},
 		},
 	}
 
@@ -62,7 +66,7 @@ func TestLinking(t *testing.T) {
 	}
 
 	obj3 := &ExampleObject2{
-		BaseNode: gogm.BaseNode{
+		BaseUUIDNode: gogm.BaseUUIDNode{
 			UUID: "adfadsfasd",
 		},
 	}

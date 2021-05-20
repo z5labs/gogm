@@ -14,7 +14,7 @@ type tdInt int
 //structs for the example (can also be found in decoder_test.go)
 type VertexA struct {
 	// provides required node fields
-	gogm.BaseNode
+	gogm.BaseUUIDNode
 
 	TestField         string            `gogm:"name=test_field"`
 	TestTypeDefString tdString          `gogm:"name=test_type_def_string"`
@@ -30,7 +30,7 @@ type VertexA struct {
 
 type VertexB struct {
 	// provides required node fields
-	gogm.BaseNode
+	gogm.BaseUUIDNode
 
 	TestField  string     `gogm:"name=test_field"`
 	TestTime   time.Time  `gogm:"name=test_time"`
@@ -41,10 +41,10 @@ type VertexB struct {
 	MultiSpec  []*EdgeC   `gogm:"direction=incoming;relationship=special_multi"`
 }
 
-// EdgeC implements IEdge
+// EdgeC implements Edge
 type EdgeC struct {
 	// provides required node fields
-	gogm.BaseNode
+	gogm.BaseUUIDNode
 
 	Start *VertexA
 	End   *VertexB

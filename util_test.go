@@ -96,9 +96,11 @@ func TestToCypherParamsMap(t *testing.T) {
 	req.NotNil(gogm)
 
 	val := a{
-		BaseNode: BaseNode{
-			Id:   0,
+		BaseUUIDNode: BaseUUIDNode{
 			UUID: "testuuid",
+			BaseNode: BaseNode{
+				Id:   0,
+			},
 		},
 		TestField: "testvalue",
 	}
