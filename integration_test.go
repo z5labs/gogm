@@ -77,6 +77,10 @@ func (i *IntegrationTestSuite) SetupSuite() {
 
 func (integrationTest *IntegrationTestSuite) TestManagedTx() {
 	//req := integrationTest.Require()
+	if integrationTest.gogm.neoVersion <= 4 {
+		integrationTest.T().Skip()
+		return
+	}
 	assert := integrationTest.Assert()
 
 	va := a{}

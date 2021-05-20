@@ -31,19 +31,6 @@ import (
 const maxSaveDepth = 10
 const defaultSaveDepth = 1
 
-// neoRunFunc typedefs function signature from neo4j driver
-//type neoRunFunc func(cypher string, params map[string]interface{}) (neo4j.Result, error)
-
-// runWrap is used to wrap the session run function into a consistent function signature
-//func runWrap(sess neo4j.Session) neoRunFunc {
-//	return func(cypher string, params map[string]interface{}) (neo4j.Result, error) {
-//		if sess == nil {
-//			return nil, fmt.Errorf("session can not be nil, %w", ErrInternal)
-//		}
-//		return sess.Run(cypher, params)
-//	}
-//}
-
 // nodeCreateConf holds configuration for creating new nodes
 type nodeCreateConf struct {
 	// params to save

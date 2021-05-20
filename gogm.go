@@ -148,7 +148,7 @@ func (g *Gogm) initDriver() error {
 	// get neoversion
 	sess := driver.NewSession(neo4j.SessionConfig{
 		AccessMode:   neo4j.AccessModeRead,
-		DatabaseName: "neo4j",
+	//	DatabaseName: "neo4j",
 	})
 
 	res, err := sess.Run("return 1", nil)
