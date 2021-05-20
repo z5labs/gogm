@@ -557,6 +557,10 @@ func (s *SessionV2Impl) Query(ctx context.Context, query string, properties map[
 		return s.runReadOnly(ctx, query, properties, respObj)
 	}
 
+	if s.conf.AccessMode == AccessModeRead {
+		return s.runReadOnly(ctx, query, properties, respObj)
+	}
+
 	return s.runWrite(ctx, func(tx neo4j.Transaction) (interface{}, error) {
 		res, err := tx.Run(query, properties)
 		if err != nil {
@@ -568,52 +572,72 @@ func (s *SessionV2Impl) Query(ctx context.Context, query string, properties map[
 }
 
 func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties map[string]interface{}) ([][]interface{}, neo4j.ResultSummary, error) {
-	var span opentracing.Span
-	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.QueryRaw")
-		defer span.Finish()
-	} else {
-		span = nil
-	}
-
 	if s.neoSess == nil {
 		return nil, nil, errors.New("neo4j connection not initialized")
 	}
-
-	var res neo4j.Result
 	var err error
 	if s.tx != nil {
-		res, err = s.tx.Run(query, properties)
+		res, err := s.tx.Run(query, properties)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to execute query, %w", err)
 		}
+
+		sum, err := res.Consume()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return s.parseResult(res), sum, nil
 	} else {
 		var ires interface{}
+		var sum neo4j.ResultSummary
 		if s.conf.AccessMode == AccessModeRead {
 			ires, err = s.neoSess.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
-				return tx.Run(query, properties)
+				res, err := tx.Run(query, properties)
+				if err != nil {
+					return nil, err
+				}
+
+				pres := s.parseResult(res)
+
+				sum, err = res.Consume()
+				if err != nil {
+					return nil, err
+				}
+
+				return pres, nil
 			})
 		} else {
 			ires, err = s.neoSess.WriteTransaction(func(tx neo4j.Transaction) (interface{}, error) {
-				return tx.Run(query, properties)
+				res, err := tx.Run(query, properties)
+				if err != nil {
+					return nil, err
+				}
+
+				pres := s.parseResult(res)
+
+				sum, err = res.Consume()
+				if err != nil {
+					return nil, err
+				}
+
+				return pres, nil
 			})
 		}
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to run auto transaction, %w", err)
 		}
 
-		var ok bool
-		res, ok = ires.(neo4j.Result)
+		result, ok := ires.([][]interface{})
 		if !ok {
-			return nil, nil, fmt.Errorf("failed to cast %T to neo4j.Result", ires)
+			return nil, nil, fmt.Errorf("failed to cast %T to [][]interface{}", ires)
 		}
-	}
 
-	summary, err := res.Consume()
-	if err != nil {
-		return nil, nil, err
+		return result, sum, nil
 	}
+}
 
+func (s *SessionV2Impl) parseResult(res neo4j.Result) [][]interface{} {
 	var result [][]interface{}
 
 	// we have to wrap everything because the driver only exposes interfaces which are not serializable
@@ -623,18 +647,18 @@ func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties m
 		if valLen != 0 {
 			vals := make([]interface{}, valLen, valCap)
 			for i, val := range res.Record().Values {
-				switch val.(type) {
+				switch v := val.(type) {
 				case neo4j.Path:
-					vals[i] = newPathWrap(val.(neo4j.Path))
+					vals[i] = v
 					break
 				case neo4j.Relationship:
-					vals[i] = newRelationshipWrap(val.(neo4j.Relationship))
+					vals[i] = v
 					break
 				case neo4j.Node:
-					vals[i] = newNodeWrap(val.(neo4j.Node))
+					vals[i] = v
 					break
 				default:
-					vals[i] = val
+					vals[i] = v
 					continue
 				}
 			}
@@ -642,7 +666,7 @@ func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties m
 		}
 	}
 
-	return result, summary, nil
+	return result
 }
 
 func (s *SessionV2Impl) isTransientError(err error) bool {
@@ -711,24 +735,16 @@ func (s *SessionV2Impl) ManagedTransaction(ctx context.Context, work Transaction
 	}
 
 	defer s.clearTx()
-	var deadline time.Time
-	var ok bool
-
 	// handle timeout info
-	if ctx != nil {
-		deadline, ok = ctx.Deadline()
-		if !ok {
-			deadline = time.Now().Add(s.gogm.config.DefaultTransactionTimeout)
-		}
-	} else {
-		deadline = time.Now().Add(s.gogm.config.DefaultTransactionTimeout)
-	}
+	deadline := s.getDeadline(ctx)
 
 	if s.conf.AccessMode == AccessModeWrite {
 		_, err := s.neoSess.WriteTransaction(txWork, neo4j.WithTxTimeout(deadline.Sub(time.Now())))
 		if err != nil {
 			return fmt.Errorf("failed managed write tx, %w", err)
 		}
+
+		s.lastBookmark = s.neoSess.LastBookmark()
 
 		return nil
 	}
@@ -737,6 +753,8 @@ func (s *SessionV2Impl) ManagedTransaction(ctx context.Context, work Transaction
 	if err != nil {
 		return fmt.Errorf("failed managed write tx, %w", err)
 	}
+
+	s.lastBookmark = s.neoSess.LastBookmark()
 
 	return nil
 }

@@ -510,36 +510,49 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 	if s.neoSess == nil {
 		return nil, errors.New("neo4j connection not initialized")
 	}
-
-	var res neo4j.Result
 	var err error
 	if s.tx != nil {
-		res, err = s.tx.Run(query, properties)
+		res, err := s.tx.Run(query, properties)
 		if err != nil {
 			return nil, fmt.Errorf("failed to execute query, %w", err)
 		}
+
+		return s.parseResult(res), nil
 	} else {
 		var ires interface{}
 		if s.mode == AccessModeRead {
 			ires, err = s.neoSess.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
-				return tx.Run(query, properties)
+				res, err := tx.Run(query, properties)
+				if err != nil {
+					return nil, err
+				}
+
+				return s.parseResult(res), nil
 			})
 		} else {
 			ires, err = s.neoSess.WriteTransaction(func(tx neo4j.Transaction) (interface{}, error) {
-				return tx.Run(query, properties)
+				res, err := tx.Run(query, properties)
+				if err != nil {
+					return nil, err
+				}
+
+				return s.parseResult(res), nil
 			})
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to run auto transaction, %w", err)
 		}
 
-		var ok bool
-		res, ok = ires.(neo4j.Result)
+		result, ok := ires.([][]interface{})
 		if !ok {
-			return nil, fmt.Errorf("failed to cast %T to neo4j.Result", ires)
+			return nil, fmt.Errorf("failed to cast %T to [][]interface{}", ires)
 		}
-	}
 
+		return result, nil
+	}
+}
+
+func (s *Session) parseResult(res neo4j.Result) [][]interface{} {
 	var result [][]interface{}
 
 	// we have to wrap everything because the driver only exposes interfaces which are not serializable
@@ -549,18 +562,18 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 		if valLen != 0 {
 			vals := make([]interface{}, valLen, valCap)
 			for i, val := range res.Record().Values {
-				switch val.(type) {
+				switch v := val.(type) {
 				case neo4j.Path:
-					vals[i] = newPathWrap(val.(neo4j.Path))
+					vals[i] = v
 					break
 				case neo4j.Relationship:
-					vals[i] = newRelationshipWrap(val.(neo4j.Relationship))
+					vals[i] = v
 					break
 				case neo4j.Node:
-					vals[i] = newNodeWrap(val.(neo4j.Node))
+					vals[i] = v
 					break
 				default:
-					vals[i] = val
+					vals[i] = v
 					continue
 				}
 			}
@@ -568,7 +581,7 @@ func (s *Session) QueryRaw(query string, properties map[string]interface{}) ([][
 		}
 	}
 
-	return result, nil
+	return result
 }
 
 func (s *Session) PurgeDatabase() error {

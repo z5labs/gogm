@@ -586,8 +586,6 @@ func parseStruct(gogm *Gogm, parentId, edgeLabel string, parentIsStart bool, dir
 		return nil
 	}
 
-	gogm.logger.Debugf("on cycle %v", currentDepth)
-
 	//validate params
 	err := parseValidate(currentDepth, maxDepth, current, nodesPtr, relationsPtr)
 	if err != nil {

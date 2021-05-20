@@ -31,16 +31,32 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestManagedTx(t *testing.T) {
+func TestIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
 		return
 	}
+	suite.Run(t, &IntegrationTestSuite{})
+}
 
-	req := require.New(t)
-	assert := assert2.New(t)
+type IntegrationTestSuite struct {
+	suite.Suite
+	gogm *Gogm
+}
+
+func (i *IntegrationTestSuite) TearDownSuite() {
+	sess, err := i.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+	i.Require().Nil(err)
+	i.Require().NotNil(sess)
+	sess.QueryRaw(context.Background(), "match (n) detach delete n", nil)
+	i.Require().Nil(sess.Close())
+	i.Require().Nil(i.gogm.Close())
+}
+
+func (i *IntegrationTestSuite) SetupSuite() {
 	conf := Config{
 		Username:                  "neo4j",
 		Password:                  "changeme",
@@ -48,14 +64,20 @@ func TestManagedTx(t *testing.T) {
 		IsCluster:                 false,
 		Port:                      7687,
 		PoolSize:                  15,
-		DefaultTransactionTimeout: time.Second * 40,
 		IndexStrategy:             IGNORE_INDEX,
+		EnableDriverLogs:          true,
+		DefaultTransactionTimeout: 2 * time.Minute,
 	}
 
-	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{})
-	req.Nil(err)
-	req.NotNil(gogm)
-	defer gogm.Close()
+	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{}, &propTest{})
+	i.Require().Nil(err)
+	i.Require().NotNil(gogm)
+	i.gogm = gogm
+}
+
+func (integrationTest *IntegrationTestSuite) TestManagedTx() {
+	//req := integrationTest.Require()
+	assert := integrationTest.Assert()
 
 	va := a{}
 	va.UUID = uuid2.New().String()
@@ -66,7 +88,7 @@ func TestManagedTx(t *testing.T) {
 		wg.Add(1)
 		go func(assert *assert2.Assertions, wg *sync.WaitGroup, va a, vb b, t int) {
 			defer wg.Done()
-			sess, err := gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+			sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
 			if !assert.NotNil(sess) || !assert.Nil(err) {
 				fmt.Println("exiting routine")
 				return
@@ -77,25 +99,14 @@ func TestManagedTx(t *testing.T) {
 				//fmt.Printf("pass %v on thread %v\n", j, t)
 				ctx := context.Background()
 				err = sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
+					va.TestField = time.Now().UTC().String()
 					err = tx.SaveDepth(ctx, &va, 0)
 					if err != nil {
 						return err
 					}
 
-					err = tx.SaveDepth(ctx, &vb, 0)
-					if err != nil {
-						return err
-					}
-
-					va.ManyA = []*b{&vb}
-					vb.ManyB = &va
-
-					err = tx.SaveDepth(ctx, &va, 1)
-					if err != nil {
-						return err
-					}
-
-					return nil
+					vb.TestField = time.Now().UTC().String()
+					return tx.SaveDepth(ctx, &vb, 0)
 				})
 				if !assert.Nil(err) {
 					fmt.Printf("error: %s, exiting thread", err.Error())
@@ -109,30 +120,9 @@ func TestManagedTx(t *testing.T) {
 
 // This test is to make sure retuning raw results from neo4j actually work. This
 // proves that the bug causing empty interfaces to be returned has been fixed.
-func TestRawQuery(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-		return
-	}
-
-	req := require.New(t)
-
-	conf := Config{
-		Username:      "neo4j",
-		Password:      "password",
-		Host:          "0.0.0.0",
-		IsCluster:     false,
-		Port:          7687,
-		PoolSize:      15,
-		IndexStrategy: IGNORE_INDEX,
-	}
-
-	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{})
-	req.Nil(err)
-	req.NotNil(gogm)
-	defer gogm.Close()
-
-	sess, err := gogm.NewSession(SessionConfig{AccessMode: AccessModeWrite})
+func (i *IntegrationTestSuite) TestRawQuery() {
+	req := i.Require()
+	sess, err := i.gogm.NewSession(SessionConfig{AccessMode: AccessModeWrite})
 	req.Nil(err)
 	defer sess.Close()
 
@@ -151,30 +141,9 @@ func TestRawQuery(t *testing.T) {
 	req.NotEmpty(raw)
 }
 
-func TestRawQueryV2(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-		return
-	}
-
-	req := require.New(t)
-
-	conf := Config{
-		Username:      "neo4j",
-		Password:      "password",
-		Host:          "0.0.0.0",
-		IsCluster:     false,
-		Port:          7687,
-		PoolSize:      15,
-		IndexStrategy: IGNORE_INDEX,
-	}
-
-	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{})
-	req.Nil(err)
-	req.NotNil(gogm)
-	defer gogm.Close()
-
-	sess, err := gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+func (i *IntegrationTestSuite) TestRawQueryV2() {
+	req := i.Require()
+	sess, err := i.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
 	req.Nil(err)
 	defer sess.Close()
 
@@ -186,10 +155,11 @@ func TestRawQueryV2(t *testing.T) {
 		},
 	}))
 
-	raw, _, err := sess.QueryRaw(context.Background(), "match (n) where n.uuid=$uuid return n", map[string]interface{}{
+	raw, sum, err := sess.QueryRaw(context.Background(), "match (n) where n.uuid=$uuid return n", map[string]interface{}{
 		"uuid": uuid,
 	})
 	req.Nil(err)
+	req.NotZero(sum)
 	req.NotEmpty(raw)
 }
 
@@ -217,86 +187,36 @@ type propTest struct {
 	TdMapTdSliceOfTd tdMapTdSliceOfTd `gogm:"name=prop12;properties"`
 }
 
-func TestIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-		return
-	}
-
-	req := require.New(t)
-
-	conf := Config{
-		Username:      "neo4j",
-		Password:      "changeme",
-		Host:          "0.0.0.0",
-		IsCluster:     false,
-		Port:          7687,
-		PoolSize:      15,
-		IndexStrategy: IGNORE_INDEX,
-	}
-
-	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{}, &propTest{})
-	req.Nil(err)
-	req.NotNil(gogm)
-
+func (i *IntegrationTestSuite) TestIntegration() {
 	log.Println("opening session")
 
 	log.Println("testIndexManagement")
-	testIndexManagement(req)
+	testIndexManagement(i.Require())
 
-	sess, err := gogm.NewSession(SessionConfig{AccessMode: AccessModeWrite})
-	req.Nil(err)
+	sess, err := i.gogm.NewSession(SessionConfig{AccessMode: AccessModeWrite})
+	i.Require().Nil(err)
 
 	log.Println("test save")
-	testSave(sess, req)
-
-	req.Nil(sess.PurgeDatabase())
+	testSave(sess, i.Require())
 
 	// Test Opening and Closing Session using SessionConfig
-	sessConf, err := gogm.NewSession(SessionConfig{
+	sessConf, err := i.gogm.NewSession(SessionConfig{
 		AccessMode: AccessModeRead,
 	})
-	req.Nil(err)
-	req.Nil(sessConf.Close())
+	i.Require().Nil(err)
+	i.Require().Nil(sessConf.Close())
 
-	//testLoad(req, 500, 5)
-	//req.Nil(sess.PurgeDatabase())
+	testLoad(i.Require(), i.gogm, 500, 5)
 
-	req.Nil(sess.Close())
-
-	req.Nil(gogm.Close())
+	i.Require().Nil(sess.Close())
 }
 
-func TestIntegrationV2(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-		return
-	}
-
-	req := require.New(t)
-
-	conf := Config{
-		Username:                  "neo4j",
-		Password:                  "changeme",
-		Host:                      "0.0.0.0",
-		IsCluster:                 false,
-		Port:                      7687,
-		PoolSize:                  15,
-		IndexStrategy:             IGNORE_INDEX,
-		EnableDriverLogs:          true,
-		DefaultTransactionTimeout: time.Minute * 5,
-	}
-
-	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{}, &propTest{})
-	req.Nil(err)
-	req.NotNil(gogm)
-
-	log.Println("opening session")
-
+func (i *IntegrationTestSuite) TestIntegrationV2() {
+	req := i.Require()
 	log.Println("testIndexManagement")
 	testIndexManagement(req)
 
-	sess, err := gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+	sess, err := i.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
 	req.Nil(err)
 
 	log.Println("test save")
@@ -306,28 +226,22 @@ func TestIntegrationV2(t *testing.T) {
 	req.Nil(err)
 
 	// Test Opening and Closing Session using SessionConfig
-	sessConf, err := gogm.NewSession(SessionConfig{
+	sessConf, err := i.gogm.NewSession(SessionConfig{
 		AccessMode: AccessModeRead,
 	})
 	req.Nil(err)
 	req.Nil(sessConf.Close())
 
-	//testLoad(req, 500, 5)
-	//req.Nil(sess.PurgeDatabase())
-
 	req.Nil(sess.Close())
-
-	req.Nil(gogm.Close())
-
 }
 
-func testLoad(req *require.Assertions, numThreads, msgPerThread int) {
+func testLoad(req *require.Assertions, gogm *Gogm, numThreads, msgPerThread int) {
 	var wg sync.WaitGroup
 	wg.Add(numThreads)
 	for i := 0; i < numThreads; i++ {
 		go func(w *sync.WaitGroup, n int) {
 			defer wg.Done()
-			sess, err := NewSession(false)
+			sess, err := gogm.NewSession(SessionConfig{AccessMode: AccessModeRead})
 			req.Nil(err)
 			req.NotNil(sess)
 			defer sess.Close()
