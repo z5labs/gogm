@@ -125,7 +125,10 @@ func (g *Gogm) parseOgmTypes() error {
 func (g *Gogm) initDriver() error {
 	// todo tls support
 	neoConfig := func(neoConf *neo4j.Config) {
-		neoConf.Log = wrapLogger(g.logger)
+		if g.config.EnableDriverLogs {
+			neoConf.Log = wrapLogger(g.logger)
+		}
+
 		neoConf.MaxConnectionPoolSize = g.config.PoolSize
 	}
 

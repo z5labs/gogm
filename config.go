@@ -59,7 +59,10 @@ type Config struct {
 
 	Logger Logger `yaml:"-" json:"-" mapstructure:"-"`
 	// if logger is not nil log level will be ignored
-	LogLevel string `json:"log_level" yaml:"log_level" mapstructure:"log_level"`
+	LogLevel         string `json:"log_level" yaml:"log_level" mapstructure:"log_level"`
+	EnableDriverLogs bool   `json:"enable_driver_logs" yaml:"enable_driver_logs" mapstructure:"enable_driver_logs"`
+	// WARNING THIS IS A SECURITY RISK -- ONLY ENABLE THIS FOR DEBUG
+	EnableLogParams bool `json:"enable_log_properties" yaml:"enable_log_properties" mapstructure:"enable_log_properties"`
 
 	OpentracingEnabled bool `json:"opentracing_enabled" yaml:"opentracing_enabled" mapstructure:"opentracing_enabled"`
 }

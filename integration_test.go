@@ -186,7 +186,7 @@ func TestRawQueryV2(t *testing.T) {
 		},
 	}))
 
-	raw, _, err := sess.QueryRaw(context.Background(),"match (n) where n.uuid=$uuid return n", map[string]interface{}{
+	raw, _, err := sess.QueryRaw(context.Background(), "match (n) where n.uuid=$uuid return n", map[string]interface{}{
 		"uuid": uuid,
 	})
 	req.Nil(err)
@@ -276,13 +276,15 @@ func TestIntegrationV2(t *testing.T) {
 	req := require.New(t)
 
 	conf := Config{
-		Username:      "neo4j",
-		Password:      "changeme",
-		Host:          "0.0.0.0",
-		IsCluster:     false,
-		Port:          7687,
-		PoolSize:      15,
-		IndexStrategy: IGNORE_INDEX,
+		Username:                  "neo4j",
+		Password:                  "changeme",
+		Host:                      "0.0.0.0",
+		IsCluster:                 false,
+		Port:                      7687,
+		PoolSize:                  15,
+		IndexStrategy:             IGNORE_INDEX,
+		EnableDriverLogs:          true,
+		DefaultTransactionTimeout: time.Minute * 5,
 	}
 
 	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{}, &propTest{})
@@ -300,7 +302,7 @@ func TestIntegrationV2(t *testing.T) {
 	log.Println("test save")
 	testSaveV2(sess, req)
 
-	_, _, err = sess.QueryRaw(context.Background(),"match (n) detach delete n", nil)
+	_, _, err = sess.QueryRaw(context.Background(), "match (n) detach delete n", nil)
 	req.Nil(err)
 
 	// Test Opening and Closing Session using SessionConfig
@@ -475,6 +477,7 @@ func testSave(sess ISession, req *require.Assertions) {
 }
 
 func testSaveV2(sess SessionV2, req *require.Assertions) {
+	logger := GetDefaultLogger()
 	ctx := context.Background()
 	req.Nil(sess.Begin(ctx))
 	a2 := &a{
@@ -593,6 +596,7 @@ func testSaveV2(sess SessionV2, req *require.Assertions) {
 	req.Nil(sess.SaveDepth(ctx, &prop1, 0))
 
 	var prop2 propTest
+	logger.Debug("----------------------------------------------------------------------------------")
 	req.Nil(sess.LoadDepth(ctx, &prop2, prop1.UUID, 0))
 
 	req.EqualValues(prop1.MapInterface, prop2.MapInterface)

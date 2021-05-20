@@ -39,6 +39,7 @@ type SessionV2Impl struct {
 	DefaultDepth int
 	LoadStrategy LoadStrategy
 	conf         SessionConfig
+	lastBookmark string
 }
 
 func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, error) {
@@ -72,7 +73,7 @@ func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, err
 func (s *SessionV2Impl) Begin(ctx context.Context) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.Begin")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.Begin")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -98,7 +99,7 @@ func (s *SessionV2Impl) Begin(ctx context.Context) error {
 func (s *SessionV2Impl) Rollback(ctx context.Context) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.Rollback")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.Rollback")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -129,7 +130,7 @@ func (s *SessionV2Impl) Rollback(ctx context.Context) error {
 func (s *SessionV2Impl) RollbackWithError(ctx context.Context, originalError error) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.RollbackWithError")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.RollbackWithError")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -146,7 +147,7 @@ func (s *SessionV2Impl) RollbackWithError(ctx context.Context, originalError err
 func (s *SessionV2Impl) Commit(ctx context.Context) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.Commit")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.Commit")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -177,7 +178,7 @@ func (s *SessionV2Impl) Commit(ctx context.Context) error {
 func (s *SessionV2Impl) Load(ctx context.Context, respObj interface{}, id string) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.Load")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.Load")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -189,7 +190,7 @@ func (s *SessionV2Impl) Load(ctx context.Context, respObj interface{}, id string
 func (s *SessionV2Impl) LoadDepth(ctx context.Context, respObj interface{}, id string, depth int) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.LoadDepth")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadDepth")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -201,7 +202,7 @@ func (s *SessionV2Impl) LoadDepth(ctx context.Context, respObj interface{}, id s
 func (s *SessionV2Impl) LoadDepthFilter(ctx context.Context, respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.LoadDepthFilter")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadDepthFilter")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -213,7 +214,7 @@ func (s *SessionV2Impl) LoadDepthFilter(ctx context.Context, respObj interface{}
 func (s *SessionV2Impl) LoadDepthFilterPagination(ctx context.Context, respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.LoadDepthFilterPagination")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadDepthFilterPagination")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -287,7 +288,7 @@ func (s *SessionV2Impl) LoadDepthFilterPagination(ctx context.Context, respObj i
 func (s *SessionV2Impl) LoadAll(ctx context.Context, respObj interface{}) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.LoadAll")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadAll")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -298,7 +299,7 @@ func (s *SessionV2Impl) LoadAll(ctx context.Context, respObj interface{}) error 
 func (s *SessionV2Impl) LoadAllDepth(ctx context.Context, respObj interface{}, depth int) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.LoadAllDepth")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadAllDepth")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -309,7 +310,7 @@ func (s *SessionV2Impl) LoadAllDepth(ctx context.Context, respObj interface{}, d
 func (s *SessionV2Impl) LoadAllDepthFilter(ctx context.Context, respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.LoadAllDepthFilter")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadAllDepthFilter")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -320,7 +321,7 @@ func (s *SessionV2Impl) LoadAllDepthFilter(ctx context.Context, respObj interfac
 func (s *SessionV2Impl) LoadAllDepthFilterPagination(ctx context.Context, respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.LoadAllDepthFilterPagination")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadAllDepthFilterPagination")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -398,10 +399,13 @@ func (s *SessionV2Impl) LoadAllDepthFilterPagination(ctx context.Context, respOb
 func (s *SessionV2Impl) runReadOnly(ctx context.Context, cyp string, params map[string]interface{}, respObj interface{}) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.runReadOnly")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.runReadOnly")
 		defer span.Finish()
-
 		span.LogKV("query", cyp)
+		if s.gogm.config.EnableLogParams {
+			s.gogm.logger.Warn("logging params")
+			span.LogKV("params", params)
+		}
 	} else {
 		span = nil
 	}
@@ -440,7 +444,7 @@ func (s *SessionV2Impl) runReadOnly(ctx context.Context, cyp string, params map[
 func (s *SessionV2Impl) Save(ctx context.Context, saveObj interface{}) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.Save")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.Save")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -452,7 +456,7 @@ func (s *SessionV2Impl) Save(ctx context.Context, saveObj interface{}) error {
 func (s *SessionV2Impl) SaveDepth(ctx context.Context, saveObj interface{}, depth int) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.SaveDepth")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.SaveDepth")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -468,7 +472,7 @@ func (s *SessionV2Impl) SaveDepth(ctx context.Context, saveObj interface{}, dept
 func (s *SessionV2Impl) Delete(ctx context.Context, deleteObj interface{}) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.Delete")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.Delete")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -494,7 +498,7 @@ func (s *SessionV2Impl) Delete(ctx context.Context, deleteObj interface{}) error
 func (s *SessionV2Impl) DeleteUUID(ctx context.Context, uuid string) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.DeleteUUID")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.DeleteUUID")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -511,7 +515,7 @@ func (s *SessionV2Impl) DeleteUUID(ctx context.Context, uuid string) error {
 func (s *SessionV2Impl) runWrite(ctx context.Context, work neo4j.TransactionWork) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.runWrite")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.runWrite")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -527,6 +531,7 @@ func (s *SessionV2Impl) runWrite(ctx context.Context, work neo4j.TransactionWork
 		return nil
 	}
 
+	s.gogm.logger.Debug("running in managed write transaction")
 	_, err := s.neoSess.WriteTransaction(work, neo4j.WithTxTimeout(s.getDeadline(ctx).Sub(time.Now())))
 	if err != nil {
 		return fmt.Errorf("failed to save in auto transaction, %w", err)
@@ -538,7 +543,7 @@ func (s *SessionV2Impl) runWrite(ctx context.Context, work neo4j.TransactionWork
 func (s *SessionV2Impl) Query(ctx context.Context, query string, properties map[string]interface{}, respObj interface{}) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.Query")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.Query")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -565,7 +570,7 @@ func (s *SessionV2Impl) Query(ctx context.Context, query string, properties map[
 func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties map[string]interface{}) ([][]interface{}, neo4j.ResultSummary, error) {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.QueryRaw")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.QueryRaw")
 		defer span.Finish()
 	} else {
 		span = nil
@@ -686,7 +691,7 @@ func (s *SessionV2Impl) getDeadline(ctx context.Context) time.Time {
 func (s *SessionV2Impl) ManagedTransaction(ctx context.Context, work TransactionWork) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
-		span, ctx = opentracing.StartSpanFromContext(ctx,"gogm.SessionV2Impl.ManagedTransaction")
+		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.ManagedTransaction")
 		defer span.Finish()
 	} else {
 		span = nil
