@@ -298,7 +298,6 @@ func innerDecode(gogm *Gogm, result [][]interface{}, respObj interface{}) (err e
 
 	//handle if its returning a slice -- validation has been done at an earlier step
 	if rt.Elem().Kind() == reflect.Slice {
-
 		reflection := reflect.MakeSlice(rt.Elem(), 0, cap(pks))
 
 		reflectionValue := reflect.New(reflection.Type())

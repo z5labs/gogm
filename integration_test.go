@@ -47,16 +47,16 @@ type IntegrationTestSuite struct {
 	gogm *Gogm
 }
 
-func (i *IntegrationTestSuite) TearDownSuite() {
-	sess, err := i.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
-	i.Require().Nil(err)
-	i.Require().NotNil(sess)
+func (integrationTest *IntegrationTestSuite) TearDownSuite() {
+	sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+	integrationTest.Require().Nil(err)
+	integrationTest.Require().NotNil(sess)
 	sess.QueryRaw(context.Background(), "match (n) detach delete n", nil)
-	i.Require().Nil(sess.Close())
-	i.Require().Nil(i.gogm.Close())
+	integrationTest.Require().Nil(sess.Close())
+	integrationTest.Require().Nil(integrationTest.gogm.Close())
 }
 
-func (i *IntegrationTestSuite) SetupSuite() {
+func (integrationTest *IntegrationTestSuite) SetupSuite() {
 	conf := Config{
 		Username:                  "neo4j",
 		Password:                  "changeme",
@@ -70,9 +70,9 @@ func (i *IntegrationTestSuite) SetupSuite() {
 	}
 
 	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{}, &propTest{})
-	i.Require().Nil(err)
-	i.Require().NotNil(gogm)
-	i.gogm = gogm
+	integrationTest.Require().Nil(err)
+	integrationTest.Require().NotNil(gogm)
+	integrationTest.gogm = gogm
 }
 
 func (integrationTest *IntegrationTestSuite) TestManagedTx() {
@@ -124,9 +124,9 @@ func (integrationTest *IntegrationTestSuite) TestManagedTx() {
 
 // This test is to make sure retuning raw results from neo4j actually work. This
 // proves that the bug causing empty interfaces to be returned has been fixed.
-func (i *IntegrationTestSuite) TestRawQuery() {
-	req := i.Require()
-	sess, err := i.gogm.NewSession(SessionConfig{AccessMode: AccessModeWrite})
+func (integrationTest *IntegrationTestSuite) TestRawQuery() {
+	req := integrationTest.Require()
+	sess, err := integrationTest.gogm.NewSession(SessionConfig{AccessMode: AccessModeWrite})
 	req.Nil(err)
 	defer sess.Close()
 
@@ -145,9 +145,9 @@ func (i *IntegrationTestSuite) TestRawQuery() {
 	req.NotEmpty(raw)
 }
 
-func (i *IntegrationTestSuite) TestRawQueryV2() {
-	req := i.Require()
-	sess, err := i.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+func (integrationTest *IntegrationTestSuite) TestRawQueryV2() {
+	req := integrationTest.Require()
+	sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
 	req.Nil(err)
 	defer sess.Close()
 
@@ -191,36 +191,36 @@ type propTest struct {
 	TdMapTdSliceOfTd tdMapTdSliceOfTd `gogm:"name=prop12;properties"`
 }
 
-func (i *IntegrationTestSuite) TestIntegration() {
+func (integrationTest *IntegrationTestSuite) TestIntegration() {
 	log.Println("opening session")
 
 	log.Println("testIndexManagement")
-	testIndexManagement(i.Require())
+	testIndexManagement(integrationTest.Require())
 
-	sess, err := i.gogm.NewSession(SessionConfig{AccessMode: AccessModeWrite})
-	i.Require().Nil(err)
+	sess, err := integrationTest.gogm.NewSession(SessionConfig{AccessMode: AccessModeWrite})
+	integrationTest.Require().Nil(err)
 
 	log.Println("test save")
-	testSave(sess, i.Require())
+	testSave(sess, integrationTest.Require())
 
 	// Test Opening and Closing Session using SessionConfig
-	sessConf, err := i.gogm.NewSession(SessionConfig{
+	sessConf, err := integrationTest.gogm.NewSession(SessionConfig{
 		AccessMode: AccessModeRead,
 	})
-	i.Require().Nil(err)
-	i.Require().Nil(sessConf.Close())
+	integrationTest.Require().Nil(err)
+	integrationTest.Require().Nil(sessConf.Close())
 
-	testLoad(i.Require(), i.gogm, 500, 5)
+	testLoad(integrationTest.Require(), integrationTest.gogm, 500, 5)
 
-	i.Require().Nil(sess.Close())
+	integrationTest.Require().Nil(sess.Close())
 }
 
-func (i *IntegrationTestSuite) TestIntegrationV2() {
-	req := i.Require()
+func (integrationTest *IntegrationTestSuite) TestIntegrationV2() {
+	req := integrationTest.Require()
 	log.Println("testIndexManagement")
 	testIndexManagement(req)
 
-	sess, err := i.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+	sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
 	req.Nil(err)
 
 	log.Println("test save")
@@ -230,7 +230,7 @@ func (i *IntegrationTestSuite) TestIntegrationV2() {
 	req.Nil(err)
 
 	// Test Opening and Closing Session using SessionConfig
-	sessConf, err := i.gogm.NewSession(SessionConfig{
+	sessConf, err := integrationTest.gogm.NewSession(SessionConfig{
 		AccessMode: AccessModeRead,
 	})
 	req.Nil(err)
