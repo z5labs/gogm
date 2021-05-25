@@ -35,7 +35,7 @@ type BaseNode struct {
 type BaseUUIDNode struct {
 	BaseNode
 	// UUID is the unique identifier GoGM uses as a primary key
-	UUID string `json:"uuid" gogm:"pk;name=uuid"`
+	UUID string `gogm:"pk=UUID"`
 }
 
 // Specifies Type of testRelationship

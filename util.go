@@ -22,7 +22,6 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	go_cypherdsl "github.com/mindstand/go-cypherdsl"
 	"reflect"
 	"strings"
@@ -50,43 +49,50 @@ func stringSliceContains(s []string, e string) bool {
 }
 
 // sets uuid for stuct if uuid field is empty
-func handleNodeState(val *reflect.Value, fieldName string) (bool, string, map[string]*RelationConfig, error) {
+func handleNodeState(pkStrat *PrimaryKeyStrategy, val *reflect.Value) (isNew bool, id int64, relConfig map[string]*RelationConfig, err error) {
 	if val == nil {
-		return false, "", nil, errors.New("value can not be nil")
+		return false, -1, nil, errors.New("value can not be nil")
+	}
+
+	if pkStrat == nil {
+		return false, -1, nil, errors.New("pk strategy can not be nil")
 	}
 
 	if reflect.TypeOf(*val).Kind() == reflect.Ptr {
 		*val = val.Elem()
 	}
 
-	checkUuid := reflect.Indirect(*val).FieldByName(fieldName).String()
-
 	loadVal := reflect.Indirect(*val).FieldByName("LoadMap")
-
 	iConf := loadVal.Interface()
 
-	if iConf != nil && loadVal.Len() != 0 && checkUuid != "" {
-		// node is not new
-		relConf, ok := iConf.(map[string]*RelationConfig)
+	var loadMap map[string]*RelationConfig
+	var ok bool
+	if iConf != nil && loadVal.Len() != 0 {
+		loadMap, ok = iConf.(map[string]*RelationConfig)
 		if !ok {
-			return false, "", nil, fmt.Errorf("unable to cast conf to [map[string]*RelationConfig], %w", ErrInternal)
+			return false, -1, nil, fmt.Errorf("unable to cast conf to [map[string]*RelationConfig], %w", ErrInternal)
 		}
+	}
 
-		return false, checkUuid, relConf, nil
-	} else {
-		// definitely new
-		var newUuid string
+	// handle the id
+	id = reflect.Indirect(*val).FieldByName(DefaultPrimaryKeyStrategy.FieldName).Int()
+	isNew = id < 0
 
-		if checkUuid == "" {
-			newUuid = uuid.New().String()
+	// using a pk strategy on top of default graph ids
+	if pkStrat.StrategyName != pkStrat.StrategyName {
+		checkId := reflect.Indirect(*val).FieldByName(pkStrat.FieldName)
+		if !checkId.IsZero() && !isNew {
+			return false, id, loadMap, nil
 		} else {
-			newUuid = checkUuid
+			// if id was not set by user, gen new id and set it
+			if checkId.IsZero() {
+				reflect.Indirect(*val).FieldByName(pkStrat.FieldName).Set(reflect.ValueOf(pkStrat.GenIDFunc()))
+			}
+
+			return true, -1, loadMap, nil
 		}
-
-		reflect.Indirect(*val).FieldByName(fieldName).Set(reflect.ValueOf(newUuid))
-
-		return true, newUuid, map[string]*RelationConfig{}, nil
-
+	} else {
+		return isNew, id, loadMap, nil
 	}
 }
 

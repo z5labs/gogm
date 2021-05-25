@@ -66,7 +66,7 @@ func TestConvertNodeToValue(t *testing.T) {
 			Fields: map[string]decoratorConfig{
 				"UUID": {
 					Type:       reflect.TypeOf(""),
-					PrimaryKey: true,
+					PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
 					Name:       "uuid",
 				},
 				"Id": {

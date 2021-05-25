@@ -100,7 +100,7 @@ type decoratorConfig struct {
 	// uses edge specifies if the edge is a special node
 	UsesEdgeNode bool `json:"uses_edge_node"`
 	// specifies whether the field is the nodes primary key
-	PrimaryKey bool `json:"primary_key"`
+	PrimaryKey string `json:"primary_key"`
 	// specify if the field holds properties
 	Properties bool `json:"properties"`
 
@@ -164,10 +164,10 @@ func (s *structDecoratorConfig) Equals(comp *structDecoratorConfig) bool {
 }
 
 // Validate checks if the configuration is valid
-func (d *decoratorConfig) Validate() error {
+func (d *decoratorConfig) Validate(gogm *Gogm) error {
 	if d.Ignore {
 		if d.Relationship != "" || d.Unique || d.Index || d.ManyRelationship || d.UsesEdgeNode ||
-			d.PrimaryKey || d.Properties || d.Name != d.FieldName {
+			d.PrimaryKey != "" || d.Properties || d.Name != d.FieldName {
 			return NewInvalidDecoratorConfigError("ignore tag cannot be combined with any other tag", "")
 		}
 
@@ -183,7 +183,7 @@ func (d *decoratorConfig) Validate() error {
 
 	// properties supports map and slices
 	if (kind == reflect.Map || kind == reflect.Slice) && d.Properties && d.Relationship == "" {
-		if d.PrimaryKey || d.Relationship != "" || d.Direction != 0 || d.Index || d.Unique {
+		if d.PrimaryKey != "" || d.Relationship != "" || d.Direction != 0 || d.Index || d.Unique {
 			return NewInvalidDecoratorConfigError("field marked as properties can only have name defined", d.Name)
 		}
 
@@ -240,7 +240,7 @@ func (d *decoratorConfig) Validate() error {
 		}
 
 		//check that it isn't defining anything else that shouldn't be defined
-		if d.PrimaryKey || d.Properties || d.Index || d.Unique {
+		if d.PrimaryKey != "" || d.Properties || d.Index || d.Unique {
 			return NewInvalidDecoratorConfigError("can only define relationship, direction and name on a relationship", d.Name)
 		}
 
@@ -256,7 +256,7 @@ func (d *decoratorConfig) Validate() error {
 	//standard field checks now
 
 	//check pk and index and unique on the same field
-	if d.PrimaryKey && (d.Index || d.Unique) {
+	if d.PrimaryKey != "" && (d.Index || d.Unique) {
 		return NewInvalidDecoratorConfigError("can not specify Index or Unique on primary key", d.Name)
 	}
 
@@ -265,23 +265,15 @@ func (d *decoratorConfig) Validate() error {
 	}
 
 	//validate pk
-	if d.PrimaryKey {
-		rootKind := d.Type.Kind()
-
-		if rootKind != reflect.String && rootKind != reflect.Int64 {
-			return NewInvalidDecoratorConfigError(fmt.Sprintf("invalid type for primary key %s", rootKind.String()), d.Name)
+	if d.PrimaryKey != ""{
+		// validate strategy matches
+		if d.PrimaryKey != gogm.pkStrategy.StrategyName {
+			return fmt.Errorf("trying to use strategy '%s' when '%s' is registered", d.PrimaryKey, gogm.pkStrategy.StrategyName)
 		}
 
-		if rootKind == reflect.String {
-			if d.Name != "uuid" {
-				return NewInvalidDecoratorConfigError("primary key with type string must be named 'uuid'", d.Name)
-			}
-		}
-
-		if rootKind == reflect.Int64 {
-			if d.Name != "id" {
-				return NewInvalidDecoratorConfigError("primary key with type int64 must be named 'id'", d.Name)
-			}
+		// validate type is correct
+		if d.Type != gogm.pkStrategy.Type {
+			return fmt.Errorf("struct defined type (%s) different than register pk type (%s)", d.Type.Name(), gogm.pkStrategy.Type.Name())
 		}
 	}
 
@@ -293,7 +285,7 @@ var edgeType = reflect.TypeOf(new(Edge)).Elem()
 
 // newDecoratorConfig generates decorator config for field
 // takes in the raw tag, name of the field and reflect type
-func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decoratorConfig, error) {
+func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type) (*decoratorConfig, error) {
 	fields := strings.Split(decorator, deliminator)
 
 	if len(fields) == 0 {
@@ -303,7 +295,6 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 	//init bools to false
 	toReturn := decoratorConfig{
 		Unique:     false,
-		PrimaryKey: false,
 		Ignore:     false,
 		Direction:  0,
 		Type:       varType,
@@ -325,6 +316,9 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 			switch key {
 			case paramNameField:
 				toReturn.Name = val
+				continue
+			case primaryKeyField:
+				toReturn.PrimaryKey = val
 				continue
 			case relationshipNameField:
 				toReturn.Relationship = val
@@ -368,9 +362,6 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 		switch field {
 		case uniqueField:
 			toReturn.Unique = true
-			continue
-		case primaryKeyField:
-			toReturn.PrimaryKey = true
 			continue
 		case ignoreField:
 			toReturn.Ignore = true
@@ -444,7 +435,7 @@ func newDecoratorConfig(decorator, name string, varType reflect.Type) (*decorato
 	}
 
 	//ensure config complies with constraints
-	err := toReturn.Validate()
+	err := toReturn.Validate(gogm)
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +453,7 @@ func (s *structDecoratorConfig) Validate() error {
 	rels := 0
 
 	for _, conf := range s.Fields {
-		if conf.PrimaryKey {
+		if conf.PrimaryKey != "" {
 			pkCount++
 		}
 
@@ -489,7 +480,7 @@ func (s *structDecoratorConfig) Validate() error {
 }
 
 // getStructDecoratorConfig generates structDecoratorConfig for struct
-func getStructDecoratorConfig(logger Logger, i interface{}, mappedRelations *relationConfigs) (*structDecoratorConfig, error) {
+func getStructDecoratorConfig(gogm *Gogm, i interface{}, mappedRelations *relationConfigs) (*structDecoratorConfig, error) {
 	toReturn := &structDecoratorConfig{}
 
 	t := reflect.TypeOf(i)
@@ -530,7 +521,7 @@ func getStructDecoratorConfig(logger Logger, i interface{}, mappedRelations *rel
 		tag := field.Tag.Get(decoratorName)
 
 		if tag != "" {
-			config, err := newDecoratorConfig(tag, field.Name, field.Type)
+			config, err := newDecoratorConfig(gogm, tag, field.Name, field.Type)
 			if err != nil {
 				return nil, err
 			}
@@ -561,7 +552,7 @@ func getStructDecoratorConfig(logger Logger, i interface{}, mappedRelations *rel
 
 				endTypeName := ""
 				if reflect.PtrTo(endType).Implements(edgeType) {
-					logger.Debug(endType.Name())
+					gogm.logger.Debug(endType.Name())
 					endVal := reflect.New(endType)
 					var endTypeVal []reflect.Value
 

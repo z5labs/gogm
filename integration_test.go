@@ -69,7 +69,7 @@ func (integrationTest *IntegrationTestSuite) SetupSuite() {
 		DefaultTransactionTimeout: 2 * time.Minute,
 	}
 
-	gogm, err := NewGogm(&conf, &a{}, &b{}, &c{}, &propTest{})
+	gogm, err := New(&conf, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{})
 	integrationTest.Require().Nil(err)
 	integrationTest.Require().NotNil(gogm)
 	integrationTest.gogm = gogm

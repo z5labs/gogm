@@ -24,6 +24,7 @@ func G() *Gogm {
 
 type Gogm struct {
 	config          *Config
+	pkStrategy      *PrimaryKeyStrategy
 	logger          Logger
 	neoVersion      float64
 	mappedTypes     *hashmap.HashMap
@@ -35,21 +36,18 @@ type Gogm struct {
 	isNoOp bool
 }
 
-func NewGogm(config *Config, mapTypes ...interface{}) (*Gogm, error) {
+func New(config *Config, pkStrategy *PrimaryKeyStrategy, mapTypes ...interface{}) (*Gogm, error) {
 	if config == nil {
 		return nil, errors.New("config can not be nil")
+	}
+
+	if pkStrategy == nil {
+		return nil, errors.New("pk strategy can not be nil")
 	}
 
 	if mapTypes == nil || len(mapTypes) == 0 {
 		return nil, errors.New("no types to map")
 	}
-
-	err := config.validate()
-	if err != nil {
-		return nil, fmt.Errorf("config failed validation, %w", err)
-	}
-
-	config.Logger.Debug("passed validate")
 
 	g := &Gogm{
 		config:          config,
@@ -61,7 +59,7 @@ func NewGogm(config *Config, mapTypes ...interface{}) (*Gogm, error) {
 		ogmTypes:        mapTypes,
 	}
 
-	err = g.init()
+	err := g.init()
 	if err != nil {
 		return nil, fmt.Errorf("failed to init gogm instance, %w", err)
 	}
@@ -91,8 +89,22 @@ func (g *Gogm) init() error {
 }
 
 func (g *Gogm) validate() error {
+	err := g.config.validate()
+	if err != nil {
+		return fmt.Errorf("config failed validation, %w", err)
+	}
+
 	if g.config.TargetDbs == nil || len(g.config.TargetDbs) == 0 {
 		g.config.TargetDbs = []string{"neo4j"}
+	}
+
+	if g.pkStrategy == nil {
+		return errors.New("pkStrategy can not be nil")
+	}
+
+	err = g.pkStrategy.validate()
+	if err != nil {
+		return fmt.Errorf("pk strategy failed validation, %w", err)
 	}
 
 	return nil
@@ -102,7 +114,7 @@ func (g *Gogm) parseOgmTypes() error {
 	g.logger.Debug("mapping types")
 	for _, t := range g.ogmTypes {
 		name := reflect.TypeOf(t).Elem().Name()
-		dc, err := getStructDecoratorConfig(g.logger, t, g.mappedRelations)
+		dc, err := getStructDecoratorConfig(g, t, g.mappedRelations)
 		if err != nil {
 			return err
 		}

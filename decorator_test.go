@@ -29,23 +29,32 @@ import (
 
 func TestDecoratorConfig_Validate(t *testing.T) {
 	req := require.New(t)
+	gogm, err := getTestGogm()
+	req.Nil(err)
+	req.NotNil(gogm)
 
-	validProps := decoratorConfig{
-		Properties: true,
-		Type:       reflect.TypeOf(map[string]interface{}{}),
-		Name:       "test",
+	tests := []struct{
+		Name string
+		Decorator decoratorConfig
+	}{
+		{
+			Name: "valid",
+			Decorator: decoratorConfig{
+				Properties: true,
+				Type:       reflect.TypeOf(map[string]interface{}{}),
+				Name:       "test",
+			},
+		},
+		{
+			Name:      "valid relationship",
+			Decorator: decoratorConfig{
+				FieldName:    "test_rel",
+				Name:         "test_rel",
+				Relationship: "rel",
+				Type:         reflect.TypeOf([]interface{}{}),
+			},
+		},
 	}
-
-	req.Nil(validProps.Validate())
-
-	validRelationship := decoratorConfig{
-		FieldName:    "test_rel",
-		Name:         "test_rel",
-		Relationship: "rel",
-		Type:         reflect.TypeOf([]interface{}{}),
-	}
-
-	req.Nil(validRelationship.Validate())
 
 	validRelationshipWithDirection := decoratorConfig{
 		FieldName:    "test_rel",
