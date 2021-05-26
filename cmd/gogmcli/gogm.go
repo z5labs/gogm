@@ -1,4 +1,4 @@
-// Copyright (c) 2020 MindStand Technologies, Inc
+// Copyright (c) 2021 MindStand Technologies, Inc
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
@@ -21,7 +21,7 @@ package main
 
 import (
 	"errors"
-	"github.com/mindstand/gogm/cmd/gogmcli/gen"
+	"github.com/mindstand/gogm/v2/cmd/gogmcli/gen"
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
@@ -34,7 +34,7 @@ func main() {
 	app := &cli.App{
 		Name:                 "gogmcli",
 		HelpName:             "gogmcli",
-		Version:              "1.0.1",
+		Version:              "2.0.0",
 		Usage:                "used for neo4j operations from gogm schema",
 		Description:          "cli for generating and executing migrations with gogm",
 		EnableBashCompletion: true,
@@ -72,7 +72,7 @@ func main() {
 				Email: "nikita@mindstand.com",
 			},
 		},
-		Copyright:              "© MindStand Technologies, Inc 2019",
+		Copyright:              "© MindStand Technologies, Inc 2021",
 		UseShortOptionHandling: true,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
