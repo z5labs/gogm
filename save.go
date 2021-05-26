@@ -489,9 +489,9 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 				"rows": newRows,
 			})
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to execute new node query, %w", err)
 			} else if res.Err() != nil {
-				return res.Err()
+				return fmt.Errorf("failed to execute new node query from result error, %w", res.Err())
 			}
 
 			for res.Next() {
@@ -545,9 +545,6 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 				Cypher("UNWIND $rows as row").
 				Cypher(fmt.Sprintf("MATCH %s", path)).
 				Cypher("WHERE ID(n) in row.id").
-				//Merge(&dsl.MergeConfig{
-				//	Path: "(n)",
-				//}).
 				Cypher("SET n += row.obj").
 				ToCypher()
 
@@ -555,9 +552,9 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 				"rows": updateRows,
 			})
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to run update query, %w", err)
 			} else if res.Err() != nil {
-				return res.Err()
+				return fmt.Errorf("failed to run update query, %w", res.Err())
 			}
 		}
 	}

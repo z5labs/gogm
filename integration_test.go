@@ -65,7 +65,7 @@ func (integrationTest *IntegrationTestSuite) SetupSuite() {
 		Port:                      7687,
 		PoolSize:                  15,
 		IndexStrategy:             IGNORE_INDEX,
-		EnableDriverLogs:          false,
+		EnableDriverLogs:          true,
 		DefaultTransactionTimeout: 2 * time.Minute,
 	}
 
