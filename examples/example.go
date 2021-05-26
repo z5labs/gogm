@@ -100,7 +100,7 @@ func main() {
 
 	// register all vertices and edges
 	// this is so that GoGM doesn't have to do reflect processing of each edge in real time
-	_gogm, err := gogm.NewGogm(&config, &VertexA{}, &VertexB{}, &EdgeC{})
+	_gogm, err := gogm.New(&config, gogm.UUIDPrimaryKeyStrategy, &VertexA{}, &VertexB{}, &EdgeC{})
 	if err != nil {
 		panic(err)
 	}

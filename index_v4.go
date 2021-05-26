@@ -163,7 +163,7 @@ func createAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 
 				for _, config := range structConfig.Fields {
 					//pk is a special unique key
-					if config.PrimaryKey || config.Unique {
+					if config.PrimaryKey != "" || config.Unique {
 						numIndexCreated++
 
 						cyp, err := dsl.QB().Create(dsl.NewConstraint(&dsl.ConstraintConfig{
@@ -245,7 +245,7 @@ func verifyAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 
 			for _, config := range structConfig.Fields {
 
-				if config.PrimaryKey || config.Unique {
+				if config.PrimaryKey != "" || config.Unique {
 					t := fmt.Sprintf("CONSTRAINT ON (%s:%s) ASSERT %s.%s IS UNIQUE", node, structConfig.Label, node, config.Name)
 					constraints = append(constraints, t)
 

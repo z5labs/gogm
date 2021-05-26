@@ -211,7 +211,7 @@ func (c *c) SetEndNode(v interface{}) error {
 
 type propsTest struct {
 	Id         int64                  `gogm:"name=id"`
-	UUID       string                 `gogm:"pk;name=uuid"`
+	UUID       string                 `gogm:"pk=UUID;name=uuid"`
 	PropTest0  map[string]interface{} `gogm:"properties;name=props0"`
 	PropTest1  map[string]string      `gogm:"properties;name=props1"`
 	PropsTest2 []string               `gogm:"properties;name=props2"`
@@ -229,6 +229,7 @@ func getTestGogm() (*Gogm, error) {
 			Logger:   GetDefaultLogger(),
 			LogLevel: "DEBUG",
 		},
+		pkStrategy:      UUIDPrimaryKeyStrategy,
 		logger:          GetDefaultLogger(),
 		neoVersion:      4,
 		mappedTypes:     &hashmap.HashMap{},
@@ -324,8 +325,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "0",
 			BaseNode: BaseNode{
-				Id:   0,
-
+				Id: 0,
 			},
 		},
 	}
@@ -334,8 +334,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "1",
 			BaseNode: BaseNode{
-				Id:   1,
-
+				Id: 1,
 			},
 		},
 	}
@@ -344,8 +343,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "2",
 			BaseNode: BaseNode{
-				Id:   2,
-
+				Id: 2,
 			},
 		},
 	}
@@ -420,8 +418,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
 			BaseNode: BaseNode{
-				Id:   1,
-
+				Id: 1,
 			},
 		},
 		TestField:         "test",
@@ -433,8 +430,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfas",
 			BaseNode: BaseNode{
-				Id:   2,
-
+				Id: 2,
 			},
 		},
 		TestField: "test",
@@ -516,8 +512,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
 			BaseNode: BaseNode{
-				Id:   1,
-
+				Id: 1,
 			},
 		},
 		TestField: "test",
@@ -527,8 +522,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfas",
 			BaseNode: BaseNode{
-				Id:   2,
-
+				Id: 2,
 			},
 		},
 		TestField: "test",
@@ -539,8 +533,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "asdfasdafsd",
 			BaseNode: BaseNode{
-				Id:   34,
-
+				Id: 34,
 			},
 		},
 		Start: comp2,
@@ -600,8 +593,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
 			BaseNode: BaseNode{
-				Id:   1,
-
+				Id: 1,
 			},
 		},
 		TestField: "test",
@@ -611,8 +603,7 @@ func TestInnerDecode(t *testing.T) {
 				BaseUUIDNode: BaseUUIDNode{
 					UUID: "dasdfas",
 					BaseNode: BaseNode{
-						Id:   2,
-
+						Id: 2,
 					},
 				},
 				TestTime: fTime,
@@ -675,8 +666,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
 			BaseNode: BaseNode{
-				Id:   1,
-
+				Id: 1,
 			},
 		},
 	}
@@ -686,8 +676,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfas",
 			BaseNode: BaseNode{
-				Id:   2,
-
+				Id: 2,
 			},
 		},
 		TestTime: fTime,

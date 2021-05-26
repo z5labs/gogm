@@ -29,18 +29,18 @@ import (
 func TestSetUuidIfNeeded(t *testing.T) {
 	val := &a{}
 
-	_, _, _, err := handleNodeState(nil, "UUID")
+	_, _, _, err := handleNodeState(nil, nil)
 	require.NotNil(t, err)
 
 	v := reflect.ValueOf(val)
-	isNew, _, _, err := handleNodeState(&v, "UUID")
+	isNew, _, _, err := handleNodeState(UUIDPrimaryKeyStrategy, &v)
 	require.Nil(t, err)
 	require.True(t, isNew)
 
 	val.UUID = "dasdfasd"
 
 	v = reflect.ValueOf(val)
-	isNew, _, _, err = handleNodeState(&v, "UUID")
+	isNew, _, _, err = handleNodeState(UUIDPrimaryKeyStrategy, &v)
 	require.Nil(t, err)
 	require.True(t, isNew)
 
@@ -48,7 +48,7 @@ func TestSetUuidIfNeeded(t *testing.T) {
 	val.LoadMap = map[string]*RelationConfig{}
 
 	v = reflect.ValueOf(val)
-	isNew, _, _, err = handleNodeState(&v, "UUID")
+	isNew, _, _, err = handleNodeState(UUIDPrimaryKeyStrategy, &v)
 	require.Nil(t, err)
 	require.True(t, isNew)
 
@@ -56,11 +56,12 @@ func TestSetUuidIfNeeded(t *testing.T) {
 	val.LoadMap = nil
 
 	v = reflect.ValueOf(val)
-	isNew, _, _, err = handleNodeState(&v, "UUID")
+	isNew, _, _, err = handleNodeState(UUIDPrimaryKeyStrategy, &v)
 	require.Nil(t, err)
 	require.True(t, isNew)
 
 	val.UUID = "dasdfasd"
+	val.Id = 10
 	val.LoadMap = map[string]*RelationConfig{
 		"dasdfasd": {
 			Ids:          []int64{69},
@@ -69,7 +70,7 @@ func TestSetUuidIfNeeded(t *testing.T) {
 	}
 
 	v = reflect.ValueOf(val)
-	isNew, _, _, err = handleNodeState(&v, "UUID")
+	isNew, _, _, err = handleNodeState(UUIDPrimaryKeyStrategy, &v)
 	require.Nil(t, err)
 	require.False(t, isNew)
 
@@ -99,16 +100,16 @@ func TestToCypherParamsMap(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "testuuid",
 			BaseNode: BaseNode{
-				Id:   0,
+				Id: 0,
 			},
 		},
 		TestField: "testvalue",
 	}
 
-	config, err := getStructDecoratorConfig(gogm.logger, &val, gogm.mappedRelations)
+	config, err := getStructDecoratorConfig(gogm, &val, gogm.mappedRelations)
 	require.Nil(t, err)
 
-	params, err := toCypherParamsMap(reflect.ValueOf(val), *config)
+	params, err := toCypherParamsMap(gogm, reflect.ValueOf(val), *config)
 	require.Nil(t, err)
 	require.EqualValues(t, map[string]interface{}{
 		"uuid":                 "testuuid",
@@ -131,10 +132,10 @@ func TestToCypherParamsMap(t *testing.T) {
 		PropsTest3: nil,
 	}
 
-	config, err = getStructDecoratorConfig(gogm.logger, &p, gogm.mappedRelations)
+	config, err = getStructDecoratorConfig(gogm, &p, gogm.mappedRelations)
 	require.Nil(t, err)
 
-	params, err = toCypherParamsMap(reflect.ValueOf(&p), *config)
+	params, err = toCypherParamsMap(gogm, reflect.ValueOf(&p), *config)
 	require.Nil(t, err)
 	require.EqualValues(t, map[string]interface{}{
 		"uuid":        "testuuid",

@@ -13,7 +13,7 @@ type PrimaryKeyStrategy struct {
 	// StrategyName is the name of strategy to map field
 	StrategyName string
 	// DBName for field in the database
-	DBName string
+	DBName    string
 	FieldName string
 	// Type of uuid
 	Type reflect.Type
@@ -50,7 +50,6 @@ func (p *PrimaryKeyStrategy) validate() error {
 		return fmt.Errorf("GenIDFunc does not return same type as strategy.Type %s != %s", testType.Name(), p.Type.String())
 	}
 
-
 	return nil
 }
 
@@ -58,18 +57,21 @@ var (
 	UUIDPrimaryKeyStrategy = &PrimaryKeyStrategy{
 		StrategyName: "UUID",
 		DBName:       "uuid",
+		FieldName:    "UUID",
 		Type:         reflect.TypeOf(""),
 		GenIDFunc: func() (id interface{}) {
 			return uuid.New().String()
 		},
+		noop: false,
 	}
 	DefaultPrimaryKeyStrategy = &PrimaryKeyStrategy{
 		StrategyName: "default",
 		DBName:       "id",
+		FieldName:    "Id",
 		Type:         reflect.TypeOf(1),
 		GenIDFunc: func() (id interface{}) {
 			return ""
 		},
-		noop:         true,
+		noop: true,
 	}
 )

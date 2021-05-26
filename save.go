@@ -61,9 +61,9 @@ func saveDepth(gogm *Gogm, obj interface{}, depth int) neo4j.TransactionWork {
 
 		var (
 			// [LABEL][int64 (graphid) or uintptr]{config}
-			nodes = map[string]map[uintptr]nodeCreate{}
+			nodes = map[string]map[uintptr]*nodeCreate{}
 			// [LABEL] []{config}
-			relations = map[string][]relCreate{}
+			relations = map[string][]*relCreate{}
 			// node id -- [field] config
 			oldRels = map[uintptr]map[string]*RelationConfig{}
 			// node id -- [field] config
@@ -135,7 +135,7 @@ func saveDepth(gogm *Gogm, obj interface{}, depth int) neo4j.TransactionWork {
 }
 
 // relateNodes connects nodes together using edge config
-func relateNodes(transaction neo4j.Transaction, relations map[string][]relCreate, lookup map[uintptr]int64) error {
+func relateNodes(transaction neo4j.Transaction, relations map[string][]*relCreate, lookup map[uintptr]int64) error {
 	if relations == nil || len(relations) == 0 {
 		return errors.New("relations can not be nil or empty")
 	}
@@ -254,13 +254,13 @@ func removeRelations(transaction neo4j.Transaction, dels map[int64][]int64) erro
 		Cypher("UNWIND $rows as row").
 		Match(dsl.Path().
 			V(dsl.V{
-				Name:   "start",
+				Name: "start",
 			}).E(dsl.E{
 			Name: "e",
 		}).V(dsl.V{
 			Name: "end",
 		}).Build()).
-		Cypher("WHERE id(start) == row.startNodeId and id(end) IN row.endNodeIds").
+		Cypher("WHERE id(start) in row.startNodeId and id(end) IN row.endNodeIds").
 		Delete(false, "e").
 		ToCypher()
 	if err != nil {
@@ -337,6 +337,13 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 		return nil
 	}
 
+	curPtr := current.Pointer()
+
+	// check for going in circles
+	if parentPtr == curPtr {
+		return nil
+	}
+
 	id := reflect.Indirect(*current).FieldByName(DefaultPrimaryKeyStrategy.FieldName).Int()
 	if id < 0 {
 		return errors.New("id not set")
@@ -388,7 +395,7 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 			for i := 0; i < slLen; i++ {
 				relVal := relField.Index(i)
 
-				newParentId, _, _, _, _, followVal, err := processStruct(gogm, conf, &relVal, parentPtr)
+				newParentId, _, _, _, _, followVal, err := processStruct(gogm, conf, &relVal, curPtr)
 				if err != nil {
 					return err
 				}
@@ -405,13 +412,15 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 
 				curRels[id][conf.FieldName].Ids = append(curRels[id][conf.FieldName].Ids, followId)
 
-				err = generateCurRels(gogm, newParentId, followVal, currentDepth+1, maxDepth, curRels)
-				if err != nil {
-					return err
+				if followVal.Pointer() != parentPtr {
+					err = generateCurRels(gogm, newParentId, followVal, currentDepth+1, maxDepth, curRels)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		} else {
-			newParentId, _, _, _, _, followVal, err := processStruct(gogm, conf, current, parentPtr)
+			newParentId, _, _, _, _, followVal, err := processStruct(gogm, conf, &relField, curPtr)
 			if err != nil {
 				return err
 			}
@@ -428,11 +437,12 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 
 			curRels[id][conf.FieldName].Ids = append(curRels[id][conf.FieldName].Ids, followId)
 
-			err = generateCurRels(gogm, newParentId, followVal, currentDepth+1, maxDepth, curRels)
-			if err != nil {
-				return err
+			if followVal.Pointer() != parentPtr {
+				err = generateCurRels(gogm, newParentId, followVal, currentDepth+1, maxDepth, curRels)
+				if err != nil {
+					return err
+				}
 			}
-
 		}
 	}
 
@@ -440,7 +450,7 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 }
 
 // createNodes updates existing nodes and creates new nodes while also making a lookup table for ptr -> neoid
-func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]nodeCreate, nodeRef map[uintptr]*reflect.Value, nodeIdRef map[uintptr]int64) error {
+func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*nodeCreate, nodeRef map[uintptr]*reflect.Value, nodeIdRef map[uintptr]int64) error {
 	for label, nodes := range crNodes {
 		var updateRows, newRows []interface{}
 		for ptr, config := range nodes {
@@ -476,7 +486,7 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]n
 				ToCypher()
 
 			res, err := transaction.Run(cyp, map[string]interface{}{
-				"rows": updateRows,
+				"rows": newRows,
 			})
 			if err != nil {
 				return err
@@ -524,8 +534,8 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]n
 		// dont need any data back from this other than did it work
 		if len(updateRows) != 0 {
 			path, err := dsl.Path().V(dsl.V{
-				Name:   "n",
-				Type:   "`" + label + "`",
+				Name: "n",
+				Type: "`" + label + "`",
 			}).ToCypher()
 			if err != nil {
 				return err
@@ -533,10 +543,11 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]n
 
 			cyp, err := dsl.QB().
 				Cypher("UNWIND $rows as row").
-				Merge(&dsl.MergeConfig{
-					Path: path,
-				}).
-				Cypher("WHERE ID(n) == row.id").
+				Cypher(fmt.Sprintf("MATCH %s", path)).
+				Cypher("WHERE ID(n) in row.id").
+				//Merge(&dsl.MergeConfig{
+				//	Path: "(n)",
+				//}).
 				Cypher("SET n += row.obj").
 				ToCypher()
 
@@ -557,13 +568,17 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]n
 // parseStruct
 // we are intentionally using pointers as identifiers in this stage because graph ids are not guaranteed
 func parseStruct(gogm *Gogm, parentPtr uintptr, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, current *reflect.Value,
-	currentDepth, maxDepth int, nodes map[string]map[uintptr]nodeCreate, relations map[string][]relCreate, nodeIdLookup map[uintptr]int64, nodeRef map[uintptr]*reflect.Value, oldRels map[uintptr]map[string]*RelationConfig) error {
+	currentDepth, maxDepth int, nodes map[string]map[uintptr]*nodeCreate, relations map[string][]*relCreate, nodeIdLookup map[uintptr]int64, nodeRef map[uintptr]*reflect.Value, oldRels map[uintptr]map[string]*RelationConfig) error {
 	//check if its done
 	if currentDepth > maxDepth {
 		return nil
 	}
 
 	curPtr := current.Pointer()
+	if curPtr == parentPtr {
+		// dont go in circles
+		return nil
+	}
 
 	//get the type
 	nodeType, err := getTypeName(current.Type())
@@ -592,7 +607,7 @@ func parseStruct(gogm *Gogm, parentPtr uintptr, edgeLabel string, parentIsStart 
 	// handle edge
 	if parentPtr != 0 {
 		if _, ok := relations[edgeLabel]; !ok {
-			relations[edgeLabel] = []relCreate{}
+			relations[edgeLabel] = []*relCreate{}
 		}
 
 		var start, end uintptr
@@ -627,9 +642,9 @@ func parseStruct(gogm *Gogm, parentPtr uintptr, edgeLabel string, parentIsStart 
 
 		// if not found already register the relationships
 		if !found {
-			relations[edgeLabel] = append(relations[edgeLabel], relCreate{
-				Direction:   curDir,
-				Params:      edgeParams,
+			relations[edgeLabel] = append(relations[edgeLabel], &relCreate{
+				Direction:    curDir,
+				Params:       edgeParams,
 				StartNodePtr: start,
 				EndNodePtr:   end,
 			})
@@ -652,7 +667,7 @@ func parseStruct(gogm *Gogm, parentPtr uintptr, edgeLabel string, parentIsStart 
 	}
 
 	//convert params
-	params, err := toCypherParamsMap(*current, currentConf)
+	params, err := toCypherParamsMap(gogm, *current, currentConf)
 	if err != nil {
 		return err
 	}
@@ -664,7 +679,15 @@ func parseStruct(gogm *Gogm, parentPtr uintptr, edgeLabel string, parentIsStart 
 
 	//set the nodes lookup map
 	if _, ok := nodes[currentConf.Label]; !ok {
-		nodes[currentConf.Label] = map[uintptr]nodeCreate{}
+		nodes[currentConf.Label] = map[uintptr]*nodeCreate{}
+	}
+
+	nodes[currentConf.Label][curPtr] = &nodeCreate{
+		Params:  params,
+		Type:    current.Type(),
+		Id:      graphID,
+		Pointer: curPtr,
+		IsNew:   isNew,
 	}
 
 	// loop through fields looking for edges
@@ -694,18 +717,18 @@ func parseStruct(gogm *Gogm, parentPtr uintptr, edgeLabel string, parentIsStart 
 					return err
 				}
 
-				err = parseStruct(gogm, newParentId, newEdgeLabel, newParentIsStart, newDirection, newEdgeParams, followVal, currentDepth + 1, maxDepth, nodes, relations, nodeIdLookup, nodeRef, oldRels)
+				err = parseStruct(gogm, newParentId, newEdgeLabel, newParentIsStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodes, relations, nodeIdLookup, nodeRef, oldRels)
 				if err != nil {
 					return err
 				}
 			}
 		} else {
-			newParentId, newEdgeLabel, newParentIsStart, newDirection, newEdgeParams, followVal, err := processStruct(gogm, conf, current, curPtr)
+			newParentId, newEdgeLabel, newParentIsStart, newDirection, newEdgeParams, followVal, err := processStruct(gogm, conf, &relField, curPtr)
 			if err != nil {
 				return err
 			}
 
-			err = parseStruct(gogm, newParentId, newEdgeLabel, newParentIsStart, newDirection, newEdgeParams, followVal, currentDepth + 1, maxDepth, nodes, relations, nodeIdLookup, nodeRef, oldRels)
+			err = parseStruct(gogm, newParentId, newEdgeLabel, newParentIsStart, newDirection, newEdgeParams, followVal, currentDepth+1, maxDepth, nodes, relations, nodeIdLookup, nodeRef, oldRels)
 			if err != nil {
 				return err
 			}
@@ -716,10 +739,10 @@ func parseStruct(gogm *Gogm, parentPtr uintptr, edgeLabel string, parentIsStart 
 }
 
 // processStruct generates configuration for individual struct for saving
-func processStruct(gogm *Gogm, fieldConf decoratorConfig, relVal *reflect.Value, curPtr uintptr) (parentId uintptr, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, followVal *reflect.Value, err error) {
+func processStruct(gogm *Gogm, fieldConf decoratorConfig, relValue *reflect.Value, curPtr uintptr) (parentId uintptr, edgeLabel string, parentIsStart bool, direction dsl.Direction, edgeParams map[string]interface{}, followVal *reflect.Value, err error) {
 	edgeLabel = fieldConf.Relationship
 
-	relValName, err := getTypeName(relVal.Type())
+	relValName, err := getTypeName(relValue.Type())
 	if err != nil {
 		return 0, "", false, 0, nil, nil, err
 	}
@@ -734,20 +757,20 @@ func processStruct(gogm *Gogm, fieldConf decoratorConfig, relVal *reflect.Value,
 		return 0, "", false, 0, nil, nil, errors.New("can not cast to structDecoratorConfig")
 	}
 
-	if relVal.Type().Implements(edgeType) {
-		startValSlice := relVal.MethodByName("GetStartNode").Call(nil)
-		endValSlice := relVal.MethodByName("GetEndNode").Call(nil)
+	if relValue.Type().Implements(edgeType) {
+		startValSlice := relValue.MethodByName("GetStartNode").Call(nil)
+		endValSlice := relValue.MethodByName("GetEndNode").Call(nil)
 
 		if len(startValSlice) == 0 || len(endValSlice) == 0 {
 			return 0, "", false, 0, nil, nil, errors.New("edge is invalid, sides are not set")
 		}
 
-		startVal := reflect.Indirect(startValSlice[0].Elem())
-		endVal := reflect.Indirect(endValSlice[0].Elem())
+		startVal := startValSlice[0].Elem()
+		endVal := endValSlice[0].Elem()
 
-		params, err := toCypherParamsMap(*relVal, edgeConf)
+		params, err := toCypherParamsMap(gogm, *relValue, edgeConf)
 		if err != nil {
-			return 0, "", false, 0, nil, nil,  err
+			return 0, "", false, 0, nil, nil, err
 		}
 
 		//if its nil, just default it
@@ -760,16 +783,16 @@ func processStruct(gogm *Gogm, fieldConf decoratorConfig, relVal *reflect.Value,
 			//follow the end
 			retVal := endValSlice[0].Elem()
 
-			return startVal.Pointer(), edgeLabel, true, fieldConf.Direction, params, &retVal, nil
+			return curPtr, edgeLabel, true, fieldConf.Direction, params, &retVal, nil
 		} else if endVal.Pointer() == curPtr {
 			///follow the start
 			retVal := startValSlice[0].Elem()
 
-			return endVal.Pointer(), edgeLabel, false, fieldConf.Direction, params, &retVal, nil
+			return curPtr, edgeLabel, false, fieldConf.Direction, params, &retVal, nil
 		} else {
 			return 0, "", false, 0, nil, nil, errors.New("edge is invalid, doesn't point to parent vertex")
 		}
 	} else {
-		return curPtr, edgeLabel, fieldConf.Direction == dsl.DirectionOutgoing, fieldConf.Direction, map[string]interface{}{}, relVal,  nil
+		return curPtr, edgeLabel, fieldConf.Direction == dsl.DirectionOutgoing, fieldConf.Direction, map[string]interface{}{}, relValue, nil
 	}
 }

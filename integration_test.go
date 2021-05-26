@@ -65,7 +65,7 @@ func (integrationTest *IntegrationTestSuite) SetupSuite() {
 		Port:                      7687,
 		PoolSize:                  15,
 		IndexStrategy:             IGNORE_INDEX,
-		EnableDriverLogs:          true,
+		EnableDriverLogs:          false,
 		DefaultTransactionTimeout: 2 * time.Minute,
 	}
 
@@ -77,7 +77,8 @@ func (integrationTest *IntegrationTestSuite) SetupSuite() {
 
 func (integrationTest *IntegrationTestSuite) TestManagedTx() {
 	//req := integrationTest.Require()
-	if integrationTest.gogm.neoVersion <= 4 {
+	if integrationTest.gogm.neoVersion < 4 {
+		integrationTest.T().Log("skipping because of incompatible version", integrationTest.gogm.neoVersion)
 		integrationTest.T().Skip()
 		return
 	}
@@ -344,7 +345,7 @@ func testSave(sess ISession, req *require.Assertions) {
 
 	// property test
 	prop1 := propTest{
-		BaseUUIDNode : BaseUUIDNode{},
+		BaseUUIDNode: BaseUUIDNode{},
 		MapInterface: map[string]interface{}{
 			"test": int64(1),
 		},
@@ -420,15 +421,15 @@ func testSaveV2(sess SessionV2, req *require.Assertions) {
 		TestField: "dasdfasd",
 	}
 
-	c1 := &c{
+	edgeC1 := &c{
 		Start: a2,
 		End:   b2,
 		Test:  "testing",
 	}
 
-	a2.SingleSpecA = c1
+	a2.SingleSpecA = edgeC1
 	a2.ManyA = []*b{b3}
-	b2.SingleSpec = c1
+	b2.SingleSpec = edgeC1
 	b3.ManyB = a2
 
 	req.Nil(sess.SaveDepth(ctx, a2, 5))

@@ -8,13 +8,13 @@ import (
 
 func TestPrimaryKeyStrategy_validate(t *testing.T) {
 	cases := []struct {
-		name string
-		strategy PrimaryKeyStrategy
+		name       string
+		strategy   PrimaryKeyStrategy
 		shouldPass bool
 	}{
 		{
-			name:     "Zero Test",
-			strategy: PrimaryKeyStrategy{},
+			name:       "Zero Test",
+			strategy:   PrimaryKeyStrategy{},
 			shouldPass: false,
 		},
 		{
@@ -30,7 +30,7 @@ func TestPrimaryKeyStrategy_validate(t *testing.T) {
 			shouldPass: true,
 		},
 		{
-			name:     "Invalid",
+			name: "Invalid",
 			strategy: PrimaryKeyStrategy{
 				StrategyName: "invalid",
 				DBName:       "id",

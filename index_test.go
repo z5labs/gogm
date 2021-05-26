@@ -40,7 +40,7 @@ func testIndexManagement(req *require.Assertions) {
 			Fields: map[string]decoratorConfig{
 				"UUID": {
 					Name:       "uuid",
-					PrimaryKey: true,
+					PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
 					Type:       reflect.TypeOf(""),
 				},
 				"IndexField": {
@@ -61,7 +61,7 @@ func testIndexManagement(req *require.Assertions) {
 			Fields: map[string]decoratorConfig{
 				"UUID": {
 					Name:       "uuid",
-					PrimaryKey: true,
+					PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
 					Type:       reflect.TypeOf(""),
 				},
 				"IndexField1": {

@@ -194,13 +194,13 @@ func (d *decoratorConfig) Validate(gogm *Gogm) error {
 				return NewInvalidDecoratorConfigError("property slice not of type <primitive>", d.Name)
 			}
 		} else if kind == reflect.Map {
-			// check if the key is a string
-			if d.Type.Kind() == reflect.String {
+			if d.Type.Key().Kind() != reflect.String {
 				return NewInvalidDecoratorConfigError("property map key not of type string", d.Name)
 			}
-
 			mapType := d.Type.Elem()
 			mapKind := mapType.Kind()
+			// check if the key is a string
+
 			if mapKind == reflect.Slice {
 				mapElem := mapType.Elem().Kind()
 				if _, err := getPrimitiveType(mapElem); err != nil {
@@ -265,7 +265,7 @@ func (d *decoratorConfig) Validate(gogm *Gogm) error {
 	}
 
 	//validate pk
-	if d.PrimaryKey != ""{
+	if d.PrimaryKey != "" {
 		// validate strategy matches
 		if d.PrimaryKey != gogm.pkStrategy.StrategyName {
 			return fmt.Errorf("trying to use strategy '%s' when '%s' is registered", d.PrimaryKey, gogm.pkStrategy.StrategyName)
@@ -294,11 +294,11 @@ func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type
 
 	//init bools to false
 	toReturn := decoratorConfig{
-		Unique:     false,
-		Ignore:     false,
-		Direction:  0,
-		Type:       varType,
-		FieldName:  name,
+		Unique:    false,
+		Ignore:    false,
+		Direction: 0,
+		Type:      varType,
+		FieldName: name,
 	}
 
 	for _, field := range fields {
@@ -319,6 +319,11 @@ func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type
 				continue
 			case primaryKeyField:
 				toReturn.PrimaryKey = val
+				// set other stuff related to the pk strategy
+				if gogm.pkStrategy.StrategyName == val {
+					toReturn.Name = gogm.pkStrategy.DBName
+					toReturn.FieldName = gogm.pkStrategy.FieldName
+				}
 				continue
 			case relationshipNameField:
 				toReturn.Relationship = val

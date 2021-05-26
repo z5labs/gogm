@@ -57,6 +57,7 @@ func New(config *Config, pkStrategy *PrimaryKeyStrategy, mapTypes ...interface{}
 		driver:          nil,
 		mappedRelations: &relationConfigs{},
 		ogmTypes:        mapTypes,
+		pkStrategy:      pkStrategy,
 	}
 
 	err := g.init()
@@ -94,12 +95,15 @@ func (g *Gogm) validate() error {
 		return fmt.Errorf("config failed validation, %w", err)
 	}
 
+	g.logger = g.config.Logger
+
 	if g.config.TargetDbs == nil || len(g.config.TargetDbs) == 0 {
 		g.config.TargetDbs = []string{"neo4j"}
 	}
 
 	if g.pkStrategy == nil {
-		return errors.New("pkStrategy can not be nil")
+		// setting to the default pk strategy
+		g.pkStrategy = DefaultPrimaryKeyStrategy
 	}
 
 	err = g.pkStrategy.validate()
@@ -159,8 +163,8 @@ func (g *Gogm) initDriver() error {
 
 	// get neoversion
 	sess := driver.NewSession(neo4j.SessionConfig{
-		AccessMode:   neo4j.AccessModeRead,
-	//	DatabaseName: "neo4j",
+		AccessMode: neo4j.AccessModeRead,
+		//	DatabaseName: "neo4j",
 	})
 
 	res, err := sess.Run("return 1", nil)

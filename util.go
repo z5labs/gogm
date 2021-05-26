@@ -75,11 +75,25 @@ func handleNodeState(pkStrat *PrimaryKeyStrategy, val *reflect.Value) (isNew boo
 	}
 
 	// handle the id
-	id = reflect.Indirect(*val).FieldByName(DefaultPrimaryKeyStrategy.FieldName).Int()
-	isNew = id < 0
+	if val.IsZero() {
+		isNew = true
+	} else {
+		idVal := reflect.Indirect(*val).FieldByName(DefaultPrimaryKeyStrategy.FieldName)
+		if idVal.IsValid() {
+			if idVal.IsZero() {
+				isNew = true
+			} else {
+				id = idVal.Int()
+				isNew = false
+			}
+		} else {
+			isNew = true
+		}
+
+	}
 
 	// using a pk strategy on top of default graph ids
-	if pkStrat.StrategyName != pkStrat.StrategyName {
+	if pkStrat.StrategyName != DefaultPrimaryKeyStrategy.StrategyName {
 		checkId := reflect.Indirect(*val).FieldByName(pkStrat.FieldName)
 		if !checkId.IsZero() && !isNew {
 			return false, id, loadMap, nil
@@ -117,7 +131,7 @@ func getTypeName(val reflect.Type) (string, error) {
 }
 
 // converts struct fields to map that cypher can use
-func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[string]interface{}, error) {
+func toCypherParamsMap(gogm *Gogm, val reflect.Value, config structDecoratorConfig) (map[string]interface{}, error) {
 	var err error
 	defer func() {
 		if r := recover(); r != nil {
@@ -152,11 +166,18 @@ func toCypherParamsMap(val reflect.Value, config structDecoratorConfig) (map[str
 				return nil, fmt.Errorf("properties type is not a map or slice, %T", field.Interface())
 			}
 		} else {
+			var val interface{}
 			//check if field is type aliased
 			if conf.IsTypeDef {
-				ret[conf.Name] = field.Convert(conf.TypedefActual).Interface()
+				val = field.Convert(conf.TypedefActual).Interface()
 			} else {
-				ret[conf.Name] = field.Interface()
+				val = field.Interface()
+			}
+
+			if conf.PrimaryKey != "" {
+				ret[gogm.pkStrategy.DBName] = val
+			} else {
+				ret[conf.Name] = val
 			}
 		}
 	}

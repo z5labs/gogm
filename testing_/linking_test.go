@@ -33,7 +33,7 @@ func TestLinking(t *testing.T) {
 
 	obj1 := &ExampleObject{
 		BaseUUIDNode: gogm.BaseUUIDNode{
-			UUID:    id1,
+			UUID: id1,
 			BaseNode: gogm.BaseNode{
 				Id:      0,
 				LoadMap: map[string]*gogm.RelationConfig{},
@@ -43,7 +43,7 @@ func TestLinking(t *testing.T) {
 
 	obj2 := &ExampleObject{
 		BaseUUIDNode: gogm.BaseUUIDNode{
-			UUID:    id2,
+			UUID: id2,
 			BaseNode: gogm.BaseNode{
 				Id:      1,
 				LoadMap: map[string]*gogm.RelationConfig{},
