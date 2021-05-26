@@ -111,7 +111,7 @@ func parseO2O(gogm *Gogm, req *require.Assertions) {
 	req.Equal(1, len(nodes["b"]))
 	req.Equal(1, len(relations))
 	req.Equal(2, len(oldRels))
-	req.Equal(1, len(curRels))
+	req.Equal(2, len(curRels))
 	// req.Equal(int64(2), curRels["comp1uuid"]["SingleSpecA"].Ids[0])
 	// req.Equal(int64(1), curRels["b1uuid"]["SingleSpec"].Ids[0])
 	// todo better way to test this specifically
