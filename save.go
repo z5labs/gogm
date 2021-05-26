@@ -456,13 +456,13 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 		for ptr, config := range nodes {
 			row := map[string]interface{}{
 				"obj": config.Params,
-				"ptr": fmt.Sprintf("%v", ptr),
 			}
 
 			if id, ok := nodeIdRef[ptr]; ok {
 				row["id"] = id
 				updateRows = append(updateRows, row)
 			} else {
+				row["ptr"] = fmt.Sprintf("%v", ptr)
 				newRows = append(newRows, row)
 			}
 		}
