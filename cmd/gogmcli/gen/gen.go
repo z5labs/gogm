@@ -25,7 +25,7 @@ import (
 	"errors"
 	"fmt"
 	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/mindstand/gogm/cmd/gogmcli/util"
+	"github.com/mindstand/gogm/v2/cmd/gogmcli/util"
 	"go/format"
 	"html/template"
 	"log"
