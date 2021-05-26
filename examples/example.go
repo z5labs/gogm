@@ -100,6 +100,7 @@ func main() {
 
 	// register all vertices and edges
 	// this is so that GoGM doesn't have to do reflect processing of each edge in real time
+	// use nil or gogm.DefaultPrimaryKeyStrategy if you only want graph ids
 	_gogm, err := gogm.New(&config, gogm.UUIDPrimaryKeyStrategy, &VertexA{}, &VertexB{}, &EdgeC{})
 	if err != nil {
 		panic(err)
