@@ -245,9 +245,9 @@ func relateNodes(transaction neo4j.Transaction, relations map[string][]*relCreat
 			"rows": params,
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to relate nodes, %w", err)
 		} else if err = res.Err(); err != nil {
-			return err
+			return fmt.Errorf("failed to relate nodes %w", res.Err())
 		}
 	}
 
@@ -279,7 +279,7 @@ func removeRelations(transaction neo4j.Transaction, dels map[int64][]int64) erro
 		}).V(dsl.V{
 			Name: "end",
 		}).Build()).
-		Cypher("WHERE id(start) in row.startNodeId and id(end) IN row.endNodeIds").
+		Cypher("WHERE id(start) = row.startNodeId and id(end) = row.endNodeIds").
 		Delete(false, "e").
 		ToCypher()
 	if err != nil {
@@ -563,7 +563,7 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 			cyp, err := dsl.QB().
 				Cypher("UNWIND $rows as row").
 				Cypher(fmt.Sprintf("MATCH %s", path)).
-				Cypher("WHERE ID(n) in row.id").
+				Cypher("WHERE ID(n) = row.id").
 				Cypher("SET n += row.obj").
 				ToCypher()
 

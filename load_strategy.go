@@ -109,7 +109,7 @@ func PathLoadStrategyOne(variable, label, fieldOn, paramName string, isGraphId b
 			Name:              variable,
 			Field:             fieldOn,
 			ConditionOperator: dsl.EqualToOperator,
-			Check:             dsl.ParamString("$" + paramName) ,
+			Check:             dsl.ParamString("$" + paramName),
 		}
 	}
 

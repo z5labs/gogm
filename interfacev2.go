@@ -55,16 +55,16 @@ type TransactionV2 interface {
 
 type ogmFunctions interface {
 	//load single object
-	Load(ctx context.Context, respObj , id interface{},) error
+	Load(ctx context.Context, respObj, id interface{}) error
 
 	//load object with depth
-	LoadDepth(ctx context.Context, respObj , id interface{}, depth int) error
+	LoadDepth(ctx context.Context, respObj, id interface{}, depth int) error
 
 	//load with depth and filter
-	LoadDepthFilter(ctx context.Context,respObj , id interface{}, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error
+	LoadDepthFilter(ctx context.Context, respObj, id interface{}, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error
 
 	//load with depth, filter and pagination
-	LoadDepthFilterPagination(ctx context.Context, respObj , id interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error
+	LoadDepthFilterPagination(ctx context.Context, respObj, id interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error
 
 	//load slice of something
 	LoadAll(ctx context.Context, respObj interface{}) error

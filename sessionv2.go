@@ -175,7 +175,7 @@ func (s *SessionV2Impl) Commit(ctx context.Context) error {
 	return nil
 }
 
-func (s *SessionV2Impl) Load(ctx context.Context, respObj , id interface{}) error {
+func (s *SessionV2Impl) Load(ctx context.Context, respObj, id interface{}) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
 		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.Load")
@@ -187,7 +187,7 @@ func (s *SessionV2Impl) Load(ctx context.Context, respObj , id interface{}) erro
 	return s.LoadDepthFilterPagination(ctx, respObj, id, s.DefaultDepth, nil, nil, nil)
 }
 
-func (s *SessionV2Impl) LoadDepth(ctx context.Context, respObj , id interface{}, depth int) error {
+func (s *SessionV2Impl) LoadDepth(ctx context.Context, respObj, id interface{}, depth int) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
 		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadDepth")
@@ -199,7 +199,7 @@ func (s *SessionV2Impl) LoadDepth(ctx context.Context, respObj , id interface{},
 	return s.LoadDepthFilterPagination(ctx, respObj, id, depth, nil, nil, nil)
 }
 
-func (s *SessionV2Impl) LoadDepthFilter(ctx context.Context, respObj , id interface{}, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
+func (s *SessionV2Impl) LoadDepthFilter(ctx context.Context, respObj, id interface{}, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
 		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadDepthFilter")
@@ -211,7 +211,7 @@ func (s *SessionV2Impl) LoadDepthFilter(ctx context.Context, respObj , id interf
 	return s.LoadDepthFilterPagination(ctx, respObj, id, depth, filter, params, nil)
 }
 
-func (s *SessionV2Impl) LoadDepthFilterPagination(ctx context.Context, respObj , id interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
+func (s *SessionV2Impl) LoadDepthFilterPagination(ctx context.Context, respObj, id interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
 		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadDepthFilterPagination")
