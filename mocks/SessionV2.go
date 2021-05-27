@@ -89,11 +89,11 @@ func (_m *SessionV2) DeleteUUID(ctx context.Context, uuid string) error {
 }
 
 // Load provides a mock function with given fields: ctx, respObj, id
-func (_m *SessionV2) Load(ctx context.Context, respObj interface{}, id string) error {
+func (_m *SessionV2) Load(ctx context.Context, respObj interface{}, id interface{}) error {
 	ret := _m.Called(ctx, respObj, id)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, interface{}, string) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, interface{}, interface{}) error); ok {
 		r0 = rf(ctx, respObj, id)
 	} else {
 		r0 = ret.Error(0)
@@ -159,11 +159,11 @@ func (_m *SessionV2) LoadAllDepthFilterPagination(ctx context.Context, respObj i
 }
 
 // LoadDepth provides a mock function with given fields: ctx, respObj, id, depth
-func (_m *SessionV2) LoadDepth(ctx context.Context, respObj interface{}, id string, depth int) error {
+func (_m *SessionV2) LoadDepth(ctx context.Context, respObj interface{}, id interface{}, depth int) error {
 	ret := _m.Called(ctx, respObj, id, depth)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, interface{}, string, int) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, interface{}, interface{}, int) error); ok {
 		r0 = rf(ctx, respObj, id, depth)
 	} else {
 		r0 = ret.Error(0)
@@ -173,11 +173,11 @@ func (_m *SessionV2) LoadDepth(ctx context.Context, respObj interface{}, id stri
 }
 
 // LoadDepthFilter provides a mock function with given fields: ctx, respObj, id, depth, filter, params
-func (_m *SessionV2) LoadDepthFilter(ctx context.Context, respObj interface{}, id string, depth int, filter *go_cypherdsl.ConditionBuilder, params map[string]interface{}) error {
+func (_m *SessionV2) LoadDepthFilter(ctx context.Context, respObj interface{}, id interface{}, depth int, filter *go_cypherdsl.ConditionBuilder, params map[string]interface{}) error {
 	ret := _m.Called(ctx, respObj, id, depth, filter, params)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, interface{}, string, int, *go_cypherdsl.ConditionBuilder, map[string]interface{}) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, interface{}, interface{}, int, *go_cypherdsl.ConditionBuilder, map[string]interface{}) error); ok {
 		r0 = rf(ctx, respObj, id, depth, filter, params)
 	} else {
 		r0 = ret.Error(0)
@@ -187,11 +187,11 @@ func (_m *SessionV2) LoadDepthFilter(ctx context.Context, respObj interface{}, i
 }
 
 // LoadDepthFilterPagination provides a mock function with given fields: ctx, respObj, id, depth, filter, params, pagination
-func (_m *SessionV2) LoadDepthFilterPagination(ctx context.Context, respObj interface{}, id string, depth int, filter go_cypherdsl.ConditionOperator, params map[string]interface{}, pagination *gogm.Pagination) error {
+func (_m *SessionV2) LoadDepthFilterPagination(ctx context.Context, respObj interface{}, id interface{}, depth int, filter go_cypherdsl.ConditionOperator, params map[string]interface{}, pagination *gogm.Pagination) error {
 	ret := _m.Called(ctx, respObj, id, depth, filter, params, pagination)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, interface{}, string, int, go_cypherdsl.ConditionOperator, map[string]interface{}, *gogm.Pagination) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, interface{}, interface{}, int, go_cypherdsl.ConditionOperator, map[string]interface{}, *gogm.Pagination) error); ok {
 		r0 = rf(ctx, respObj, id, depth, filter, params, pagination)
 	} else {
 		r0 = ret.Error(0)
