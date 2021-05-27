@@ -51,6 +51,8 @@ github.com/mindstand/go-cypherdsl v0.2.0 h1:/B6A8DhWk2RksdJxruy3+ii3Hvrr5JU+2vL3
 github.com/mindstand/go-cypherdsl v0.2.0/go.mod h1:swzbrSTuq3CRgFglg3aVThG9GBQmHXz6AY81q9mRMto=
 github.com/neo4j/neo4j-go-driver/v4 v4.3.0-rc2 h1:V1GaSLHRo3665JVe9PkPqttX/EAE8moa2Oh4Ttld7iY=
 github.com/neo4j/neo4j-go-driver/v4 v4.3.0-rc2/go.mod h1:5O/gk/AqFeu5CkRgsk3SAzSiPomlVZEHGgOrGGJbcMk=
+github.com/neo4j/neo4j-go-driver/v4 v4.3.0 h1:L0YT6c2FfYmhdi6zvYXhXMLzXf6T4wourihW0NmRUDI=
+github.com/neo4j/neo4j-go-driver/v4 v4.3.0/go.mod h1:5O/gk/AqFeu5CkRgsk3SAzSiPomlVZEHGgOrGGJbcMk=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+AU=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=

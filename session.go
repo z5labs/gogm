@@ -219,7 +219,7 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	//make the query based off of the load strategy
 	switch s.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
-		query, err = PathLoadStrategyOne(varName, respObjName, depth, filter)
+		query, err = PathLoadStrategyOne(varName, respObjName, "uuid", "uuid", false, depth, filter)
 		if err != nil {
 			return err
 		}

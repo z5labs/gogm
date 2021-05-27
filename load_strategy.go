@@ -70,7 +70,7 @@ func PathLoadStrategyMany(variable, label string, depth int, additionalConstrain
 }
 
 // PathLoadStrategyOne loads one object using path strategy
-func PathLoadStrategyOne(variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
+func PathLoadStrategyOne(variable, label, fieldOn, paramName string, isGraphId bool, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
 	if variable == "" {
 		return nil, errors.New("variable name cannot be empty")
 	}
@@ -96,20 +96,27 @@ func PathLoadStrategyOne(variable, label string, depth int, additionalConstraint
 	builder := dsl.QB().
 		Match(path.Build())
 
-	if additionalConstraints != nil {
-		builder = builder.Where(additionalConstraints.And(&dsl.ConditionConfig{
-			Name:              variable,
-			Field:             "uuid",
-			ConditionOperator: dsl.EqualToOperator,
-			Check:             dsl.ParamString("$uuid"),
-		}))
+	var condition *dsl.ConditionConfig
+	if isGraphId {
+		condition = &dsl.ConditionConfig{
+			FieldManipulationFunction: "ID",
+			Name:                      variable,
+			ConditionOperator:         dsl.EqualToOperator,
+			Check:                     dsl.ParamString("$" + paramName),
+		}
 	} else {
-		builder = builder.Where(dsl.C(&dsl.ConditionConfig{
+		condition = &dsl.ConditionConfig{
 			Name:              variable,
-			Field:             "uuid",
+			Field:             fieldOn,
 			ConditionOperator: dsl.EqualToOperator,
-			Check:             dsl.ParamString("$uuid"),
-		}))
+			Check:             dsl.ParamString("$" + paramName) ,
+		}
+	}
+
+	if additionalConstraints != nil {
+		builder = builder.Where(additionalConstraints.And(condition))
+	} else {
+		builder = builder.Where(dsl.C(condition))
 	}
 
 	return builder.Return(false, dsl.ReturnPart{Name: "p"}), nil
