@@ -24,7 +24,7 @@ const loadMapField = "LoadMap"
 // BaseNode contains fields that ALL GoGM nodes are required to have
 type BaseNode struct {
 	// Id is the GraphId that neo4j uses internally
-	Id int64 `json:"-" gogm:"name=id"`
+	Id int64 `json:"-" gogm:"pk=default"`
 
 	// LoadMap represents the state of how a node was loaded for neo4j.
 	// This is used to determine if relationships are removed on save
