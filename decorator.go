@@ -459,7 +459,8 @@ func (s *structDecoratorConfig) Validate() error {
 	rels := 0
 
 	for _, conf := range s.Fields {
-		if conf.PrimaryKey != "" {
+		// ignore default, we only care about custom pk's (like uuid)
+		if conf.PrimaryKey != "" && conf.PrimaryKey != DefaultPrimaryKeyStrategy.StrategyName{
 			pkCount++
 		}
 
