@@ -175,6 +175,10 @@ func toCypherParamsMap(gogm *Gogm, val reflect.Value, config structDecoratorConf
 			}
 
 			if conf.PrimaryKey != "" {
+				if conf.PrimaryKey == DefaultPrimaryKeyStrategy.StrategyName {
+					// we dont want to write the id to the params map
+					continue
+				}
 				ret[gogm.pkStrategy.DBName] = val
 			} else {
 				ret[conf.Name] = val

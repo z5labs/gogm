@@ -209,7 +209,7 @@ func TestStructDecoratorConfig_Validate(t *testing.T) {
 			ShouldPass: true,
 		},
 		{
-			Name: "invalid pk",
+			Name: "valid uuid with id",
 			Decorator: structDecoratorConfig{
 				Fields: map[string]decoratorConfig{
 					"uuid": {
@@ -225,7 +225,7 @@ func TestStructDecoratorConfig_Validate(t *testing.T) {
 				},
 				IsVertex: true,
 			},
-			ShouldPass: false,
+			ShouldPass: true,
 		},
 		{
 			Name: "invalid relations",

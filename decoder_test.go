@@ -210,7 +210,7 @@ func (c *c) SetEndNode(v interface{}) error {
 }
 
 type propsTest struct {
-	Id         int64                  `gogm:"name=id"`
+	Id         int64                  `gogm:"pk=default"`
 	UUID       string                 `gogm:"pk=UUID;name=uuid"`
 	PropTest0  map[string]interface{} `gogm:"properties;name=props0"`
 	PropTest1  map[string]string      `gogm:"properties;name=props1"`
