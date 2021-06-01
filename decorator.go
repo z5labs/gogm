@@ -457,11 +457,17 @@ func (s *structDecoratorConfig) Validate() error {
 
 	pkCount := 0
 	rels := 0
+	defaultPkFound := false
 
 	for _, conf := range s.Fields {
 		// ignore default, we only care about custom pk's (like uuid)
-		if conf.PrimaryKey != "" && conf.PrimaryKey != DefaultPrimaryKeyStrategy.StrategyName{
-			pkCount++
+		if conf.PrimaryKey != ""{
+			if conf.PrimaryKey == DefaultPrimaryKeyStrategy.StrategyName {
+				defaultPkFound = true
+			} else {
+				pkCount++
+			}
+
 		}
 
 		if conf.Relationship != "" {
@@ -469,7 +475,7 @@ func (s *structDecoratorConfig) Validate() error {
 		}
 	}
 
-	if pkCount == 0 {
+	if pkCount == 0 && !defaultPkFound {
 		return NewInvalidStructConfigError("primary key required on node/edge " + s.Label)
 	} else if pkCount > 1 {
 		return NewInvalidStructConfigError("too many primary keys defined")
