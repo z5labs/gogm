@@ -81,6 +81,11 @@ func dropAllIndexesAndConstraintsV4(gogm *Gogm) error {
 				return err
 			}
 
+			if res == nil || len(res) == 0 {
+				// no constraints to kill off, return from here
+				return nil
+			}
+
 			constraints, err := resultToStringArrV4(true, res)
 			if err != nil {
 				return err

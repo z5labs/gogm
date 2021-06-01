@@ -64,6 +64,7 @@ func (integrationTest *IntegrationTestSuite) SetupSuite() {
 		IsCluster:                 false,
 		Port:                      7687,
 		PoolSize:                  15,
+		// this is ignore because index management is part of the test
 		IndexStrategy:             IGNORE_INDEX,
 		EnableDriverLogs:          true,
 		DefaultTransactionTimeout: 2 * time.Minute,
@@ -88,10 +89,18 @@ func (integrationTest *IntegrationTestSuite) TestManagedTx() {
 	va.UUID = uuid2.New().String()
 	vb := b{}
 	vb.UUID = uuid2.New().String()
+
+	sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+	integrationTest.Require().Nil(err)
+	integrationTest.Require().NotNil(sess)
+	integrationTest.Require().Nil(sess.SaveDepth(context.Background(), &va, 0))
+	integrationTest.Require().Nil(sess.SaveDepth(context.Background(), &vb, 0))
+	integrationTest.Require().Nil(sess.Close())
+
 	var wg sync.WaitGroup
 	for i := 0; i < 15; i++ {
 		wg.Add(1)
-		go func(assert *assert2.Assertions, wg *sync.WaitGroup, va a, vb b, t int) {
+		go func(assert *assert2.Assertions, wg *sync.WaitGroup, va *a, vb *b, t int) {
 			defer wg.Done()
 			sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
 			if !assert.NotNil(sess) || !assert.Nil(err) {
@@ -105,20 +114,20 @@ func (integrationTest *IntegrationTestSuite) TestManagedTx() {
 				ctx := context.Background()
 				err = sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
 					va.TestField = time.Now().UTC().String()
-					err = tx.SaveDepth(ctx, &va, 0)
+					err = tx.SaveDepth(ctx, va, 0)
 					if err != nil {
 						return err
 					}
 
 					vb.TestField = time.Now().UTC().String()
-					return tx.SaveDepth(ctx, &vb, 0)
+					return tx.SaveDepth(ctx, vb, 0)
 				})
 				if !assert.Nil(err) {
 					fmt.Printf("error: %s, exiting thread", err.Error())
 					return
 				}
 			}
-		}(assert, &wg, va, vb, i)
+		}(assert, &wg, &va, &vb, i)
 	}
 	wg.Wait()
 }
