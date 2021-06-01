@@ -265,7 +265,8 @@ func (d *decoratorConfig) Validate(gogm *Gogm) error {
 	}
 
 	//validate pk
-	if d.PrimaryKey != "" {
+	// ignore default since everything should have that
+	if d.PrimaryKey != "" && d.PrimaryKey != DefaultPrimaryKeyStrategy.StrategyName{
 		// validate strategy matches
 		if d.PrimaryKey != gogm.pkStrategy.StrategyName {
 			return fmt.Errorf("trying to use strategy '%s' when '%s' is registered", d.PrimaryKey, gogm.pkStrategy.StrategyName)
