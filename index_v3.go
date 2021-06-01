@@ -72,6 +72,11 @@ func dropAllIndexesAndConstraintsV3(gogm *Gogm) error {
 			return err
 		}
 
+		if vals == nil || len(vals) == 0 {
+			// nothing to drop if no constraints exist
+			return nil
+		}
+
 		constraints, err := resultToStringArrV3(vals)
 		if err != nil {
 			return err
