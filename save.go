@@ -552,7 +552,7 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 					return fmt.Errorf("cannot find val for ptr [%v]", ptr)
 				}
 
-				reflect.Indirect(*val).FieldByName(DefaultPrimaryKeyStrategy.FieldName).Set(reflect.ValueOf(graphId))
+				reflect.Indirect(*val).FieldByName(DefaultPrimaryKeyStrategy.FieldName).Set(reflect.ValueOf(&graphId))
 			}
 		}
 
