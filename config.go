@@ -94,16 +94,16 @@ func (c *Config) validate() error {
 
 // ConnectionString builds the neo4j bolt/bolt+routing connection string
 func (c *Config) ConnectionString() string {
-	var protocol string
-
-	if c.IsCluster {
-		protocol = "bolt+routing"
-	} else {
-		protocol = "bolt"
-	}
+	//var protocol string
+	//
+	//if c.IsCluster {
+	//	protocol = "bolt+routing"
+	//} else {
+	//	protocol = "bolt"
+	//}
 	// In case of special characters in password string
 	//password := url.QueryEscape(c.Password)
-	return fmt.Sprintf("%s://%s:%v", protocol, c.Host, c.Port)
+	return fmt.Sprintf("neo4j://%s:%v", c.Host, c.Port)
 }
 
 // Index Strategy typedefs int to define different index approaches
