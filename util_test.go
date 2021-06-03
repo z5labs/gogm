@@ -61,7 +61,7 @@ func TestSetUuidIfNeeded(t *testing.T) {
 	require.True(t, isNew)
 
 	val.UUID = "dasdfasd"
-	val.Id = 10
+	val.Id = int64Ptr(10)
 	val.LoadMap = map[string]*RelationConfig{
 		"dasdfasd": {
 			Ids:          []int64{69},
@@ -100,7 +100,7 @@ func TestToCypherParamsMap(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "testuuid",
 			BaseNode: BaseNode{
-				Id: 0,
+				Id: int64Ptr(0),
 			},
 		},
 		TestField: "testvalue",
@@ -122,7 +122,7 @@ func TestToCypherParamsMap(t *testing.T) {
 	}, params)
 
 	p := propsTest{
-		Id:   1,
+		Id:   int64Ptr(1),
 		UUID: "testuuid",
 		PropTest0: map[string]interface{}{
 			"test": "testvalue",

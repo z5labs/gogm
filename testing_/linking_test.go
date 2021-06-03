@@ -25,6 +25,10 @@ import (
 	"testing"
 )
 
+func int64ptr(n int64) *int64 {
+	return &n
+}
+
 func TestLinking(t *testing.T) {
 	req := require.New(t)
 
@@ -35,7 +39,7 @@ func TestLinking(t *testing.T) {
 		BaseUUIDNode: gogm.BaseUUIDNode{
 			UUID: id1,
 			BaseNode: gogm.BaseNode{
-				Id:      0,
+				Id:      int64ptr(0),
 				LoadMap: map[string]*gogm.RelationConfig{},
 			},
 		},
@@ -45,7 +49,7 @@ func TestLinking(t *testing.T) {
 		BaseUUIDNode: gogm.BaseUUIDNode{
 			UUID: id2,
 			BaseNode: gogm.BaseNode{
-				Id:      1,
+				Id:      int64ptr(1),
 				LoadMap: map[string]*gogm.RelationConfig{},
 			},
 		},

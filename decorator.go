@@ -266,7 +266,7 @@ func (d *decoratorConfig) Validate(gogm *Gogm) error {
 
 	//validate pk
 	// ignore default since everything should have that
-	if d.PrimaryKey != "" && d.PrimaryKey != DefaultPrimaryKeyStrategy.StrategyName{
+	if d.PrimaryKey != "" && d.PrimaryKey != DefaultPrimaryKeyStrategy.StrategyName {
 		// validate strategy matches
 		if d.PrimaryKey != gogm.pkStrategy.StrategyName {
 			return fmt.Errorf("trying to use strategy '%s' when '%s' is registered", d.PrimaryKey, gogm.pkStrategy.StrategyName)
@@ -461,7 +461,7 @@ func (s *structDecoratorConfig) Validate() error {
 
 	for _, conf := range s.Fields {
 		// ignore default, we only care about custom pk's (like uuid)
-		if conf.PrimaryKey != ""{
+		if conf.PrimaryKey != "" {
 			if conf.PrimaryKey == DefaultPrimaryKeyStrategy.StrategyName {
 				defaultPkFound = true
 			} else {

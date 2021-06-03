@@ -30,7 +30,7 @@ import (
 )
 
 type TestStruct struct {
-	Id         int64
+	Id         *int64
 	UUID       string
 	OtherField string
 }
@@ -97,7 +97,7 @@ func TestConvertNodeToValue(t *testing.T) {
 	req.Nil(err)
 	req.NotNil(val)
 	req.EqualValues(TestStruct{
-		Id:         10,
+		Id:         int64Ptr(10),
 		UUID:       "dadfasdfasdf",
 		OtherField: "dafsdfasd",
 	}, val.Interface().(TestStruct))
@@ -210,7 +210,7 @@ func (c *c) SetEndNode(v interface{}) error {
 }
 
 type propsTest struct {
-	Id         int64                  `gogm:"pk=default"`
+	Id         *int64                 `gogm:"pk=default"`
 	UUID       string                 `gogm:"pk=UUID;name=uuid"`
 	PropTest0  map[string]interface{} `gogm:"properties;name=props0"`
 	PropTest1  map[string]string      `gogm:"properties;name=props1"`
@@ -325,7 +325,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "0",
 			BaseNode: BaseNode{
-				Id: 0,
+				Id: int64Ptr(0),
 			},
 		},
 	}
@@ -334,7 +334,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "1",
 			BaseNode: BaseNode{
-				Id: 1,
+				Id: int64Ptr(1),
 			},
 		},
 	}
@@ -343,7 +343,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "2",
 			BaseNode: BaseNode{
-				Id: 2,
+				Id: int64Ptr(2),
 			},
 		},
 	}
@@ -357,16 +357,16 @@ func TestInnerDecode(t *testing.T) {
 	req.Nil(innerDecode(gogm, vars10, &readin10))
 	req.True(len(readin10) == 3)
 	for _, r := range readin10 {
-		if r.Id == 0 {
+		if *r.Id == 0 {
 			req.True(len(r.Parents) == 1)
 			req.True(r.LoadMap["Parents"].Ids[0] == 1)
 			req.True(len(r.Children) == 0)
-		} else if r.Id == 1 {
+		} else if *r.Id == 1 {
 			req.True(len(r.Parents) == 1)
 			req.True(r.LoadMap["Parents"].Ids[0] == 2)
 			req.True(len(r.Children) == 1)
 			req.True(r.LoadMap["Children"].Ids[0] == 0)
-		} else if r.Id == 2 {
+		} else if *r.Id == 2 {
 			req.True(len(r.Parents) == 0)
 			req.True(len(r.Children) == 1)
 			req.True(r.LoadMap["Children"].Ids[0] == 1)
@@ -418,7 +418,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
 			BaseNode: BaseNode{
-				Id: 1,
+				Id: int64Ptr(1),
 			},
 		},
 		TestField:         "test",
@@ -430,7 +430,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfas",
 			BaseNode: BaseNode{
-				Id: 2,
+				Id: int64Ptr(2),
 			},
 		},
 		TestField: "test",
@@ -512,7 +512,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
 			BaseNode: BaseNode{
-				Id: 1,
+				Id: int64Ptr(1),
 			},
 		},
 		TestField: "test",
@@ -522,7 +522,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfas",
 			BaseNode: BaseNode{
-				Id: 2,
+				Id: int64Ptr(2),
 			},
 		},
 		TestField: "test",
@@ -533,7 +533,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "asdfasdafsd",
 			BaseNode: BaseNode{
-				Id: 34,
+				Id: int64Ptr(34),
 			},
 		},
 		Start: comp2,
@@ -593,7 +593,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
 			BaseNode: BaseNode{
-				Id: 1,
+				Id: int64Ptr(1),
 			},
 		},
 		TestField: "test",
@@ -603,7 +603,7 @@ func TestInnerDecode(t *testing.T) {
 				BaseUUIDNode: BaseUUIDNode{
 					UUID: "dasdfas",
 					BaseNode: BaseNode{
-						Id: 2,
+						Id: int64Ptr(2),
 					},
 				},
 				TestTime: fTime,
@@ -666,7 +666,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfasd",
 			BaseNode: BaseNode{
-				Id: 1,
+				Id: int64Ptr(1),
 			},
 		},
 	}
@@ -676,7 +676,7 @@ func TestInnerDecode(t *testing.T) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "dasdfas",
 			BaseNode: BaseNode{
-				Id: 2,
+				Id: int64Ptr(2),
 			},
 		},
 		TestTime: fTime,
@@ -735,7 +735,7 @@ func TestInnerDecode(t *testing.T) {
 	var readin5 propsTest
 
 	r := propsTest{
-		Id:   1,
+		Id:   int64Ptr(1),
 		UUID: var5uuid,
 		PropTest0: map[string]interface{}{
 			"test.test": "test",
@@ -867,7 +867,7 @@ func TestInnerDecode(t *testing.T) {
 	var readin9 b
 	req.Nil(innerDecode(gogm, vars9, &readin9))
 	req.Equal("test", readin9.TestField)
-	req.Equal(int64(55), readin9.Id)
+	req.Equal(int64(55), *readin9.Id)
 	req.Equal("dasdfas", readin9.UUID)
 
 }

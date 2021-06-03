@@ -87,7 +87,7 @@ var (
 		StrategyName: "default",
 		DBName:       "id",
 		FieldName:    "Id",
-		Type:         reflect.TypeOf(int64(1)),
+		Type:         reflect.TypeOf(int64Ptr(0)),
 		GenIDFunc: func() (id interface{}) {
 			return ""
 		},

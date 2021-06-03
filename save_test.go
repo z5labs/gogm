@@ -50,7 +50,7 @@ func parseO2O(gogm *Gogm, req *require.Assertions) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "comp1uuid",
 			BaseNode: BaseNode{
-				Id: 1,
+				Id: int64Ptr(1),
 				LoadMap: map[string]*RelationConfig{
 					"SingleSpecA": {
 						Ids:          []int64{2},
@@ -65,7 +65,7 @@ func parseO2O(gogm *Gogm, req *require.Assertions) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "b1uuid",
 			BaseNode: BaseNode{
-				Id: 2,
+				Id: int64Ptr(2),
 				LoadMap: map[string]*RelationConfig{
 					"SingleSpec": {
 						Ids:          []int64{1},
@@ -127,7 +127,7 @@ func parseM2O(gogm *Gogm, req *require.Assertions) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "a1uuid",
 			BaseNode: BaseNode{
-				Id: 1,
+				Id: int64Ptr(1),
 				LoadMap: map[string]*RelationConfig{
 					"ManyA": {
 						Ids:          []int64{2},
@@ -144,7 +144,7 @@ func parseM2O(gogm *Gogm, req *require.Assertions) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "b1uuid",
 			BaseNode: BaseNode{
-				Id: 2,
+				Id: int64Ptr(2),
 				LoadMap: map[string]*RelationConfig{
 					"ManyB": {
 						Ids:          []int64{1},
@@ -195,7 +195,7 @@ func parseM2M(gogm *Gogm, req *require.Assertions) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "a1uuid",
 			BaseNode: BaseNode{
-				Id: 1,
+				Id: int64Ptr(1),
 
 				LoadMap: map[string]*RelationConfig{
 					"MultiA": {
@@ -214,7 +214,7 @@ func parseM2M(gogm *Gogm, req *require.Assertions) {
 		BaseUUIDNode: BaseUUIDNode{
 			UUID: "b1uuid",
 			BaseNode: BaseNode{
-				Id: 2,
+				Id: int64Ptr(2),
 				LoadMap: map[string]*RelationConfig{
 					"Multi": {
 						Ids:          []int64{1},
@@ -295,7 +295,7 @@ func TestCalculateCurRels(t *testing.T) {
 					BaseUUIDNode: BaseUUIDNode{
 						UUID: "a1uuid",
 						BaseNode: BaseNode{
-							Id: 1,
+							Id: int64Ptr(1),
 							LoadMap: map[string]*RelationConfig{
 								"MultiA": {
 									Ids:          []int64{2},
@@ -312,7 +312,7 @@ func TestCalculateCurRels(t *testing.T) {
 					TestField: "test",
 					BaseUUIDNode: BaseUUIDNode{
 						BaseNode: BaseNode{
-							Id: 2,
+							Id: int64Ptr(2),
 							LoadMap: map[string]*RelationConfig{
 								"Multi": {
 									Ids:          []int64{1},
@@ -363,7 +363,7 @@ func TestCalculateCurRels(t *testing.T) {
 				a2 := &a{
 					BaseUUIDNode: BaseUUIDNode{
 						BaseNode: BaseNode{
-							Id: 1,
+							Id: int64Ptr(1),
 						},
 					},
 					TestField: "test",
@@ -381,7 +381,7 @@ func TestCalculateCurRels(t *testing.T) {
 				b2 := &b{
 					BaseUUIDNode: BaseUUIDNode{
 						BaseNode: BaseNode{
-							Id: 2,
+							Id: int64Ptr(2),
 						},
 					},
 					TestField: "test",
@@ -391,7 +391,7 @@ func TestCalculateCurRels(t *testing.T) {
 				b3 := &b{
 					BaseUUIDNode: BaseUUIDNode{
 						BaseNode: BaseNode{
-							Id: 3,
+							Id: int64Ptr(3),
 						},
 					},
 					TestField: "dasdfasd",
@@ -400,7 +400,7 @@ func TestCalculateCurRels(t *testing.T) {
 				edgeC1 := &c{
 					BaseUUIDNode: BaseUUIDNode{
 						BaseNode: BaseNode{
-							Id: 4,
+							Id: int64Ptr(4),
 						},
 					},
 					Start: a2,

@@ -363,10 +363,12 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 		return nil
 	}
 
-	id := reflect.Indirect(*current).FieldByName(DefaultPrimaryKeyStrategy.FieldName).Int()
-	if id < 0 {
+	idVal := reflect.Indirect(*current).FieldByName(DefaultPrimaryKeyStrategy.FieldName)
+	if idVal.IsNil() {
 		return errors.New("id not set")
 	}
+
+	id := idVal.Elem().Int()
 
 	if _, ok := curRels[id]; ok {
 		//this node has already been seen
@@ -419,7 +421,7 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 					return err
 				}
 
-				followId := reflect.Indirect(*followVal).FieldByName(DefaultPrimaryKeyStrategy.FieldName).Int()
+				followId := reflect.Indirect(*followVal).FieldByName(DefaultPrimaryKeyStrategy.FieldName).Elem().Int()
 
 				//check the config is there for the specified field
 				if _, ok = curRels[id][conf.FieldName]; !ok {
@@ -444,7 +446,12 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 				return err
 			}
 
-			followId := reflect.Indirect(*followVal).FieldByName(DefaultPrimaryKeyStrategy.FieldName).Int()
+			followIdVal := reflect.Indirect(*followVal).FieldByName(DefaultPrimaryKeyStrategy.FieldName)
+			if followIdVal.IsNil() {
+				return errors.New("follow id val can not be nil")
+			}
+
+			followId := followIdVal.Elem().Int()
 
 			//check the config is there for the specified field
 			if _, ok = curRels[id][conf.FieldName]; !ok {

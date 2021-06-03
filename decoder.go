@@ -523,7 +523,7 @@ func convertToValue(gogm *Gogm, graphId int64, conf structDecoratorConfig, props
 	val := reflect.New(rtype)
 
 	if graphId >= 0 {
-		reflect.Indirect(val).FieldByName("Id").Set(reflect.ValueOf(graphId))
+		reflect.Indirect(val).FieldByName("Id").Set(reflect.ValueOf(&graphId))
 	}
 
 	for field, fieldConfig := range conf.Fields {

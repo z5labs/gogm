@@ -75,17 +75,15 @@ func handleNodeState(pkStrat *PrimaryKeyStrategy, val *reflect.Value) (isNew boo
 	}
 
 	// handle the id
-	if val.IsZero() {
+	if val.IsNil() {
 		isNew = true
 	} else {
 		idVal := reflect.Indirect(*val).FieldByName(DefaultPrimaryKeyStrategy.FieldName)
+		// idVal is a pointer
+		idVal = idVal.Elem()
 		if idVal.IsValid() {
-			if idVal.IsZero() {
-				isNew = true
-			} else {
-				id = idVal.Int()
-				isNew = false
-			}
+			id = idVal.Int()
+			isNew = false
 		} else {
 			isNew = true
 		}
@@ -415,4 +413,8 @@ func getPrimitiveType(k reflect.Kind) (reflect.Type, error) {
 	default:
 		return nil, fmt.Errorf("[%s] not supported", k.String())
 	}
+}
+
+func int64Ptr(n int64) *int64 {
+	return &n
 }

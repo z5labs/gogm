@@ -58,12 +58,12 @@ func (integrationTest *IntegrationTestSuite) TearDownSuite() {
 
 func (integrationTest *IntegrationTestSuite) SetupSuite() {
 	conf := Config{
-		Username:                  "neo4j",
-		Password:                  "changeme",
-		Host:                      "0.0.0.0",
-		IsCluster:                 false,
-		Port:                      7687,
-		PoolSize:                  15,
+		Username:  "neo4j",
+		Password:  "changeme",
+		Host:      "0.0.0.0",
+		IsCluster: false,
+		Port:      7687,
+		PoolSize:  15,
 		// this is ignore because index management is part of the test
 		IndexStrategy:             IGNORE_INDEX,
 		EnableDriverLogs:          true,
@@ -310,23 +310,23 @@ func testSave(sess ISession, req *require.Assertions) {
 
 	req.EqualValues(map[string]*RelationConfig{
 		"SingleSpecA": {
-			Ids:          []int64{b2.Id},
+			Ids:          []int64{*b2.Id},
 			RelationType: Single,
 		},
 		"ManyA": {
-			Ids:          []int64{b3.Id},
+			Ids:          []int64{*b3.Id},
 			RelationType: Multi,
 		},
 	}, a2.LoadMap)
 	req.EqualValues(map[string]*RelationConfig{
 		"SingleSpec": {
-			Ids:          []int64{a2.Id},
+			Ids:          []int64{*a2.Id},
 			RelationType: Single,
 		},
 	}, b2.LoadMap)
 	req.EqualValues(map[string]*RelationConfig{
 		"ManyB": {
-			Ids:          []int64{a2.Id},
+			Ids:          []int64{*a2.Id},
 			RelationType: Single,
 		},
 	}, b3.LoadMap)
@@ -448,23 +448,23 @@ func testSaveV2(sess SessionV2, req *require.Assertions) {
 
 	req.EqualValues(map[string]*RelationConfig{
 		"SingleSpecA": {
-			Ids:          []int64{b2.Id},
+			Ids:          []int64{*b2.Id},
 			RelationType: Single,
 		},
 		"ManyA": {
-			Ids:          []int64{b3.Id},
+			Ids:          []int64{*b3.Id},
 			RelationType: Multi,
 		},
 	}, a2.LoadMap)
 	req.EqualValues(map[string]*RelationConfig{
 		"SingleSpec": {
-			Ids:          []int64{a2.Id},
+			Ids:          []int64{*a2.Id},
 			RelationType: Single,
 		},
 	}, b2.LoadMap)
 	req.EqualValues(map[string]*RelationConfig{
 		"ManyB": {
-			Ids:          []int64{a2.Id},
+			Ids:          []int64{*a2.Id},
 			RelationType: Single,
 		},
 	}, b3.LoadMap)
