@@ -97,7 +97,7 @@ func dropAllIndexesAndConstraintsV4(gogm *Gogm) error {
 					gogm.logger.Debugf("dropping constraint '%s'", constraint)
 					_, _, err := tx.QueryRaw(ctx, fmt.Sprintf("DROP CONSTRAINT %s IF EXISTS", constraint), nil)
 					if err != nil {
-						return tx.RollbackWithError(ctx, err)
+						return err
 					}
 				}
 			}
@@ -183,7 +183,7 @@ func createAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 
 						_, _, err = tx.QueryRaw(ctx, cyp, nil)
 						if err != nil {
-							return tx.RollbackWithError(ctx, err)
+							return err
 						}
 					} else if config.Index {
 						indexFields = append(indexFields, config.Name)
@@ -203,7 +203,7 @@ func createAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 
 					_, _, err = tx.QueryRaw(ctx, cyp, nil)
 					if err != nil {
-						return tx.RollbackWithError(ctx, err)
+						return err
 					}
 				}
 			}
@@ -275,22 +275,22 @@ func verifyAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 		//get whats there now
 		foundResult, _, err := sess.QueryRaw(ctx, "CALL db.constraints", nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("no constraints found, %w", err)
 		}
 
 		foundConstraints, err := resultToStringArrV4(true, foundResult)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to convert result to string array, %w", err)
 		}
 
 		foundInxdexResult, _, err := sess.QueryRaw(ctx, "CALL db.indexes()", nil)
 		if err != nil {
-			return err
+			return fmt.Errorf("no indices found, %w", err)
 		}
 
 		foundIndexes, err := resultToStringArrV4(false, foundInxdexResult)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to convert result to array, %w", err)
 		}
 
 		//verify from there
