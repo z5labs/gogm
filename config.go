@@ -36,8 +36,10 @@ type Config struct {
 	// Port is the neo4j port
 	Port int `yaml:"port" json:"port" mapstructure:"port"`
 
+	// deprecated
 	// IsCluster specifies whether GoGM is connecting to a casual cluster or not
 	IsCluster bool `yaml:"is_cluster" json:"is_cluster" mapstructure:"is_cluster"`
+	Protocol string `json:"protocol" yaml:"protocol" mapstructure:"protocol"`
 
 	// Username is the GoGM username
 	Username string `yaml:"username" json:"username" mapstructure:"username"`
@@ -94,16 +96,21 @@ func (c *Config) validate() error {
 
 // ConnectionString builds the neo4j bolt/bolt+routing connection string
 func (c *Config) ConnectionString() string {
-	//var protocol string
-	//
-	//if c.IsCluster {
-	//	protocol = "bolt+routing"
-	//} else {
-	//	protocol = "bolt"
-	//}
+	var protocol string
+
+	if c.Protocol != "" {
+		protocol = c.Protocol
+	} else {
+		if c.IsCluster {
+			protocol = "bolt+routing"
+		} else {
+			protocol = "bolt"
+		}
+	}
+
 	// In case of special characters in password string
 	//password := url.QueryEscape(c.Password)
-	return fmt.Sprintf("neo4j://%s:%v", c.Host, c.Port)
+	return fmt.Sprintf("%s://%s:%v", protocol, c.Host, c.Port)
 }
 
 // Index Strategy typedefs int to define different index approaches
