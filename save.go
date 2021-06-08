@@ -373,10 +373,8 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 	if !idVal.Elem().IsZero() {
 		id = idVal.Elem().Int()
 	} else {
-		e := idVal.Elem()
-		return fmt.Errorf("id value is zero. type is [%s]. value is [%+v] parent type [%s]. parent value [%+v]", e.Type().String(), e.Interface(), idVal.Type().String(), idVal.Interface())
+		id = 0
 	}
-
 
 	if _, ok := curRels[id]; ok {
 		//this node has already been seen
