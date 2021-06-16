@@ -8,6 +8,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dchest/siphash v1.2.1 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/mux v1.8.0
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mindstand/go-cypherdsl v0.2.0
 	github.com/neo4j/neo4j-go-driver/v4 v4.3.0
