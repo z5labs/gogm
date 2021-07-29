@@ -12,6 +12,7 @@ type Movie struct {
 	Title        string         `gogm:"name=title" json:"title"`
 	ReleasedYear int            `gogm:"name=released" json:"released_year"`
 	TagLine      string         `gogm:"name=tagline" json:"tag_line"`
+
 	Actors       []*ActedInEdge `gogm:"direction=incoming;relationship=ACTED_IN" json:"actors"`
 	Directors    []*Person      `gogm:"direction=incoming;relationship=DIRECTED" json:"directors"`
 	Producers    []*Person      `gogm:"direction=incoming;relationship=PRODUCED" json:"producers"`
@@ -27,7 +28,7 @@ type Person struct {
 	BornYear int            `gogm:"name=born" json:"born_year"`
 	Directed []*Movie       `gogm:"direction=outgoing;relationship=DIRECTED" json:"-"`
 	Produced []*Movie       `gogm:"direction=outgoing;relationship=PRODUCED" json:"-"`
-	Follows  []*Person      `gogm:"direction=outgoing;relationship=FOLLOWS" json:"-"`
+	Follows  []*Movie      `gogm:"direction=outgoing;relationship=FOLLOWS" json:"-"`
 	Wrote    []*Movie       `gogm:"direction=outgoing;relationship=WROTE" json:"-"`
 	Reviewed []*Movie       `gogm:"direction=outgoing;relationship=REVIEWED" json:"-"`
 	ActedIn  []*ActedInEdge `gogm:"direction=outgoing;relationship=ACTED_IN" json:"-"`
