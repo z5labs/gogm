@@ -27,24 +27,9 @@ import (
 	"strings"
 )
 
-func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
-	var rows [][]interface{}
-
-	numRows := 0
-	for result.Next() {
-		rows = append(rows, result.Record().Values)
-		numRows++
-	}
-
-	if numRows == 0 {
-		return ErrNotFound
-	}
-	return innerDecode(gogm, rows, respObj)
-}
-
 //decodes raw path response from driver
 //example query `match p=(n)-[*0..5]-() return p`
-func innerDecode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
+func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 	//check nil params
 	if result == nil {
 		return fmt.Errorf("result can not be nil, %w", ErrInvalidParams)

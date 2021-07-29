@@ -118,3 +118,58 @@ func (t *testResult) Consume() (neo4j.ResultSummary, error) {
 //func (t *testResult) Consume() (neo4j.ResultSummary, error) {
 //	panic("implement me")
 //}
+
+type mockResult struct {
+	records [][]interface{}
+	curIndex int
+}
+
+func newMockResult(records [][]interface{}) *mockResult {
+	return &mockResult{
+		records:  records,
+		curIndex: -1,
+	}
+}
+
+func (m *mockResult) Keys() ([]string, error) {
+	panic("implement me")
+}
+
+func (m *mockResult) Next() bool {
+	if m.records == nil || len(m.records) == 0{
+		return false
+	}
+
+	if m.curIndex + 1 == len(m.records) {
+		return false
+	}
+
+	m.curIndex++
+	return true
+}
+
+func (m *mockResult) NextRecord(record **neo4j.Record) bool {
+	panic("implement me")
+}
+
+func (m *mockResult) Err() error {
+	panic("implement me")
+}
+
+func (m *mockResult) Record() *neo4j.Record {
+	return &neo4j.Record{
+		Values: m.records[m.curIndex],
+	}
+}
+
+func (m *mockResult) Collect() ([]*neo4j.Record, error) {
+	panic("implement me")
+}
+
+func (m *mockResult) Single() (*neo4j.Record, error) {
+	panic("implement me")
+}
+
+func (m *mockResult) Consume() (neo4j.ResultSummary, error) {
+	panic("implement me")
+}

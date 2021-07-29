@@ -248,7 +248,6 @@ func getTestGogm() (*Gogm, error) {
 }
 
 func TestDecode(t *testing.T) {
-
 	req := require.New(t)
 	gogm, err := getTestGogm()
 	req.Nil(err)
@@ -266,7 +265,7 @@ func TestDecode(t *testing.T) {
 	req.Contains(decode(gogm, &t1, &fNode).Error(), "no primary nodes to return")
 }
 
-func TestInnerDecode(t *testing.T) {
+func TestDecode2(t *testing.T) {
 	req := require.New(t)
 
 	gogm, err := getTestGogm()
@@ -274,7 +273,6 @@ func TestInnerDecode(t *testing.T) {
 	req.NotNil(gogm)
 
 	//	req.EqualValues(3, mappedTypes.Len())
-
 	vars10 := [][]interface{}{
 		{
 			neo4j.Path{
@@ -354,7 +352,7 @@ func TestInnerDecode(t *testing.T) {
 	f2.Children = []*f{&f1}
 
 	var readin10 []*f
-	req.Nil(innerDecode(gogm, vars10, &readin10))
+	req.Nil(decode(gogm, newMockResult(vars10), &readin10))
 	req.True(len(readin10) == 3)
 	for _, r := range readin10 {
 		if *r.Id == 0 {
@@ -440,7 +438,7 @@ func TestInnerDecode(t *testing.T) {
 	comp.SingleA = comp22
 	comp22.Single = comp
 
-	req.Nil(innerDecode(gogm, vars, &readin))
+	req.Nil(decode(gogm, newMockResult(vars), &readin))
 	req.EqualValues(comp.TestField, readin.TestField)
 	req.EqualValues(comp.UUID, readin.UUID)
 	req.EqualValues(comp.Id, readin.Id)
@@ -450,7 +448,7 @@ func TestInnerDecode(t *testing.T) {
 
 	var readinSlicePtr []*a
 
-	req.Nil(innerDecode(gogm, vars, &readinSlicePtr))
+	req.Nil(decode(gogm, newMockResult(vars), &readinSlicePtr))
 	req.EqualValues(comp.TestField, readinSlicePtr[0].TestField)
 	req.EqualValues(comp.UUID, readinSlicePtr[0].UUID)
 	req.EqualValues(comp.Id, readinSlicePtr[0].Id)
@@ -460,7 +458,7 @@ func TestInnerDecode(t *testing.T) {
 
 	var readinSlice []a
 
-	req.Nil(innerDecode(gogm, vars, &readinSlice))
+	req.Nil(decode(gogm, newMockResult(vars), &readinSlice))
 	req.EqualValues(comp.TestField, readinSlice[0].TestField)
 	req.EqualValues(comp.UUID, readinSlice[0].UUID)
 	req.EqualValues(comp.Id, readinSlice[0].Id)
@@ -544,7 +542,7 @@ func TestInnerDecode(t *testing.T) {
 	comp2.SingleSpecA = c1
 	b2.SingleSpec = c1
 
-	req.Nil(innerDecode(gogm, vars2, &readin2))
+	req.Nil(decode(gogm, newMockResult(vars2), &readin2))
 	req.EqualValues(comp2.TestField, readin2.TestField)
 	req.EqualValues(comp2.UUID, readin2.UUID)
 	req.EqualValues(comp2.Id, readin2.Id)
@@ -611,7 +609,7 @@ func TestInnerDecode(t *testing.T) {
 		},
 	}
 
-	req.Nil(innerDecode(gogm, vars3, &readin3))
+	req.Nil(decode(gogm, newMockResult(vars3), &readin3))
 	req.EqualValues(comp3.TestField, readin3.TestField)
 	req.EqualValues(comp3.UUID, readin3.UUID)
 	req.EqualValues(comp3.Id, readin3.Id)
@@ -694,7 +692,7 @@ func TestInnerDecode(t *testing.T) {
 	comp4.MultiSpecA = append(comp4.MultiSpecA, &c4)
 	b3.MultiSpec = append(b3.MultiSpec, &c4)
 
-	req.Nil(innerDecode(gogm, vars4, &readin4))
+	req.Nil(decode(gogm, newMockResult(vars4), &readin4))
 	req.EqualValues(b3.TestField, readin4.TestField)
 	req.EqualValues(b3.UUID, readin4.UUID)
 	req.EqualValues(b3.Id, readin4.Id)
@@ -757,7 +755,7 @@ func TestInnerDecode(t *testing.T) {
 		PropsTest8: map[string]tdArrOfTd{},
 	}
 
-	req.Nil(innerDecode(gogm, vars5, &readin5))
+	req.Nil(decode(gogm, newMockResult(vars5), &readin5))
 	req.EqualValues(r.Id, readin5.Id)
 	req.EqualValues(r.UUID, readin5.UUID)
 	req.EqualValues(r.PropTest0["test"], readin5.PropTest0["test"])
@@ -814,7 +812,7 @@ func TestInnerDecode(t *testing.T) {
 	//	Id: 3,
 	//}
 
-	req.Nil(innerDecode(gogm, vars6, &readin6))
+	req.Nil(decode(gogm, newMockResult(vars6), &readin6))
 	req.True(len(readin6) == 2)
 
 	vars7 := [][]interface{}{
@@ -828,7 +826,7 @@ func TestInnerDecode(t *testing.T) {
 
 	var readin7 []*b
 
-	emptyErr := innerDecode(gogm, vars7, &readin7)
+	emptyErr := decode(gogm, newMockResult(vars7), &readin7)
 
 	req.NotNil(emptyErr)
 	req.True(errors.As(emptyErr, &ErrNotFound))
@@ -845,7 +843,7 @@ func TestInnerDecode(t *testing.T) {
 
 	var readin8 b
 
-	emptyErr = innerDecode(gogm, vars8, &readin8)
+	emptyErr = decode(gogm, newMockResult(vars8), &readin8)
 
 	req.NotNil(emptyErr)
 	req.True(errors.As(emptyErr, &ErrNotFound))
@@ -865,7 +863,7 @@ func TestInnerDecode(t *testing.T) {
 		},
 	}
 	var readin9 b
-	req.Nil(innerDecode(gogm, vars9, &readin9))
+	req.Nil(decode(gogm, newMockResult(vars9), &readin9))
 	req.Equal("test", readin9.TestField)
 	req.Equal(int64(55), *readin9.Id)
 	req.Equal("dasdfas", readin9.UUID)

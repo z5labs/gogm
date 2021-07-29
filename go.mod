@@ -11,7 +11,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mindstand/go-cypherdsl v0.2.0
-	github.com/neo4j/neo4j-go-driver/v4 v4.3.0
+	github.com/neo4j/neo4j-go-driver/v4 v4.3.3
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/sirupsen/logrus v1.6.0 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
