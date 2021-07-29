@@ -38,12 +38,12 @@ func deleteNode(deleteObj interface{}) (neo4j.TransactionWork, error) {
 
 	if rawType.Kind() == reflect.Ptr {
 		delValue := reflect.ValueOf(deleteObj).Elem()
-		id, ok := delValue.FieldByName("Id").Interface().(int64)
+		idPtr, ok := delValue.FieldByName("Id").Interface().(*int64)
 		if !ok {
 			return nil, errors.New("unable to cast id to int64")
 		}
 
-		ids = append(ids, id)
+		ids = append(ids, *idPtr)
 	} else {
 		slType := rawType.Elem()
 
@@ -79,7 +79,7 @@ func deleteNode(deleteObj interface{}) (neo4j.TransactionWork, error) {
 func deleteByIds(ids ...int64) neo4j.TransactionWork {
 	return func(tx neo4j.Transaction) (interface{}, error) {
 		cyp, err := dsl.QB().
-			Cypher("UNWIND {rows} as row").
+			Cypher("UNWIND $rows as row").
 			Match(dsl.Path().V(dsl.V{Name: "n"}).Build()).
 			Where(dsl.C(&dsl.ConditionConfig{
 				FieldManipulationFunction: "ID",

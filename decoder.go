@@ -44,7 +44,7 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 
 //decodes raw path response from driver
 //example query `match p=(n)-[*0..5]-() return p`
-func innerDecode(gogm *Gogm, result [][]interface{}, respObj interface{}) (err error) {
+func innerDecode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 	//check nil params
 	if result == nil {
 		return fmt.Errorf("result can not be nil, %w", ErrInvalidParams)
@@ -75,23 +75,24 @@ func innerDecode(gogm *Gogm, result [][]interface{}, respObj interface{}) (err e
 	var strictRels []neo4j.Relationship
 	var isolatedNodes []neo4j.Node
 
-	for _, row := range result {
-		for _, graphType := range row {
-			switch graphType.(type) {
+	for result.Next() {
+		for _, value := range result.Record().Values {
+			switch ct := value.(type) {
 			case neo4j.Path:
-				paths = append(paths, graphType.(neo4j.Path))
+				paths = append(paths, ct)
 				break
 			case neo4j.Relationship:
-				strictRels = append(strictRels, graphType.(neo4j.Relationship))
+				strictRels = append(strictRels, ct)
 				break
 			case neo4j.Node:
-				isolatedNodes = append(isolatedNodes, graphType.(neo4j.Node))
+				isolatedNodes = append(isolatedNodes, ct)
 				break
 			default:
 				continue
 			}
 		}
 	}
+
 	nodeLookup := make(map[int64]*reflect.Value)
 	relMaps := make(map[int64]map[string]*RelationConfig)
 	var pks []int64

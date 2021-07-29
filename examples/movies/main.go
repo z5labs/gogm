@@ -17,7 +17,7 @@ func main() {
 		LogLevel: "INFO",
 		Password:      "changeme",
 		PoolSize:      50,
-		Encrypted:     false,
+		// Encrypted:     false,
 		IndexStrategy: gogm.IGNORE_INDEX,
 	}
 
@@ -33,7 +33,7 @@ func main() {
 	gogm.SetGlobalGogm(_gogm)
 
 	// we're going to make stuff so we're going to do read write
-	sess, err := _gogm.NewSessionV2(gogm.SessionConfig{AccessMode: gogm.AccessModeWrite})
+	sess, err := _gogm.NewSessionV2(gogm.SessionConfig{AccessMode: gogm.AccessModeRead})
 	if err != nil {
 		panic(err)
 	}
