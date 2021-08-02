@@ -7,15 +7,21 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
+	"strings"
 	"time"
 )
 
 var basePath = os.Getenv("ROOT")
 
 func main() {
+	if !strings.HasSuffix(basePath, "/") {
+		basePath += "/"
+	}
+
 	ca := createCertificateAuthority()
 	caPrivateKey := createPrivateKey()
 
@@ -25,10 +31,12 @@ func main() {
 		basePath+"ca-private.key",
 		pemEncode(x509.MarshalPKCS1PrivateKey(caPrivateKey), "RSA PRIVATE KEY"),
 		0644))
+	fmt.Printf("wrote %sca-private.key\n", basePath)
 	panicOnError(ioutil.WriteFile(
 		basePath+"ca-public.crt",
 		pemEncode(caCertificateBytes, "CERTIFICATE"),
 		0644))
+	fmt.Printf("wrote %sca-public.crt\n", basePath)
 
 	serverCertificate := createServerCertificate()
 	privateKey := createPrivateKey()
@@ -38,10 +46,12 @@ func main() {
 		basePath+"private.key",
 		pemEncode(x509.MarshalPKCS1PrivateKey(privateKey), "RSA PRIVATE KEY"),
 		0644))
+	fmt.Printf("wrote %sprivate.key\n", basePath)
 	panicOnError(ioutil.WriteFile(
 		basePath+"public.crt",
 		pemEncode(certificateBytes, "CERTIFICATE"),
 		0644))
+	fmt.Printf("wrote %spublic.crt\n", basePath)
 }
 
 func createCertificateAuthority() *x509.Certificate {
