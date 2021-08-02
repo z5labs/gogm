@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-func GetMux(ogm *gogm.Gogm) (*mux.Router){
+func GetMux(ogm *gogm.Gogm) *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/actor/{name}", ActorHandler).Methods("GET")
 	r.HandleFunc("/movie/{name}", GetMovieHandler(ogm)).Methods("GET")
@@ -81,7 +81,7 @@ func GetMovieHandler(ogm *gogm.Gogm) func(w http.ResponseWriter, r *http.Request
 		var movie domain.Movie
 		err = sess.Query(context.Background(), "MATCH p=(director)-[:DIRECTED]->(movie:Movie {title:$name})<-[:ACTED_IN]-(actor) RETURN p", map[string]interface{}{
 			"name": name,
-		},&movie)
+		}, &movie)
 		if err != nil {
 			writeResponse(http.StatusBadRequest, map[string]interface{}{
 				"error": err.Error(),

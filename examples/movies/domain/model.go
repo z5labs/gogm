@@ -9,16 +9,16 @@ import (
 type Movie struct {
 	gogm.BaseNode
 
-	Title        string         `gogm:"name=title" json:"title"`
-	ReleasedYear int            `gogm:"name=released" json:"released_year"`
-	TagLine      string         `gogm:"name=tagline" json:"tag_line"`
+	Title        string `gogm:"name=title" json:"title"`
+	ReleasedYear int    `gogm:"name=released" json:"released_year"`
+	TagLine      string `gogm:"name=tagline" json:"tag_line"`
 
-	Actors       []*ActedInEdge `gogm:"direction=incoming;relationship=ACTED_IN" json:"actors"`
-	Directors    []*Person      `gogm:"direction=incoming;relationship=DIRECTED" json:"directors"`
-	Producers    []*Person      `gogm:"direction=incoming;relationship=PRODUCED" json:"producers"`
-	Followers    []*Person      `gogm:"direction=incoming;relationship=FOLLOWS" json:"followers"`
-	Writers      []*Person      `gogm:"direction=incoming;relationship=WROTE" json:"writers"`
-	Reviewers    []*Person      `gogm:"direction=incoming;relationship=REVIEWED" json:"reviewers"`
+	Actors    []*ActedInEdge `gogm:"direction=incoming;relationship=ACTED_IN" json:"actors"`
+	Directors []*Person      `gogm:"direction=incoming;relationship=DIRECTED" json:"directors"`
+	Producers []*Person      `gogm:"direction=incoming;relationship=PRODUCED" json:"producers"`
+	Followers []*Person      `gogm:"direction=incoming;relationship=FOLLOWS" json:"followers"`
+	Writers   []*Person      `gogm:"direction=incoming;relationship=WROTE" json:"writers"`
+	Reviewers []*Person      `gogm:"direction=incoming;relationship=REVIEWED" json:"reviewers"`
 }
 
 type Person struct {
@@ -28,7 +28,7 @@ type Person struct {
 	BornYear int            `gogm:"name=born" json:"born_year"`
 	Directed []*Movie       `gogm:"direction=outgoing;relationship=DIRECTED" json:"-"`
 	Produced []*Movie       `gogm:"direction=outgoing;relationship=PRODUCED" json:"-"`
-	Follows  []*Movie      `gogm:"direction=outgoing;relationship=FOLLOWS" json:"-"`
+	Follows  []*Movie       `gogm:"direction=outgoing;relationship=FOLLOWS" json:"-"`
 	Wrote    []*Movie       `gogm:"direction=outgoing;relationship=WROTE" json:"-"`
 	Reviewed []*Movie       `gogm:"direction=outgoing;relationship=REVIEWED" json:"-"`
 	ActedIn  []*ActedInEdge `gogm:"direction=outgoing;relationship=ACTED_IN" json:"-"`
@@ -37,9 +37,9 @@ type Person struct {
 type ActedInEdge struct {
 	gogm.BaseNode
 
-	Start *Person `json:"person"`
-	End  *Movie `json:"-"`
-	Roles  []string `gogm:"name=roles;properties"`
+	Start *Person  `json:"person"`
+	End   *Movie   `json:"-"`
+	Roles []string `gogm:"name=roles;properties"`
 }
 
 func (a *ActedInEdge) GetStartNode() interface{} {
@@ -77,4 +77,3 @@ func (a *ActedInEdge) SetEndNode(v interface{}) error {
 	a.End = e
 	return nil
 }
-

@@ -11,12 +11,12 @@ import (
 func main() {
 	// define your configuration
 	config := gogm.Config{
-		Host:          "0.0.0.0",
-		Port:          7687,
-		Username:      "neo4j",
+		Host:     "0.0.0.0",
+		Port:     7687,
+		Username: "neo4j",
 		LogLevel: "INFO",
-		Password:      "changeme",
-		PoolSize:      50,
+		Password: "changeme",
+		PoolSize: 50,
 		// Encrypted:     false,
 		IndexStrategy: gogm.IGNORE_INDEX,
 	}

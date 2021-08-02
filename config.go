@@ -38,8 +38,8 @@ type Config struct {
 
 	// deprecated
 	// IsCluster specifies whether GoGM is connecting to a casual cluster or not
-	IsCluster bool `yaml:"is_cluster" json:"is_cluster" mapstructure:"is_cluster"`
-	Protocol string `json:"protocol" yaml:"protocol" mapstructure:"protocol"`
+	IsCluster bool   `yaml:"is_cluster" json:"is_cluster" mapstructure:"is_cluster"`
+	Protocol  string `json:"protocol" yaml:"protocol" mapstructure:"protocol"`
 
 	// Username is the GoGM username
 	Username string `yaml:"username" json:"username" mapstructure:"username"`
@@ -53,7 +53,7 @@ type Config struct {
 
 	Realm string `yaml:"realm" json:"realm" mapstructure:"realm"`
 
-	Encrypted bool `yaml:"encrypted" json:"encrypted" mapstructure:"encrypted"`
+	CAFileLocation string `yaml:"ca_file_location" mapstructure:"ca_file_location"`
 
 	// Index Strategy defines the index strategy for GoGM
 	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy" mapstructure:"index_strategy"`

@@ -25,6 +25,7 @@ import (
 	uuid2 "github.com/google/uuid"
 	assert2 "github.com/stretchr/testify/assert"
 	"log"
+	"os"
 	"sync"
 
 	"testing"
@@ -74,6 +75,40 @@ func (integrationTest *IntegrationTestSuite) SetupSuite() {
 	integrationTest.Require().Nil(err)
 	integrationTest.Require().NotNil(gogm)
 	integrationTest.gogm = gogm
+}
+
+func (integrationTest *IntegrationTestSuite) TestSecureConnection() {
+	if integrationTest.gogm.neoVersion < 4 {
+		integrationTest.T().Log("skipping secure test for v3")
+		return
+	}
+
+	conf := Config{
+		Username:       "neo4j",
+		Password:       "changeme",
+		Host:           "0.0.0.0",
+		Protocol:       "neo4j+ssc",
+		CAFileLocation: os.Getenv("ROOT") + "/certs/ca-public.crt",
+		Port:           7687,
+		PoolSize:       15,
+		// this is ignore because index management is part of the test
+		IndexStrategy:             IGNORE_INDEX,
+		EnableDriverLogs:          true,
+		DefaultTransactionTimeout: 2 * time.Minute,
+	}
+
+	gogm, err := New(&conf, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{})
+	integrationTest.Require().Nil(err)
+	integrationTest.Require().NotNil(gogm)
+	defer gogm.Close()
+
+	sess, err := gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeRead})
+	integrationTest.Require().Nil(err)
+	integrationTest.Require().NotNil(sess)
+	defer sess.Close()
+
+	_, _, err = sess.QueryRaw(context.Background(), "return 1;", nil)
+	integrationTest.Require().Nil(err)
 }
 
 func (integrationTest *IntegrationTestSuite) TestManagedTx() {

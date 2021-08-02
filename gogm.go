@@ -20,10 +20,12 @@
 package gogm
 
 import (
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"github.com/cornelk/hashmap"
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"io/ioutil"
 	"reflect"
 	"strconv"
 	"strings"
@@ -158,13 +160,28 @@ func (g *Gogm) parseOgmTypes() error {
 }
 
 func (g *Gogm) initDriver() error {
-	// todo tls support
+	var certPool *x509.CertPool
+
+	if g.config.CAFileLocation != "" {
+		certPool = x509.NewCertPool()
+		bytes, err := ioutil.ReadFile(g.config.CAFileLocation)
+		if err != nil {
+			return fmt.Errorf("failed to open ca file, %w", err)
+		}
+
+		certPool.AppendCertsFromPEM(bytes)
+	}
+
 	neoConfig := func(neoConf *neo4j.Config) {
 		if g.config.EnableDriverLogs {
 			neoConf.Log = wrapLogger(g.logger)
 		}
 
 		neoConf.MaxConnectionPoolSize = g.config.PoolSize
+
+		if g.config.CAFileLocation != "" {
+			neoConf.RootCAs = certPool
+		}
 	}
 
 	driver, err := neo4j.NewDriver(g.config.ConnectionString(), neo4j.BasicAuth(g.config.Username, g.config.Password, g.config.Realm), neoConfig)

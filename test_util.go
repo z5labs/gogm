@@ -120,7 +120,7 @@ func (t *testResult) Consume() (neo4j.ResultSummary, error) {
 //}
 
 type mockResult struct {
-	records [][]interface{}
+	records  [][]interface{}
 	curIndex int
 }
 
@@ -136,11 +136,11 @@ func (m *mockResult) Keys() ([]string, error) {
 }
 
 func (m *mockResult) Next() bool {
-	if m.records == nil || len(m.records) == 0{
+	if m.records == nil || len(m.records) == 0 {
 		return false
 	}
 
-	if m.curIndex + 1 == len(m.records) {
+	if m.curIndex+1 == len(m.records) {
 		return false
 	}
 
