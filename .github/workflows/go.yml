@@ -68,11 +68,13 @@ jobs:
         docker-compose -f .github/docker-compose-v3.yaml down --remove-orphans
     - name: Start Neo4j V4 Docker
       run: |
-        mkdir certs
+        mkdir $GITHUB_WORKSPACE/certs
         export ROOT=$GITHUB_WORKSPACE/certs
         echo $ROOT
         go run .github/genssl.go
+        echo "listing files"
         ls $ROOT
+        echo "done listing"
         go clean -testcache
         docker-compose -f .github/docker-compose-v4.yaml up -d
     - name: Wait for neo4j v4 to be ready
@@ -80,6 +82,7 @@ jobs:
         sleep 45
     - name: Run Integration Test on V4
       run: |
+        export ROOT=$GITHUB_WORKSPACE/certs
         echo $ROOT
         go test ./... -run Integration
     - name: Stop Neo4j Docker on v4
