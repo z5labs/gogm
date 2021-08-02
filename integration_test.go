@@ -88,7 +88,7 @@ func (integrationTest *IntegrationTestSuite) TestSecureConnection() {
 		Password:       "changeme",
 		Host:           "0.0.0.0",
 		Protocol:       "neo4j+ssc",
-		CAFileLocation: os.Getenv("ROOT") + "/certs/ca-public.crt",
+		CAFileLocation: os.Getenv("ROOT") + "/ca-public.crt",
 		Port:           7687,
 		PoolSize:       15,
 		// this is ignore because index management is part of the test

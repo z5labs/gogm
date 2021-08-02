@@ -71,6 +71,7 @@ jobs:
         mkdir certs
         export ROOT=`pwd`/certs
         go run .github/genssl.go
+        ls $ROOT
         go clean -testcache
         docker-compose -f .github/docker-compose-v4.yaml up -d
     - name: Wait for neo4j v4 to be ready
