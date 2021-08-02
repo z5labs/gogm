@@ -69,7 +69,8 @@ jobs:
     - name: Start Neo4j V4 Docker
       run: |
         mkdir certs
-        export ROOT=`pwd`/certs
+        export ROOT=$GITHUB_WORKSPACE/certs
+        echo $ROOT
         go run .github/genssl.go
         ls $ROOT
         go clean -testcache
@@ -78,7 +79,9 @@ jobs:
       run: |
         sleep 45
     - name: Run Integration Test on V4
-      run: go test ./... -run Integration
+      run: |
+        echo $ROOT
+        go test ./... -run Integration
     - name: Stop Neo4j Docker on v4
       run: |
         docker-compose -f .github/docker-compose-v4.yaml down --remove-orphans
