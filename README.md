@@ -23,6 +23,7 @@ go get -u github.com/mindstand/gogm/v2
 - Driver has been updated from v1.6 to v4
 - Log interface, so anyone can use the logger of their choice instead of being forced to use logrus
 - Primary Key strategies to use any type of primary key. GoGM is no longer UUID only!
+- TLS now supported
 
 
 ## Usage
@@ -146,11 +147,14 @@ func main() {
 	config := gogm.Config{
 		Host:                      "0.0.0.0",
 		Port:                      7687,
-		IsCluster:                 false, //tells it whether or not to use `bolt+routing`
+		// deprecated in favor of protocol
+	    // IsCluster:                 false,
+	    Protocol:                  "neo4j", //also supports neo4j+s, neo4j+ssc, bolt, bolt+s and bolt+ssc
+	    // Specify CA Public Key when using +ssc or +s
+	    CAFileLocation: "my-ca-public.crt",
 		Username:                  "neo4j",
 		Password:                  "password",
 		PoolSize:                  50,
-		Encrypted:                 false,
 		IndexStrategy:             gogm.VALIDATE_INDEX, //other options are ASSERT_INDEX and IGNORE_INDEX
 		TargetDbs:                 nil,
 		// default logger wraps the go "log" package, implement the Logger interface from gogm to use your own logger
@@ -311,7 +315,6 @@ Inspiration came from the Java OGM implementation by Neo4j.
 ## Road Map
 - Schema Migration
 - Errors overhaul using go 1.13 error wrapping
-- TLS Support
 
 ## How you can help
 - Report Bugs
