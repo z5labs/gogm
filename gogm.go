@@ -161,16 +161,29 @@ func (g *Gogm) parseOgmTypes() error {
 
 func (g *Gogm) initDriver() error {
 	var certPool *x509.CertPool
+	isEncrypted := strings.Contains(g.config.Protocol, "+s")
 
-	if g.config.CAFileLocation != "" {
-		certPool = x509.NewCertPool()
-		bytes, err := ioutil.ReadFile(g.config.CAFileLocation)
-		if err != nil {
-			return fmt.Errorf("failed to open ca file, %w", err)
+	if isEncrypted {
+		if g.config.UseSystemCertPool {
+			var err error
+			certPool, err = x509.SystemCertPool()
+			if err != nil {
+				return fmt.Errorf("failed to get system cert pool")
+			}
+		} else {
+			certPool = x509.NewCertPool()
 		}
 
-		certPool.AppendCertsFromPEM(bytes)
+		if g.config.CAFileLocation != "" {
+			bytes, err := ioutil.ReadFile(g.config.CAFileLocation)
+			if err != nil {
+				return fmt.Errorf("failed to open ca file, %w", err)
+			}
+
+			certPool.AppendCertsFromPEM(bytes)
+		}
 	}
+
 
 	neoConfig := func(neoConf *neo4j.Config) {
 		if g.config.EnableDriverLogs {
@@ -179,7 +192,7 @@ func (g *Gogm) initDriver() error {
 
 		neoConf.MaxConnectionPoolSize = g.config.PoolSize
 
-		if g.config.CAFileLocation != "" {
+		if isEncrypted {
 			neoConf.RootCAs = certPool
 		}
 	}

@@ -53,6 +53,8 @@ type Config struct {
 
 	Realm string `yaml:"realm" json:"realm" mapstructure:"realm"`
 
+	// these security configurations will be ignored if the protocol does not contain +s
+	UseSystemCertPool bool `yaml:"use_system_cert_pool" mapstructure:"use_system_cert_pool"`
 	CAFileLocation string `yaml:"ca_file_location" mapstructure:"ca_file_location"`
 
 	// Index Strategy defines the index strategy for GoGM
