@@ -55,7 +55,7 @@ func resultToStringArrV3(result [][]interface{}) ([]string, error) {
 }
 
 //drops all known indexes
-func dropAllIndexesAndConstraintsV3(gogm *Gogm) error {
+func dropAllIndexesAndConstraintsV3(ctx context.Context, gogm *Gogm) error {
 	sess, err := gogm.NewSessionV2(SessionConfig{
 		AccessMode: neo4j.AccessModeWrite,
 	})
@@ -63,8 +63,6 @@ func dropAllIndexesAndConstraintsV3(gogm *Gogm) error {
 		return err
 	}
 	defer sess.Close()
-
-	ctx := context.Background()
 
 	return sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
 		vals, _, err := tx.QueryRaw(ctx, "CALL db.constraints", nil)
@@ -124,7 +122,7 @@ func dropAllIndexesAndConstraintsV3(gogm *Gogm) error {
 }
 
 //creates all indexes
-func createAllIndexesAndConstraintsV3(gogm *Gogm, mappedTypes *hashmap.HashMap) error {
+func createAllIndexesAndConstraintsV3(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
 	sess, err := gogm.NewSessionV2(SessionConfig{
 		AccessMode: neo4j.AccessModeWrite,
 	})
@@ -132,8 +130,6 @@ func createAllIndexesAndConstraintsV3(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 		return err
 	}
 	defer sess.Close()
-
-	ctx := context.Background()
 
 	//validate that we have to do anything
 	if mappedTypes == nil || mappedTypes.Len() == 0 {
@@ -203,7 +199,7 @@ func createAllIndexesAndConstraintsV3(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 }
 
 //verifies all indexes
-func verifyAllIndexesAndConstraintsV3(gogm *Gogm, mappedTypes *hashmap.HashMap) error {
+func verifyAllIndexesAndConstraintsV3(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
 	sess, err := gogm.NewSessionV2(SessionConfig{
 		AccessMode: neo4j.AccessModeRead,
 	})
@@ -211,8 +207,6 @@ func verifyAllIndexesAndConstraintsV3(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 		return err
 	}
 	defer sess.Close()
-
-	ctx := context.Background()
 
 	//validate that we have to do anything
 	if mappedTypes == nil || mappedTypes.Len() == 0 {

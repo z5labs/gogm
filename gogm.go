@@ -20,6 +20,7 @@
 package gogm
 
 import (
+	"context"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -58,6 +59,10 @@ type Gogm struct {
 }
 
 func New(config *Config, pkStrategy *PrimaryKeyStrategy, mapTypes ...interface{}) (*Gogm, error) {
+	return NewContext(context.Background(), config, pkStrategy, mapTypes...)
+}
+
+func NewContext(ctx context.Context, config *Config, pkStrategy *PrimaryKeyStrategy, mapTypes ...interface{}) (*Gogm, error) {
 	if config == nil {
 		return nil, errors.New("config can not be nil")
 	}
@@ -81,7 +86,7 @@ func New(config *Config, pkStrategy *PrimaryKeyStrategy, mapTypes ...interface{}
 		pkStrategy:      pkStrategy,
 	}
 
-	err := g.init()
+	err := g.init(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init gogm instance, %w", err)
 	}
@@ -89,7 +94,7 @@ func New(config *Config, pkStrategy *PrimaryKeyStrategy, mapTypes ...interface{}
 	return g, nil
 }
 
-func (g *Gogm) init() error {
+func (g *Gogm) init(ctx context.Context) error {
 	err := g.validate()
 	if err != nil {
 		return err
@@ -101,13 +106,14 @@ func (g *Gogm) init() error {
 	}
 
 	g.logger.Debug("establishing neo connection")
-	err = g.initDriver()
+
+	err = g.initDriver(ctx)
 	if err != nil {
 		return err
 	}
 
 	g.logger.Debug("initializing indices")
-	return g.initIndex()
+	return g.initIndex(ctx)
 }
 
 func (g *Gogm) validate() error {
@@ -159,7 +165,7 @@ func (g *Gogm) parseOgmTypes() error {
 	return nil
 }
 
-func (g *Gogm) initDriver() error {
+func (g *Gogm) initDriver(ctx context.Context) error {
 	var certPool *x509.CertPool
 	isEncrypted := strings.Contains(g.config.Protocol, "+s")
 
@@ -184,7 +190,6 @@ func (g *Gogm) initDriver() error {
 		}
 	}
 
-
 	neoConfig := func(neoConf *neo4j.Config) {
 		if g.config.EnableDriverLogs {
 			neoConf.Log = wrapLogger(g.logger)
@@ -197,14 +202,45 @@ func (g *Gogm) initDriver() error {
 		}
 	}
 
+	doneChan := make(chan error, 1)
+
+	_, hasDeadline := ctx.Deadline()
+
+	go g.initDriverRoutine(neoConfig, doneChan)
+
+	if hasDeadline {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		select {
+		case err := <-doneChan:
+			if err != nil {
+				return fmt.Errorf("failed to init driver, %w", err)
+			}
+			return nil
+		case <-ctx.Done():
+			return errors.New("timed out initializing driver")
+		}
+	} else {
+		err := <-doneChan
+		if err != nil {
+			return fmt.Errorf("failed to init driver, %w", err)
+		}
+		return nil
+	}
+}
+
+func (g *Gogm) initDriverRoutine(neoConfig func(neoConf *neo4j.Config), doneChan chan error) {
 	driver, err := neo4j.NewDriver(g.config.ConnectionString(), neo4j.BasicAuth(g.config.Username, g.config.Password, g.config.Realm), neoConfig)
 	if err != nil {
-		return fmt.Errorf("failed to create driver, %w", err)
+		doneChan <- fmt.Errorf("failed to create driver, %w", err)
+		return
 	}
 
 	err = driver.VerifyConnectivity()
 	if err != nil {
-		return fmt.Errorf("failed to verify connectivity, %w", err)
+		doneChan <- fmt.Errorf("failed to verify connectivity, %w", err)
+		return
 	}
 
 	// set driver
@@ -218,43 +254,46 @@ func (g *Gogm) initDriver() error {
 
 	res, err := sess.Run("return 1", nil)
 	if err != nil {
-		return err
+		doneChan <- err
+		return
 	} else if err = res.Err(); err != nil {
-		return err
+		doneChan <- err
+		return
 	}
 
 	sum, err := res.Consume()
 	if err != nil {
-		return err
+		doneChan <- err
+		return
 	}
 
 	version := strings.Split(strings.Replace(strings.ToLower(sum.Server().Version()), "neo4j/", "", -1), ".")
 	g.neoVersion, err = strconv.ParseFloat(version[0], 64)
 	if err != nil {
-		return err
+		doneChan <- err
+		return
 	}
-
-	return nil
+	doneChan <- nil
 }
 
-func (g *Gogm) initIndex() error {
+func (g *Gogm) initIndex(ctx context.Context) error {
 	switch g.config.IndexStrategy {
 	case ASSERT_INDEX:
 		g.logger.Debug("chose ASSERT_INDEX strategy")
 		g.logger.Debug("dropping all known indexes")
-		err := dropAllIndexesAndConstraints(g)
+		err := dropAllIndexesAndConstraints(ctx, g)
 		if err != nil {
 			return err
 		}
 
 		g.logger.Debug("creating all mapped indexes")
-		err = createAllIndexesAndConstraints(g, g.mappedTypes)
+		err = createAllIndexesAndConstraints(ctx, g, g.mappedTypes)
 		if err != nil {
 			return err
 		}
 
 		g.logger.Debug("verifying all indexes")
-		err = verifyAllIndexesAndConstraints(g, g.mappedTypes)
+		err = verifyAllIndexesAndConstraints(ctx, g, g.mappedTypes)
 		if err != nil {
 			return err
 		}
@@ -262,7 +301,7 @@ func (g *Gogm) initIndex() error {
 	case VALIDATE_INDEX:
 		g.logger.Debug("chose VALIDATE_INDEX strategy")
 		g.logger.Debug("verifying all indexes")
-		err := verifyAllIndexesAndConstraints(g, g.mappedTypes)
+		err := verifyAllIndexesAndConstraints(ctx, g, g.mappedTypes)
 		if err != nil {
 			return err
 		}

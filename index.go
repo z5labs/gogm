@@ -20,32 +20,33 @@
 package gogm
 
 import (
+	"context"
 	"github.com/cornelk/hashmap"
 )
 
 //drops all known indexes
-func dropAllIndexesAndConstraints(gogm *Gogm) error {
+func dropAllIndexesAndConstraints(ctx context.Context, gogm *Gogm) error {
 	if gogm.neoVersion >= 4 {
-		return dropAllIndexesAndConstraintsV4(gogm)
+		return dropAllIndexesAndConstraintsV4(ctx, gogm)
 	}
 
-	return dropAllIndexesAndConstraintsV3(gogm)
+	return dropAllIndexesAndConstraintsV3(ctx, gogm)
 }
 
 //creates all indexes
-func createAllIndexesAndConstraints(gogm *Gogm, mappedTypes *hashmap.HashMap) error {
+func createAllIndexesAndConstraints(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
 	if gogm.neoVersion >= 4 {
-		return createAllIndexesAndConstraintsV4(gogm, mappedTypes)
+		return createAllIndexesAndConstraintsV4(ctx, gogm, mappedTypes)
 	}
 
-	return createAllIndexesAndConstraintsV3(gogm, mappedTypes)
+	return createAllIndexesAndConstraintsV3(ctx, gogm, mappedTypes)
 }
 
 //verifies all indexes
-func verifyAllIndexesAndConstraints(gogm *Gogm, mappedTypes *hashmap.HashMap) error {
+func verifyAllIndexesAndConstraints(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
 	if gogm.neoVersion >= 4 {
-		return verifyAllIndexesAndConstraintsV4(gogm, mappedTypes)
+		return verifyAllIndexesAndConstraintsV4(ctx, gogm, mappedTypes)
 	}
 
-	return verifyAllIndexesAndConstraintsV3(gogm, mappedTypes)
+	return verifyAllIndexesAndConstraintsV3(ctx, gogm, mappedTypes)
 }

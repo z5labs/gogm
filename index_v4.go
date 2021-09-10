@@ -62,7 +62,7 @@ func resultToStringArrV4(isConstraint bool, result [][]interface{}) ([]string, e
 }
 
 //drops all known indexes
-func dropAllIndexesAndConstraintsV4(gogm *Gogm) error {
+func dropAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm) error {
 	for _, db := range gogm.config.TargetDbs {
 		sess, err := gogm.NewSessionV2(SessionConfig{
 			AccessMode:   neo4j.AccessModeWrite,
@@ -71,9 +71,6 @@ func dropAllIndexesAndConstraintsV4(gogm *Gogm) error {
 		if err != nil {
 			return err
 		}
-		defer sess.Close()
-
-		ctx := context.Background()
 
 		err = sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
 			res, _, err := tx.QueryRaw(ctx, "CALL db.constraints()", nil)
@@ -128,14 +125,23 @@ func dropAllIndexesAndConstraintsV4(gogm *Gogm) error {
 			return nil
 		})
 		if err != nil {
+			_err := sess.Close()
+			if err != nil {
+				err = fmt.Errorf("%s: %w", err, _err)
+			}
 			return fmt.Errorf("drop index transaction failed, %w", err)
+		}
+
+		err = sess.Close()
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
 //creates all indexes
-func createAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) error {
+func createAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
 	for _, db := range gogm.config.TargetDbs {
 		sess, err := gogm.NewSessionV2(SessionConfig{
 			AccessMode:   neo4j.AccessModeWrite,
@@ -144,9 +150,6 @@ func createAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 		if err != nil {
 			return err
 		}
-		defer sess.Close()
-
-		ctx := context.Background()
 
 		//validate that we have to do anything
 		if mappedTypes == nil || mappedTypes.Len() == 0 {
@@ -211,12 +214,23 @@ func createAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 			gogm.logger.Debugf("created (%v) indexes", numIndexCreated)
 			return nil
 		})
+		if err != nil {
+			_err := sess.Close()
+			if err != nil {
+				err = fmt.Errorf("%s: %w", err, _err)
+			}
+			return err
+		}
+		err = sess.Close()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 //verifies all indexes
-func verifyAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) error {
+func verifyAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
 	for _, db := range gogm.config.TargetDbs {
 		sess, err := gogm.NewSessionV2(SessionConfig{
 			AccessMode:   neo4j.AccessModeWrite,
@@ -225,9 +239,6 @@ func verifyAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 		if err != nil {
 			return err
 		}
-		defer sess.Close()
-
-		ctx := context.Background()
 
 		//validate that we have to do anything
 		if mappedTypes == nil || mappedTypes.Len() == 0 {
@@ -275,27 +286,47 @@ func verifyAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 		//get whats there now
 		foundResult, _, err := sess.QueryRaw(ctx, "CALL db.constraints", nil)
 		if err != nil {
+			_err := sess.Close()
+			if err != nil {
+				err = fmt.Errorf("%s: %w", err, _err)
+			}
 			return fmt.Errorf("no constraints found, %w", err)
 		}
 
 		foundConstraints, err := resultToStringArrV4(true, foundResult)
 		if err != nil {
+			_err := sess.Close()
+			if err != nil {
+				err = fmt.Errorf("%s: %w", err, _err)
+			}
 			return fmt.Errorf("failed to convert result to string array, %w", err)
 		}
 
 		foundInxdexResult, _, err := sess.QueryRaw(ctx, "CALL db.indexes()", nil)
 		if err != nil {
+			_err := sess.Close()
+			if err != nil {
+				err = fmt.Errorf("%s: %w", err, _err)
+			}
 			return fmt.Errorf("no indices found, %w", err)
 		}
 
 		foundIndexes, err := resultToStringArrV4(false, foundInxdexResult)
 		if err != nil {
+			_err := sess.Close()
+			if err != nil {
+				err = fmt.Errorf("%s: %w", err, _err)
+			}
 			return fmt.Errorf("failed to convert result to array, %w", err)
 		}
 
 		//verify from there
 		delta, found := arrayOperations.Difference(foundIndexes, indexes)
 		if !found {
+			_err := sess.Close()
+			if err != nil {
+				err = fmt.Errorf("%s: %w", err, _err)
+			}
 			return fmt.Errorf("found differences in remote vs ogm for found indexes, %v", delta)
 		}
 
@@ -309,10 +340,18 @@ func verifyAllIndexesAndConstraintsV4(gogm *Gogm, mappedTypes *hashmap.HashMap) 
 
 		delta, found = arrayOperations.Difference(founds, constraints)
 		if !found {
+			_err := sess.Close()
+			if err != nil {
+				err = fmt.Errorf("%s: %w", err, _err)
+			}
 			return fmt.Errorf("found differences in remote vs ogm for found constraints, %v", delta)
 		}
 
 		gogm.logger.Debugf("%+v", delta)
+		err = sess.Close()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
