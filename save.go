@@ -279,7 +279,7 @@ func removeRelations(transaction neo4j.Transaction, dels map[int64][]int64) erro
 		}).V(dsl.V{
 			Name: "end",
 		}).Build()).
-		Cypher("WHERE id(start) = row.startNodeId and id(end) = row.endNodeIds").
+		Cypher("WHERE id(start) = row.startNodeId and id(end) in row.endNodeIds").
 		Delete(false, "e").
 		ToCypher()
 	if err != nil {
