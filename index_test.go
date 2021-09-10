@@ -20,6 +20,7 @@
 package gogm
 
 import (
+	"context"
 	"github.com/stretchr/testify/require"
 	"log"
 	"reflect"
@@ -30,10 +31,10 @@ func testIndexManagement(req *require.Assertions) {
 	req.Nil(err)
 	req.NotNil(gogm)
 	//delete everything
-	req.Nil(dropAllIndexesAndConstraints(gogm))
+	req.Nil(dropAllIndexesAndConstraints(context.Background(), gogm))
 
 	//setup structure
-	mapp := toHashmapStructdecconf(map[string]structDecoratorConfig{
+	_map := toHashmapStructdecconf(map[string]structDecoratorConfig{
 		"TEST1": {
 			Label:    "Test1",
 			IsVertex: true,
@@ -79,13 +80,13 @@ func testIndexManagement(req *require.Assertions) {
 	})
 
 	//create stuff
-	req.Nil(createAllIndexesAndConstraints(gogm, mapp))
+	req.Nil(createAllIndexesAndConstraints(context.Background(), gogm, _map))
 
 	log.Println("created indices and constraints")
 
 	//validate
-	req.Nil(verifyAllIndexesAndConstraints(gogm, mapp))
+	req.Nil(verifyAllIndexesAndConstraints(context.Background(), gogm, _map))
 
 	//clean up
-	req.Nil(dropAllIndexesAndConstraints(gogm))
+	req.Nil(dropAllIndexesAndConstraints(context.Background(), gogm))
 }
