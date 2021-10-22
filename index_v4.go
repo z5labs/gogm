@@ -179,7 +179,7 @@ func createAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTyp
 							Name:   node,
 							Type:   structConfig.Label,
 							Field:  config.Name,
-						})).ToCypher()
+						})).Cypher("IF NOT EXISTS").ToCypher()
 						if err != nil {
 							return err
 						}
@@ -199,7 +199,7 @@ func createAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTyp
 					cyp, err := dsl.QB().Create(dsl.NewIndex(&dsl.IndexConfig{
 						Type:   structConfig.Label,
 						Fields: indexFields,
-					})).ToCypher()
+					})).Cypher("IF NOT EXISTS").ToCypher()
 					if err != nil {
 						return err
 					}
