@@ -35,6 +35,12 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+type indexTestStruct struct {
+	BaseUUIDNode
+	StringIndex  string `gogm:"name=string_index;index"`
+	StringUnique string `gogm:"name=string_unique;unique"`
+}
+
 func TestIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
@@ -46,6 +52,7 @@ func TestIntegration(t *testing.T) {
 type IntegrationTestSuite struct {
 	suite.Suite
 	gogm *Gogm
+	conf *Config
 }
 
 func (integrationTest *IntegrationTestSuite) TearDownSuite() {
@@ -77,6 +84,24 @@ func (integrationTest *IntegrationTestSuite) SetupSuite() {
 	integrationTest.gogm = gogm
 }
 
+func (integrationTest *IntegrationTestSuite) TestV4Index() {
+	if integrationTest.gogm.neoVersion < 4 {
+		integrationTest.T().Log("skipping because of incompatible version", integrationTest.gogm.neoVersion)
+		integrationTest.T().Skip()
+		return
+	}
+
+	assertCopy := *integrationTest.conf
+	assertCopy.IndexStrategy = ASSERT_INDEX
+	_, err := New(&assertCopy, UUIDPrimaryKeyStrategy, &indexTestStruct{})
+	integrationTest.Assert().Nil(err)
+
+	validateCopy := *integrationTest.conf
+	validateCopy.IndexStrategy = VALIDATE_INDEX
+	_, err = New(&validateCopy, UUIDPrimaryKeyStrategy, &indexTestStruct{})
+	integrationTest.Assert().Nil(err)
+}
+
 func (integrationTest *IntegrationTestSuite) TestSecureConnection() {
 	if integrationTest.gogm.neoVersion < 4 {
 		integrationTest.T().Log("skipping secure test for v3")
@@ -96,7 +121,7 @@ func (integrationTest *IntegrationTestSuite) TestSecureConnection() {
 		EnableDriverLogs:          true,
 		DefaultTransactionTimeout: 2 * time.Minute,
 	}
-
+	integrationTest.conf = &conf
 	gogm, err := New(&conf, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{})
 	integrationTest.Require().Nil(err)
 	integrationTest.Require().NotNil(gogm)

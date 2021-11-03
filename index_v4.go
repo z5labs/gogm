@@ -25,9 +25,39 @@ import (
 	"fmt"
 	"github.com/adam-hanna/arrayOperations"
 	"github.com/cornelk/hashmap"
-	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"strings"
 )
+
+const (
+	constraintOnQuery = "CREATE CONSTRAINT IF NOT EXISTS ON (%s:%s) ASSERT "
+	uniquePart        = "%s.%s IS UNIQUE"
+	notUniquePart     = "exists(%s.%s)"
+
+	indexQuery = "CREATE INDEX IF NOT EXISTS FOR (n:%s) ON ("
+)
+
+func buildConstraintQuery(unique bool, name, nodeType, field string) string {
+	cyp := fmt.Sprintf(constraintOnQuery, name, nodeType)
+
+	if unique {
+		cyp += fmt.Sprintf(uniquePart, name, field)
+	} else {
+		cyp += fmt.Sprintf(notUniquePart, name, field)
+	}
+
+	return cyp
+}
+
+func buildIndexQuery(indexType string, fields ...string) string {
+	query := fmt.Sprintf(indexQuery, indexType)
+
+	for _, field := range fields {
+		query += fmt.Sprintf("n.%s,", field)
+	}
+
+	return strings.TrimSuffix(query, ",") + ")"
+}
 
 func resultToStringArrV4(isConstraint bool, result [][]interface{}) ([]string, error) {
 	if result == nil {
@@ -173,18 +203,7 @@ func createAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTyp
 					//pk is a special unique key
 					if config.PrimaryKey != "" || config.Unique {
 						numIndexCreated++
-
-						cyp, err := dsl.QB().Create(dsl.NewConstraint(&dsl.ConstraintConfig{
-							Unique: true,
-							Name:   node,
-							Type:   structConfig.Label,
-							Field:  config.Name,
-						})).Cypher("IF NOT EXISTS").ToCypher()
-						if err != nil {
-							return err
-						}
-
-						_, _, err = tx.QueryRaw(ctx, cyp, nil)
+						_, _, err = tx.QueryRaw(ctx, buildConstraintQuery(true, node, structConfig.Label, config.Name), nil)
 						if err != nil {
 							return err
 						}
@@ -196,15 +215,7 @@ func createAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTyp
 				//create composite index
 				if len(indexFields) > 0 {
 					numIndexCreated++
-					cyp, err := dsl.QB().Create(dsl.NewIndex(&dsl.IndexConfig{
-						Type:   structConfig.Label,
-						Fields: indexFields,
-					})).Cypher("IF NOT EXISTS").ToCypher()
-					if err != nil {
-						return err
-					}
-
-					_, _, err = tx.QueryRaw(ctx, cyp, nil)
+					_, _, err = tx.QueryRaw(ctx, buildIndexQuery(structConfig.Label, indexFields...), nil)
 					if err != nil {
 						return err
 					}
