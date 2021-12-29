@@ -564,40 +564,9 @@ func getStructDecoratorConfig(gogm *Gogm, i interface{}, mappedRelations *relati
 					endType = field.Type
 				}
 
-				endTypeName := ""
-				if reflect.PtrTo(endType).Implements(edgeType) {
-					gogm.logger.Debug(endType.Name())
-					endVal := reflect.New(endType)
-					var endTypeVal []reflect.Value
-
-					//log.Info(endVal.String())
-
-					if config.Direction == dsl.DirectionOutgoing {
-						endTypeVal = endVal.MethodByName("GetEndNodeType").Call(nil)
-					} else {
-						endTypeVal = endVal.MethodByName("GetStartNodeType").Call(nil)
-					}
-
-					if len(endTypeVal) != 1 {
-						return nil, errors.New("GetEndNodeType failed")
-					}
-
-					if endTypeVal[0].IsNil() {
-						return nil, errors.New("GetEndNodeType() can not return a nil value")
-					}
-
-					convertedType, ok := endTypeVal[0].Interface().(reflect.Type)
-					if !ok {
-						return nil, errors.New("cannot convert to type reflect.Type")
-					}
-
-					if convertedType.Kind() == reflect.Ptr {
-						endTypeName = convertedType.Elem().Name()
-					} else {
-						endTypeName = convertedType.Name()
-					}
-				} else {
-					endTypeName = endType.Name()
+				endTypeName, err := traverseRelType(gogm, endType, config.Direction)
+				if err != nil {
+					return nil, err
 				}
 
 				mappedRelations.Add(toReturn.Label, config.Relationship, endTypeName, *config)

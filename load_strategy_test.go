@@ -57,11 +57,15 @@ func TestSchemaLoadStrategyMany(t *testing.T) {
 	cypher, err = SchemaLoadStrategyMany(gogm, "n", "a", 2, nil)
 	req.Nil(err)
 	req.NotNil(cypher)
+	cypherStr, err = cypher.ToCypher()
+	req.Nil(err)
+	req.NotContains(cypherStr, ":c)", "Spec edge should not be treated as a node")
+	req.Regexp("\\[[^\\(\\)\\[\\]]+:special[^\\(\\)\\[\\]]+]..\\([^\\(\\)\\[\\]]+:b\\)", cypherStr, "Spec edge rels should properly link to b")
 
 	// test fail condition of non-existing label
 	cypher, err = SchemaLoadStrategyMany(gogm, "n", "nonexisting", 2, nil)
+	req.NotNil(err, "Should fail due to non-existing label")
 	req.Nil(cypher)
-	req.NotNil(err)
 }
 
 func TestSchemaLoadStrategyOne(t *testing.T) {

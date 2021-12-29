@@ -26,7 +26,7 @@ import (
 	"strings"
 	"sync"
 
-	go_cypherdsl "github.com/mindstand/go-cypherdsl"
+	dsl "github.com/mindstand/go-cypherdsl"
 )
 
 // checks if integer is in slice
@@ -230,12 +230,12 @@ func (r *relationConfigs) GetConfigs(startNodeType, startNodeFieldType, endNodeT
 		return nil, nil, errors.New("no configs provided")
 	}
 
-	start, err = r.getConfig(startNodeType, relationship, startNodeFieldType, go_cypherdsl.DirectionOutgoing)
+	start, err = r.getConfig(startNodeType, relationship, startNodeFieldType, dsl.DirectionOutgoing)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	end, err = r.getConfig(endNodeType, relationship, endNodeFieldType, go_cypherdsl.DirectionIncoming)
+	end, err = r.getConfig(endNodeType, relationship, endNodeFieldType, dsl.DirectionIncoming)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -243,7 +243,7 @@ func (r *relationConfigs) GetConfigs(startNodeType, startNodeFieldType, endNodeT
 	return start, end, nil
 }
 
-func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string, direction go_cypherdsl.Direction) (*decoratorConfig, error) {
+func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string, direction dsl.Direction) (*decoratorConfig, error) {
 	if r.configs == nil {
 		return nil, errors.New("no configs provided")
 	}
@@ -311,13 +311,13 @@ func (r *relationConfigs) Validate() error {
 				validate := checkMap[relType]
 
 				switch config.Direction {
-				case go_cypherdsl.DirectionIncoming:
+				case dsl.DirectionIncoming:
 					validate.Incoming = append(validate.Incoming, field)
-				case go_cypherdsl.DirectionOutgoing:
+				case dsl.DirectionOutgoing:
 					validate.Outgoing = append(validate.Outgoing, field)
-				case go_cypherdsl.DirectionNone:
+				case dsl.DirectionNone:
 					validate.None = append(validate.None, field)
-				case go_cypherdsl.DirectionBoth:
+				case dsl.DirectionBoth:
 					validate.Both = append(validate.Both, field)
 				default:
 					return fmt.Errorf("unrecognized direction [%s], %w", config.Direction.ToString(), ErrValidation)
@@ -414,4 +414,41 @@ func getPrimitiveType(k reflect.Kind) (reflect.Type, error) {
 
 func int64Ptr(n int64) *int64 {
 	return &n
+}
+
+// traverseRelType finds the label of a node from a relationship (decoratorConfig).
+// if a special edge is passed in, the linked node's label is returned.
+func traverseRelType(gogm *Gogm, endType reflect.Type, direction dsl.Direction) (string, error) {
+	if !reflect.PtrTo(endType).Implements(edgeType) {
+		return endType.Name(), nil
+	}
+
+	gogm.logger.Debug(endType.Name())
+	endVal := reflect.New(endType)
+	var endTypeVal []reflect.Value
+
+	if direction == dsl.DirectionOutgoing {
+		endTypeVal = endVal.MethodByName("GetEndNodeType").Call(nil)
+	} else {
+		endTypeVal = endVal.MethodByName("GetStartNodeType").Call(nil)
+	}
+
+	if len(endTypeVal) != 1 {
+		return "", errors.New("GetEndNodeType failed")
+	}
+
+	if endTypeVal[0].IsNil() {
+		return "", errors.New("GetEndNodeType() can not return a nil value")
+	}
+
+	convertedType, ok := endTypeVal[0].Interface().(reflect.Type)
+	if !ok {
+		return "", errors.New("cannot convert to type reflect.Type")
+	}
+
+	if convertedType.Kind() == reflect.Ptr {
+		return convertedType.Elem().Name(), nil
+	} else {
+		return convertedType.Name(), nil
+	}
 }

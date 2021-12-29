@@ -258,7 +258,11 @@ func listComprehension(gogm *Gogm, fromNodeVar, label string, rel decoratorConfi
 		toNodeType = toNodeType.Elem()
 	}
 
-	toNodeLabel := toNodeType.Name()
+	toNodeLabel, err := traverseRelType(gogm, toNodeType, rel.Direction)
+	if err != nil {
+		return "", err
+	}
+
 	toNodeVar := fmt.Sprintf("n_%c_%d", toNodeLabel[0], level)
 
 	clause := fmt.Sprintf("[(%s)%s(%s:%s) | [%s, %s", fromNodeVar, relString(relVar, rel), toNodeVar, toNodeLabel, relVar, toNodeVar)
