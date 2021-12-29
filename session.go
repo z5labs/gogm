@@ -224,7 +224,10 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
-		return errors.New("schema load strategy not supported yet")
+		query, err = SchemaLoadStrategyOne(s.gogm, varName, respObjName, "uuid", "uuid", false, depth, filter)
+		if err != nil {
+			return err
+		}
 	default:
 		return errors.New("unknown load strategy")
 	}
@@ -315,7 +318,10 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
-		return errors.New("schema load strategy not supported yet")
+		query, err = SchemaLoadStrategyMany(s.gogm, varName, respObjName, depth, filter)
+		if err != nil {
+			return err
+		}
 	default:
 		return errors.New("unknown load strategy")
 	}
@@ -565,13 +571,10 @@ func (s *Session) parseResult(res neo4j.Result) [][]interface{} {
 				switch v := val.(type) {
 				case neo4j.Path:
 					vals[i] = v
-					break
 				case neo4j.Relationship:
 					vals[i] = v
-					break
 				case neo4j.Node:
 					vals[i] = v
-					break
 				default:
 					vals[i] = v
 					continue

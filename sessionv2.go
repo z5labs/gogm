@@ -23,10 +23,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/opentracing/opentracing-go"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/opentracing/opentracing-go"
 
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
@@ -250,7 +251,10 @@ func (s *SessionV2Impl) LoadDepthFilterPagination(ctx context.Context, respObj, 
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
-		return errors.New("schema load strategy not supported yet")
+		query, err = SchemaLoadStrategyOne(s.gogm, varName, respObjName, "uuid", "uuid", false, depth, filter)
+		if err != nil {
+			return err
+		}
 	default:
 		return errors.New("unknown load strategy")
 	}
@@ -369,7 +373,10 @@ func (s *SessionV2Impl) LoadAllDepthFilterPagination(ctx context.Context, respOb
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
-		return errors.New("schema load strategy not supported yet")
+		query, err = SchemaLoadStrategyMany(s.gogm, varName, respObjName, depth, filter)
+		if err != nil {
+			return err
+		}
 	default:
 		return errors.New("unknown load strategy")
 	}
@@ -436,7 +443,7 @@ func (s *SessionV2Impl) runReadOnly(ctx context.Context, cyp string, params map[
 		}
 
 		return nil, decode(s.gogm, res, respObj)
-	}, neo4j.WithTxTimeout(s.getDeadline(ctx).Sub(time.Now())))
+	}, neo4j.WithTxTimeout(time.Until(s.getDeadline(ctx))))
 	if err != nil {
 		return fmt.Errorf("failed auto read tx, %w", err)
 	}
@@ -535,7 +542,7 @@ func (s *SessionV2Impl) runWrite(ctx context.Context, work neo4j.TransactionWork
 	}
 
 	s.gogm.logger.Debug("running in managed write transaction")
-	_, err := s.neoSess.WriteTransaction(work, neo4j.WithTxTimeout(s.getDeadline(ctx).Sub(time.Now())))
+	_, err := s.neoSess.WriteTransaction(work, neo4j.WithTxTimeout(time.Until(s.getDeadline(ctx))))
 	if err != nil {
 		return fmt.Errorf("failed to save in auto transaction, %w", err)
 	}
@@ -653,13 +660,10 @@ func (s *SessionV2Impl) parseResult(res neo4j.Result) [][]interface{} {
 				switch v := val.(type) {
 				case neo4j.Path:
 					vals[i] = v
-					break
 				case neo4j.Relationship:
 					vals[i] = v
-					break
 				case neo4j.Node:
 					vals[i] = v
-					break
 				default:
 					vals[i] = v
 					continue
@@ -742,7 +746,7 @@ func (s *SessionV2Impl) ManagedTransaction(ctx context.Context, work Transaction
 	deadline := s.getDeadline(ctx)
 
 	if s.conf.AccessMode == AccessModeWrite {
-		_, err := s.neoSess.WriteTransaction(txWork, neo4j.WithTxTimeout(deadline.Sub(time.Now())))
+		_, err := s.neoSess.WriteTransaction(txWork, neo4j.WithTxTimeout(time.Until(deadline)))
 		if err != nil {
 			return fmt.Errorf("failed managed write tx, %w", err)
 		}
