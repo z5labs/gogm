@@ -21,6 +21,7 @@ package gogm
 
 import (
 	"context"
+
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
@@ -38,6 +39,8 @@ type SessionV2 interface {
 
 	// closes session
 	Close() error
+
+	SetLoadStrategy(strategy LoadStrategy)
 }
 
 // TransactionV2 specifies functions for Neo4j ACID transactions

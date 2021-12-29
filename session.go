@@ -620,3 +620,7 @@ func (s *Session) Close() error {
 
 	return s.neoSess.Close()
 }
+
+func (s *Session) SetLoadStrategy(strategy LoadStrategy) {
+	s.LoadStrategy = strategy
+}

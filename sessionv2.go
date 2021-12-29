@@ -787,3 +787,7 @@ func (s *SessionV2Impl) Close() error {
 
 	return s.neoSess.Close()
 }
+
+func (s *SessionV2Impl) SetLoadStrategy(strategy LoadStrategy) {
+	s.LoadStrategy = strategy
+}
