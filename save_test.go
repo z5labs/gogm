@@ -20,11 +20,12 @@
 package gogm
 
 import (
-	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 	"time"
+
+	dsl "github.com/mindstand/go-cypherdsl"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseStruct(t *testing.T) {
@@ -553,6 +554,7 @@ func TestCalculateDels(t *testing.T) {
 		uintptr(1): 1,
 		uintptr(2): 2,
 	})
+	req.Nil(err)
 
 	req.EqualValues(map[int64][]int64{
 		1: {2},

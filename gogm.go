@@ -24,12 +24,13 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/cornelk/hashmap"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"io/ioutil"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/cornelk/hashmap"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
 var globalGogm = &Gogm{isNoOp: true, logger: GetDefaultLogger()}
@@ -71,7 +72,7 @@ func NewContext(ctx context.Context, config *Config, pkStrategy *PrimaryKeyStrat
 		return nil, errors.New("pk strategy can not be nil")
 	}
 
-	if mapTypes == nil || len(mapTypes) == 0 {
+	if len(mapTypes) == 0 {
 		return nil, errors.New("no types to map")
 	}
 

@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/adam-hanna/arrayOperations"
 	"github.com/cornelk/hashmap"
 	dsl "github.com/mindstand/go-cypherdsl"
@@ -39,7 +40,7 @@ func resultToStringArrV3(result [][]interface{}) ([]string, error) {
 	for _, res := range result {
 		val := res
 		// nothing to parse
-		if val == nil || len(val) == 0 {
+		if len(val) == 0 {
 			continue
 		}
 
@@ -70,7 +71,7 @@ func dropAllIndexesAndConstraintsV3(ctx context.Context, gogm *Gogm) error {
 			return err
 		}
 
-		if vals == nil || len(vals) == 0 {
+		if len(vals) == 0 {
 			// nothing to drop if no constraints exist
 			return nil
 		}
@@ -282,9 +283,7 @@ func verifyAllIndexesAndConstraintsV3(ctx context.Context, gogm *Gogm, mappedTyp
 
 	var founds []string
 
-	for _, constraint := range foundConstraints {
-		founds = append(founds, constraint)
-	}
+	founds = append(founds, foundConstraints...)
 
 	delta, found = arrayOperations.Difference(founds, constraints)
 	if !found {

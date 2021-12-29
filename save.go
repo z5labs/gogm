@@ -22,10 +22,11 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"reflect"
 	"strconv"
+
+	dsl "github.com/mindstand/go-cypherdsl"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
 // nodeCreate holds configuration for creating new nodes
@@ -155,7 +156,7 @@ func saveDepth(gogm *Gogm, obj interface{}, depth int) neo4j.TransactionWork {
 
 // relateNodes connects nodes together using edge config
 func relateNodes(transaction neo4j.Transaction, relations map[string][]*relCreate, lookup map[uintptr]int64) error {
-	if relations == nil || len(relations) == 0 {
+	if len(relations) == 0 {
 		return errors.New("relations can not be nil or empty")
 	}
 
@@ -240,6 +241,9 @@ func relateNodes(transaction neo4j.Transaction, relations map[string][]*relCreat
 			}).
 			Cypher("SET rel += row.props").
 			ToCypher()
+		if err != nil {
+			return fmt.Errorf("failed to build query, %w", err)
+		}
 
 		res, err := transaction.Run(cyp, map[string]interface{}{
 			"rows": params,
@@ -256,7 +260,7 @@ func relateNodes(transaction neo4j.Transaction, relations map[string][]*relCreat
 
 // removes relationships between specified nodes
 func removeRelations(transaction neo4j.Transaction, dels map[int64][]int64) error {
-	if dels == nil || len(dels) == 0 {
+	if len(dels) == 0 {
 		return nil
 	}
 
@@ -533,6 +537,9 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 					Alias: "id",
 				}).
 				ToCypher()
+			if err != nil {
+				return fmt.Errorf("failed to build query, %w", err)
+			}
 
 			res, err := transaction.Run(cyp, map[string]interface{}{
 				"rows": newRows,
@@ -596,6 +603,9 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 				Cypher("WHERE ID(n) = row.id").
 				Cypher("SET n += row.obj").
 				ToCypher()
+			if err != nil {
+				return fmt.Errorf("failed to build query, %w", err)
+			}
 
 			res, err := transaction.Run(cyp, map[string]interface{}{
 				"rows": updateRows,

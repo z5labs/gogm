@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/adam-hanna/arrayOperations"
 	"github.com/cornelk/hashmap"
 	dsl "github.com/mindstand/go-cypherdsl"
@@ -46,7 +47,7 @@ func resultToStringArrV4(isConstraint bool, result [][]interface{}) ([]string, e
 	for _, res := range result {
 		val := res
 		// nothing to parse
-		if val == nil || len(val) == 0 {
+		if len(val) == 0 {
 			continue
 		}
 
@@ -78,7 +79,7 @@ func dropAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm) error {
 				return err
 			}
 
-			if res == nil || len(res) == 0 {
+			if len(res) == 0 {
 				// no constraints to kill off, return from here
 				return nil
 			}
@@ -323,28 +324,28 @@ func verifyAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTyp
 		//verify from there
 		delta, found := arrayOperations.Difference(foundIndexes, indexes)
 		if !found {
+			err = fmt.Errorf("found differences in remote vs ogm for found indexes, %v", delta)
 			_err := sess.Close()
-			if err != nil {
+			if _err != nil {
 				err = fmt.Errorf("%s: %w", err, _err)
 			}
-			return fmt.Errorf("found differences in remote vs ogm for found indexes, %v", delta)
+			return err
 		}
 
 		gogm.logger.Debugf("%+v", delta)
 
 		var founds []string
 
-		for _, constraint := range foundConstraints {
-			founds = append(founds, constraint)
-		}
+		founds = append(founds, foundConstraints...)
 
 		delta, found = arrayOperations.Difference(founds, constraints)
 		if !found {
+			err = fmt.Errorf("found differences in remote vs ogm for found constraints, %v", delta)
 			_err := sess.Close()
-			if err != nil {
+			if _err != nil {
 				err = fmt.Errorf("%s: %w", err, _err)
 			}
-			return fmt.Errorf("found differences in remote vs ogm for found constraints, %v", delta)
+			return err
 		}
 
 		gogm.logger.Debugf("%+v", delta)

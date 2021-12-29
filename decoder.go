@@ -22,9 +22,10 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"reflect"
 	"strings"
+
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
 //decodes raw path response from driver
@@ -65,13 +66,10 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 			switch ct := value.(type) {
 			case neo4j.Path:
 				paths = append(paths, ct)
-				break
 			case neo4j.Relationship:
 				strictRels = append(strictRels, ct)
-				break
 			case neo4j.Node:
 				isolatedNodes = append(isolatedNodes, ct)
-				break
 			default:
 				continue
 			}
@@ -84,21 +82,21 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 	rels := make(map[int64]*neoEdgeConfig)
 	labelLookup := map[int64]string{}
 
-	if paths != nil && len(paths) != 0 {
+	if len(paths) != 0 {
 		err = sortPaths(gogm, paths, &nodeLookup, &rels, &pks, primaryLabel, &relMaps)
 		if err != nil {
 			return err
 		}
 	}
 
-	if isolatedNodes != nil && len(isolatedNodes) != 0 {
+	if len(isolatedNodes) != 0 {
 		err = sortIsolatedNodes(gogm, isolatedNodes, &labelLookup, &nodeLookup, &pks, primaryLabel, &relMaps)
 		if err != nil {
 			return err
 		}
 	}
 
-	if strictRels != nil && len(strictRels) != 0 {
+	if len(strictRels) != 0 {
 		err = sortStrictRels(strictRels, &labelLookup, &rels)
 		if err != nil {
 			return err
@@ -232,14 +230,14 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 
 			//can ensure that it implements proper interface if it made it this far
 			res := val.MethodByName("SetStartNode").Call([]reflect.Value{startCall})
-			if res == nil || len(res) == 0 {
+			if len(res) == 0 {
 				return fmt.Errorf("invalid response from edge callback - %w", err)
 			} else if !res[0].IsNil() {
 				return fmt.Errorf("failed call to SetStartNode - %w", res[0].Interface().(error))
 			}
 
 			res = val.MethodByName("SetEndNode").Call([]reflect.Value{endCall})
-			if res == nil || len(res) == 0 {
+			if len(res) == 0 {
 				return fmt.Errorf("invalid response from edge callback - %w", err)
 			} else if !res[0].IsNil() {
 				return fmt.Errorf("failed call to SetEndNode - %w", res[0].Interface().(error))

@@ -22,10 +22,11 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	dsl "github.com/mindstand/go-cypherdsl"
 	"reflect"
 	"strings"
 	"time"
+
+	dsl "github.com/mindstand/go-cypherdsl"
 )
 
 // defined the decorator name for struct tag
@@ -525,7 +526,7 @@ func getStructDecoratorConfig(gogm *Gogm, i interface{}, mappedRelations *relati
 
 	fields := getFields(t)
 
-	if fields == nil || len(fields) == 0 {
+	if len(fields) == 0 {
 		return nil, errors.New("failed to parse fields")
 	}
 

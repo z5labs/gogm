@@ -22,10 +22,11 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	go_cypherdsl "github.com/mindstand/go-cypherdsl"
 	"reflect"
 	"strings"
 	"sync"
+
+	go_cypherdsl "github.com/mindstand/go-cypherdsl"
 )
 
 // checks if integer is in slice
@@ -312,16 +313,12 @@ func (r *relationConfigs) Validate() error {
 				switch config.Direction {
 				case go_cypherdsl.DirectionIncoming:
 					validate.Incoming = append(validate.Incoming, field)
-					break
 				case go_cypherdsl.DirectionOutgoing:
 					validate.Outgoing = append(validate.Outgoing, field)
-					break
 				case go_cypherdsl.DirectionNone:
 					validate.None = append(validate.None, field)
-					break
 				case go_cypherdsl.DirectionBoth:
 					validate.Both = append(validate.Both, field)
-					break
 				default:
 					return fmt.Errorf("unrecognized direction [%s], %w", config.Direction.ToString(), ErrValidation)
 				}
@@ -345,7 +342,7 @@ func (r *relationConfigs) Validate() error {
 		//check none direction
 		if len(validateConfig.None) != 0 {
 			if len(validateConfig.None)%2 != 0 {
-				return fmt.Errorf("invalid length for 'both' validation, %w", ErrValidation)
+				return fmt.Errorf("invalid length for 'none' validation, %w", ErrValidation)
 			}
 		}
 	}

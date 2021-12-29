@@ -21,28 +21,19 @@ package gogm
 
 import (
 	"errors"
-	"github.com/cornelk/hashmap"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
-	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/cornelk/hashmap"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"github.com/stretchr/testify/require"
 )
 
 type TestStruct struct {
 	Id         *int64
 	UUID       string
 	OtherField string
-}
-
-func toHashmap(m map[string]interface{}) *hashmap.HashMap {
-	h := &hashmap.HashMap{}
-
-	for k, v := range m {
-		h.Set(k, v)
-	}
-
-	return h
 }
 
 func toHashmapStructdecconf(m map[string]structDecoratorConfig) *hashmap.HashMap {
