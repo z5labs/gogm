@@ -28,6 +28,36 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
+func traverseResultRecordValues(values []interface{}) ([]neo4j.Path, []neo4j.Relationship, []neo4j.Node) {
+	var paths []neo4j.Path
+	var strictRels []neo4j.Relationship
+	var isolatedNodes []neo4j.Node
+
+	for _, value := range values {
+		switch ct := value.(type) {
+		case neo4j.Path:
+			paths = append(paths, ct)
+		case neo4j.Relationship:
+			strictRels = append(strictRels, ct)
+		case neo4j.Node:
+			isolatedNodes = append(isolatedNodes, ct)
+		case []interface{}:
+			v, ok := value.([]interface{})
+			if ok {
+				fmt.Println("WOOOO")
+				p, r, n := traverseResultRecordValues(v)
+				paths = append(paths, p...)
+				strictRels = append(strictRels, r...)
+				isolatedNodes = append(isolatedNodes, n...)
+			}
+		default:
+			continue
+		}
+	}
+
+	return paths, strictRels, isolatedNodes
+}
+
 //decodes raw path response from driver
 //example query `match p=(n)-[*0..5]-() return p`
 func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
@@ -62,18 +92,10 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 	var isolatedNodes []neo4j.Node
 
 	for result.Next() {
-		for _, value := range result.Record().Values {
-			switch ct := value.(type) {
-			case neo4j.Path:
-				paths = append(paths, ct)
-			case neo4j.Relationship:
-				strictRels = append(strictRels, ct)
-			case neo4j.Node:
-				isolatedNodes = append(isolatedNodes, ct)
-			default:
-				continue
-			}
-		}
+		p, r, n := traverseResultRecordValues(result.Record().Values)
+		paths = append(paths, p...)
+		strictRels = append(strictRels, r...)
+		isolatedNodes = append(isolatedNodes, n...)
 	}
 
 	nodeLookup := make(map[int64]*reflect.Value)
@@ -357,7 +379,7 @@ func sortIsolatedNodes(gogm *Gogm, isolatedNodes []neo4j.Node, labelLookup *map[
 			}
 
 			//set label map
-			if _, ok := (*labelLookup)[node.Id]; !ok && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
+			if _, ok := (*labelLookup)[node.Id]; !ok && len(node.Labels) != 0 { //&& node.Labels[0] == pkLabel {
 				(*labelLookup)[node.Id] = node.Labels[0]
 			}
 		}

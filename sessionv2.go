@@ -251,7 +251,7 @@ func (s *SessionV2Impl) LoadDepthFilterPagination(ctx context.Context, respObj, 
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
-		query, err = SchemaLoadStrategyOne(s.gogm, varName, respObjName, "uuid", "uuid", false, depth, filter)
+		query, err = SchemaLoadStrategyOne(s.gogm, varName, respObjName, field, paramName, isGraphId, depth, filter)
 		if err != nil {
 			return err
 		}

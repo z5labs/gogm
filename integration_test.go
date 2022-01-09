@@ -22,11 +22,12 @@ package gogm
 import (
 	"context"
 	"fmt"
-	uuid2 "github.com/google/uuid"
-	assert2 "github.com/stretchr/testify/assert"
 	"log"
-	"os"
 	"sync"
+
+	uuid2 "github.com/google/uuid"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	assert2 "github.com/stretchr/testify/assert"
 
 	"testing"
 	"time"
@@ -88,7 +89,7 @@ func (integrationTest *IntegrationTestSuite) TestSecureConnection() {
 		Password:       "changeme",
 		Host:           "0.0.0.0",
 		Protocol:       "neo4j+ssc",
-		CAFileLocation: os.Getenv("ROOT") + "/ca-public.crt",
+		CAFileLocation: "certs" + "/ca-public.crt",
 		Port:           7687,
 		PoolSize:       15,
 		// this is ignore because index management is part of the test
@@ -574,4 +575,94 @@ func testSaveV2(sess SessionV2, req *require.Assertions) {
 	req.EqualValues(prop1.TdMap, prop2.TdMap)
 	req.EqualValues(prop1.TdMapOfTdSlice, prop2.TdMapOfTdSlice)
 	req.EqualValues(prop1.TdMapTdSliceOfTd, prop2.TdMapTdSliceOfTd)
+}
+
+const testUuid = "f64953a5-8b40-4a87-a26b-6427e661570c"
+
+func (i *IntegrationTestSuite) TestSchemaLoadStrategy() {
+	req := i.Require()
+
+	// create required nodes
+	testSchemaLoadStrategy_Setup(i.gogm, req)
+
+	sess, err := i.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeRead})
+	req.Nil(err)
+	defer req.Nil(sess.Close())
+
+	ctx := context.Background()
+	req.Nil(sess.Begin(ctx))
+	defer req.Nil(sess.Close())
+
+	// test raw query (verify SchemaLoadStrategy + Neo driver decoding)
+	query, err := SchemaLoadStrategyOne(i.gogm, "n", "a", "uuid", "uuid", false, 2, nil)
+	req.Nil(err, "error generating SchemaLoadStrategy query")
+
+	cypher, err := query.ToCypher()
+	req.Nil(err, "error decoding cypher from generated SchemaLoadStrategy query")
+	raw, _, err := sess.QueryRaw(ctx, cypher, map[string]interface{}{"uuid": "f64953a5-8b40-4a87-a26b-6427e661570c"})
+	req.Nil(err)
+
+	req.Len(raw, 1, "Raw result should have one record")
+	req.Len(raw[0], 2, "Raw record should have two items")
+
+	// inspecting first node
+	node, ok := raw[0][0].(neo4j.Node)
+	req.True(ok)
+	req.ElementsMatch(node.Labels, []string{"a"})
+
+	// inspecting nested query result
+	req.Len(raw[0][1], 5)
+
+	// test full load functionality
+	sess.SetLoadStrategy(SCHEMA_LOAD_STRATEGY)
+
+	var res a
+	err = sess.LoadDepth(ctx, &res, testUuid, 2)
+	req.Nil(err, "Load should not fail")
+
+	req.Len(res.ManyA, 1, "B node should be loaded properly")
+	req.True(res.SingleSpecA.Test == "testing", "C spec rel should be loaded properly")
+	req.True(res.SingleSpecA.End.TestField == "dasdfasd", "B node should be loaded through spec rel")
+}
+
+func testSchemaLoadStrategy_Setup(gogm *Gogm, req *require.Assertions) {
+	sess, err := gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+	req.Nil(err)
+	defer req.Nil(sess.Close())
+
+	a1 := &a{
+		TestField: "test",
+		PropTest0: map[string]interface{}{
+			"test.test": "test",
+			"test2":     1,
+		},
+		PropTest1: map[string]string{
+			"test": "test",
+		},
+		PropsTest2: []string{"test", "test"},
+		PropsTest3: []int{1, 2},
+	}
+
+	b1 := &b{
+		TestField: "dasdfasd",
+	}
+
+	c1 := &c{
+		Start: a1,
+		End:   b1,
+		Test:  "testing",
+	}
+
+	a1.SingleSpecA = c1
+	a1.ManyA = []*b{b1}
+	b1.SingleSpec = c1
+	b1.ManyB = a1
+
+	a1.UUID = testUuid
+
+	ctx := context.Background()
+	req.Nil(sess.Begin(ctx))
+
+	req.Nil(sess.SaveDepth(ctx, a1, 3))
+	req.Nil(sess.Commit(ctx))
 }
