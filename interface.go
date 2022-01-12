@@ -100,8 +100,6 @@ type ISession interface {
 
 	// closes session
 	Close() error
-
-	SetLoadStrategy(strategy LoadStrategy)
 }
 
 // ITransaction specifies functions for Neo4j ACID transactions

@@ -44,7 +44,6 @@ func traverseResultRecordValues(values []interface{}) ([]neo4j.Path, []neo4j.Rel
 		case []interface{}:
 			v, ok := value.([]interface{})
 			if ok {
-				fmt.Println("WOOOO")
 				p, r, n := traverseResultRecordValues(v)
 				paths = append(paths, p...)
 				strictRels = append(strictRels, r...)

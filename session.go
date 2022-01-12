@@ -41,7 +41,6 @@ type Session struct {
 	neoSess      neo4j.Session
 	tx           neo4j.Transaction
 	DefaultDepth int
-	LoadStrategy LoadStrategy
 	mode         neo4j.AccessMode
 }
 
@@ -65,8 +64,7 @@ func newSession(gogm *Gogm, readonly bool) (*Session, error) {
 	}
 
 	session := &Session{
-		gogm:         gogm,
-		LoadStrategy: PATH_LOAD_STRATEGY,
+		gogm: gogm,
 	}
 
 	var mode neo4j.AccessMode
@@ -116,7 +114,6 @@ func newSessionWithConfig(gogm *Gogm, conf SessionConfig) (*Session, error) {
 		DefaultDepth: defaultDepth,
 		mode:         conf.AccessMode,
 		gogm:         gogm,
-		LoadStrategy: PATH_LOAD_STRATEGY,
 	}, nil
 }
 
@@ -217,7 +214,7 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	var err error
 
 	//make the query based off of the load strategy
-	switch s.LoadStrategy {
+	switch s.gogm.config.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
 		query, err = PathLoadStrategyOne(varName, respObjName, "uuid", "uuid", false, depth, filter)
 		if err != nil {
@@ -311,7 +308,7 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 	var err error
 
 	//make the query based off of the load strategy
-	switch s.LoadStrategy {
+	switch s.gogm.config.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
 		query, err = PathLoadStrategyMany(varName, respObjName, depth, filter)
 		if err != nil {
@@ -384,17 +381,10 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 	var query dsl.Cypher
 	var err error
 
-	//make the query based off of the load strategy
-	switch s.LoadStrategy {
-	case PATH_LOAD_STRATEGY:
-		query, err = PathLoadStrategyEdgeConstraint(varName, respObjName, endNodeType, endNodeField, minJumps, maxJumps, depth, filter)
-		if err != nil {
-			return err
-		}
-	case SCHEMA_LOAD_STRATEGY:
-		return errors.New("schema load strategy not supported yet")
-	default:
-		return errors.New("unknown load strategy")
+	// there is no Schema Load Strategy implementation of EdgeConstraint as it would involve pathfinding within the schema (which would be expensive)
+	query, err = PathLoadStrategyEdgeConstraint(varName, respObjName, endNodeType, endNodeField, minJumps, maxJumps, depth, filter)
+	if err != nil {
+		return err
 	}
 
 	// handle if in transaction
@@ -577,7 +567,6 @@ func (s *Session) parseResult(res neo4j.Result) [][]interface{} {
 					vals[i] = v
 				default:
 					vals[i] = v
-					continue
 				}
 			}
 			result = append(result, vals)
@@ -619,8 +608,4 @@ func (s *Session) Close() error {
 	}
 
 	return s.neoSess.Close()
-}
-
-func (s *Session) SetLoadStrategy(strategy LoadStrategy) {
-	s.LoadStrategy = strategy
 }

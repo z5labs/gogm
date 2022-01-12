@@ -39,8 +39,6 @@ type SessionV2 interface {
 
 	// closes session
 	Close() error
-
-	SetLoadStrategy(strategy LoadStrategy)
 }
 
 // TransactionV2 specifies functions for Neo4j ACID transactions

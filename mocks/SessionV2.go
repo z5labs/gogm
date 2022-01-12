@@ -315,8 +315,3 @@ func (_m *SessionV2) SaveDepth(ctx context.Context, saveObj interface{}, depth i
 
 	return r0
 }
-
-// SetLoadStrategy provides a mock function with given fields: strategy
-func (_m *SessionV2) SetLoadStrategy(strategy gogm.LoadStrategy) {
-	_m.Called(strategy)
-}

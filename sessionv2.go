@@ -38,7 +38,6 @@ type SessionV2Impl struct {
 	neoSess      neo4j.Session
 	tx           neo4j.Transaction
 	DefaultDepth int
-	LoadStrategy LoadStrategy
 	conf         SessionConfig
 	lastBookmark string
 }
@@ -68,7 +67,6 @@ func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, err
 		DefaultDepth: defaultDepth,
 		conf:         conf,
 		gogm:         gogm,
-		LoadStrategy: PATH_LOAD_STRATEGY,
 	}, nil
 }
 func (s *SessionV2Impl) Begin(ctx context.Context) error {
@@ -244,7 +242,7 @@ func (s *SessionV2Impl) LoadDepthFilterPagination(ctx context.Context, respObj, 
 	isGraphId := s.gogm.pkStrategy.StrategyName == DefaultPrimaryKeyStrategy.StrategyName
 	field := s.gogm.pkStrategy.DBName
 	//make the query based off of the load strategy
-	switch s.LoadStrategy {
+	switch s.gogm.config.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
 		query, err = PathLoadStrategyOne(varName, respObjName, field, paramName, isGraphId, depth, filter)
 		if err != nil {
@@ -366,7 +364,7 @@ func (s *SessionV2Impl) LoadAllDepthFilterPagination(ctx context.Context, respOb
 	var err error
 
 	//make the query based off of the load strategy
-	switch s.LoadStrategy {
+	switch s.gogm.config.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
 		query, err = PathLoadStrategyMany(varName, respObjName, depth, filter)
 		if err != nil {
@@ -666,7 +664,6 @@ func (s *SessionV2Impl) parseResult(res neo4j.Result) [][]interface{} {
 					vals[i] = v
 				default:
 					vals[i] = v
-					continue
 				}
 			}
 			result = append(result, vals)
@@ -786,8 +783,4 @@ func (s *SessionV2Impl) Close() error {
 	}
 
 	return s.neoSess.Close()
-}
-
-func (s *SessionV2Impl) SetLoadStrategy(strategy LoadStrategy) {
-	s.LoadStrategy = strategy
 }

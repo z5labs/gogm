@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 
 	uuid2 "github.com/google/uuid"
@@ -89,7 +90,7 @@ func (integrationTest *IntegrationTestSuite) TestSecureConnection() {
 		Password:       "changeme",
 		Host:           "0.0.0.0",
 		Protocol:       "neo4j+ssc",
-		CAFileLocation: "certs" + "/ca-public.crt",
+		CAFileLocation: os.Getenv("ROOT") + "/ca-public.crt",
 		Port:           7687,
 		PoolSize:       15,
 		// this is ignore because index management is part of the test
@@ -582,6 +583,8 @@ const testUuid = "f64953a5-8b40-4a87-a26b-6427e661570c"
 func (i *IntegrationTestSuite) TestSchemaLoadStrategy() {
 	req := i.Require()
 
+	i.gogm.config.LoadStrategy = SCHEMA_LOAD_STRATEGY
+
 	// create required nodes
 	testSchemaLoadStrategy_Setup(i.gogm, req)
 
@@ -612,9 +615,6 @@ func (i *IntegrationTestSuite) TestSchemaLoadStrategy() {
 
 	// inspecting nested query result
 	req.Len(raw[0][1], 5)
-
-	// test full load functionality
-	sess.SetLoadStrategy(SCHEMA_LOAD_STRATEGY)
 
 	var res a
 	err = sess.LoadDepth(ctx, &res, testUuid, 2)

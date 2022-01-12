@@ -69,6 +69,8 @@ type Config struct {
 	EnableLogParams bool `json:"enable_log_properties" yaml:"enable_log_properties" mapstructure:"enable_log_properties"`
 
 	OpentracingEnabled bool `json:"opentracing_enabled" yaml:"opentracing_enabled" mapstructure:"opentracing_enabled"`
+
+	LoadStrategy LoadStrategy `json:"load_strategy" yaml:"load_strategy" mapstructure:"load_strategy"`
 }
 
 func (c *Config) validate() error {
