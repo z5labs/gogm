@@ -95,6 +95,14 @@ func (c *Config) validate() error {
 		c.TargetDbs = []string{"neo4j"}
 	}
 
+	if err := c.IndexStrategy.validate(); err != nil {
+		return err
+	}
+
+	if err := c.LoadStrategy.validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -128,3 +136,12 @@ const (
 	// IGNORE_INDEX skips the index step of setup
 	IGNORE_INDEX IndexStrategy = 2
 )
+
+func (is IndexStrategy) validate() error {
+	switch is {
+	case ASSERT_INDEX, VALIDATE_INDEX, IGNORE_INDEX:
+		return nil
+	default:
+		return fmt.Errorf("invalid index strategy %d", is)
+	}
+}

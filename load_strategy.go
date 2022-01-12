@@ -37,6 +37,15 @@ const (
 	SCHEMA_LOAD_STRATEGY
 )
 
+func (ls LoadStrategy) validate() error {
+	switch ls {
+	case PATH_LOAD_STRATEGY, SCHEMA_LOAD_STRATEGY:
+		return nil
+	default:
+		return fmt.Errorf("invalid load strategy %d", ls)
+	}
+}
+
 // PathLoadStrategyMany loads many using path strategy
 func PathLoadStrategyMany(variable, label string, depth int, additionalConstraints dsl.ConditionOperator) (dsl.Cypher, error) {
 	if variable == "" {
