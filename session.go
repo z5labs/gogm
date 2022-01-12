@@ -189,7 +189,7 @@ func (s *Session) LoadDepth(respObj interface{}, id string, depth int) error {
 	return s.LoadDepthFilterPagination(respObj, id, depth, nil, nil, nil)
 }
 
-func (s *Session) LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
+func (s *Session) LoadDepthFilter(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error {
 	return s.LoadDepthFilterPagination(respObj, id, depth, filter, params, nil)
 }
 

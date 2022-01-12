@@ -57,7 +57,7 @@ type ISession interface {
 	LoadDepth(respObj interface{}, id string, depth int) error
 
 	//load with depth and filter
-	LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error
+	LoadDepthFilter(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error
 
 	//load with depth, filter and pagination
 	LoadDepthFilterPagination(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error

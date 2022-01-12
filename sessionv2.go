@@ -198,7 +198,7 @@ func (s *SessionV2Impl) LoadDepth(ctx context.Context, respObj, id interface{}, 
 	return s.LoadDepthFilterPagination(ctx, respObj, id, depth, nil, nil, nil)
 }
 
-func (s *SessionV2Impl) LoadDepthFilter(ctx context.Context, respObj, id interface{}, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
+func (s *SessionV2Impl) LoadDepthFilter(ctx context.Context, respObj, id interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
 		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadDepthFilter")
