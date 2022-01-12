@@ -30,6 +30,73 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestTraverseResultRecordValues(t *testing.T) {
+	req := require.New(t)
+
+	// empty case
+	pArr, rArr, nArr := traverseResultRecordValues([]interface{}{})
+	req.Len(pArr, 0)
+	req.Len(rArr, 0)
+	req.Len(nArr, 0)
+
+	// garbage record case
+	pArr, rArr, nArr = traverseResultRecordValues([]interface{}{"hello", []interface{}{"there"}})
+	req.Len(pArr, 0)
+	req.Len(rArr, 0)
+	req.Len(nArr, 0)
+
+	// define our test paths, rels, and nodes
+	p1 := neo4j.Path{
+		Nodes: []neo4j.Node{
+			{
+				Id:     1,
+				Labels: []string{"start"},
+			},
+			{
+				Id:     2,
+				Labels: []string{"end"},
+			},
+		},
+		Relationships: []neo4j.Relationship{
+			{
+				Id:      3,
+				StartId: 1,
+				EndId:   2,
+				Type:    "someType",
+			},
+		},
+	}
+
+	n1 := neo4j.Node{
+		Id:     4,
+		Labels: []string{"start"},
+	}
+
+	n2 := neo4j.Node{
+		Id:     5,
+		Labels: []string{"end"},
+	}
+
+	r1 := neo4j.Relationship{
+		Id:      6,
+		StartId: 4,
+		EndId:   5,
+		Type:    "someType",
+	}
+
+	// normal case (paths, nodes, and rels, but no nested results)
+	pArr, rArr, nArr = traverseResultRecordValues([]interface{}{p1, n1, n2, r1})
+	req.Equal(pArr[0], p1)
+	req.Equal(rArr[0], r1)
+	req.ElementsMatch(nArr, []interface{}{n1, n2})
+
+	// case with nested nodes and rels
+	pArr, rArr, nArr = traverseResultRecordValues([]interface{}{p1, []interface{}{n1, n2, r1}})
+	req.Equal(pArr[0], p1)
+	req.Equal(rArr[0], r1)
+	req.ElementsMatch(nArr, []interface{}{n1, n2})
+}
+
 type TestStruct struct {
 	Id         *int64
 	UUID       string
