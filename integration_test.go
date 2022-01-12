@@ -597,7 +597,7 @@ func (i *IntegrationTestSuite) TestSchemaLoadStrategy() {
 	defer req.Nil(sess.Close())
 
 	// test raw query (verify SchemaLoadStrategy + Neo driver decoding)
-	query, err := SchemaLoadStrategyOne(i.gogm, "n", "a", "uuid", "uuid", false, 2, nil)
+	query, err := SchemaLoadStrategyOne(i.gogm, "n", "a", "uuid", "uuid", false, 1, nil)
 	req.Nil(err, "error generating SchemaLoadStrategy query")
 
 	cypher, err := query.ToCypher()

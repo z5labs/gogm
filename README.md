@@ -167,6 +167,8 @@ func main() {
 		EnableLogParams:    false,
 		// enable open tracing. Ensure contexts have spans already. GoGM does not make root spans, only child spans
 		OpentracingEnabled: false,
+		// specify the method gogm will use to generate Load queries
+		LoadStrategy: gogm.PATH_LOAD_STRATEGY // set to SCHEMA_LOAD_STRATEGY for schema-aware queries which may reduce load on the database
 	}
 
 	// register all vertices and edges

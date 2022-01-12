@@ -926,4 +926,70 @@ func TestDecode2(t *testing.T) {
 	req.Equal(int64(55), *readin9.Id)
 	req.Equal("dasdfas", readin9.UUID)
 
+	// decode should be able to handle queries that return nested lists of paths, relationships, and nodes
+	decodeResultNested := [][]interface{}{
+		{
+			neo4j.Node{
+				Id:     18,
+				Labels: []string{"a"},
+				Props: map[string]interface{}{
+					"uuid": "2588baca-7561-43f8-9ddb-9c7aecf87284",
+				},
+			},
+		},
+		{
+			[]interface{}{
+				[]interface{}{
+					[]interface{}{
+						[]interface{}{
+							neo4j.Relationship{
+								Id:      0,
+								StartId: 19,
+								EndId:   18,
+								Type:    "testm2o",
+							},
+							neo4j.Node{
+								Id:     19,
+								Labels: []string{"b"},
+								Props: map[string]interface{}{
+									"test_fielda": "1234",
+									"uuid":        "b6d8c2ab-06c2-43d0-8452-89d6c4ec5d40",
+								},
+							},
+						},
+					},
+					[]interface{}{},
+					[]interface{}{
+						[]interface{}{
+							neo4j.Relationship{
+								Id:      1,
+								StartId: 18,
+								EndId:   19,
+								Type:    "special_single",
+								Props: map[string]interface{}{
+									"test": "testing",
+								},
+							},
+							neo4j.Node{
+								Id:     19,
+								Labels: []string{"b"},
+								Props: map[string]interface{}{
+									"test_fielda": "1234",
+									"uuid":        "b6d8c2ab-06c2-43d0-8452-89d6c4ec5d40",
+								},
+							},
+						},
+					},
+				},
+				[]interface{}{},
+				[]interface{}{},
+			},
+		},
+	}
+	var readinNested a
+	req.Nil(decode(gogm, newMockResult(decodeResultNested), &readinNested))
+	req.Equal("2588baca-7561-43f8-9ddb-9c7aecf87284", readinNested.UUID)
+	req.Len(readinNested.ManyA, 1)
+	req.Equal("b6d8c2ab-06c2-43d0-8452-89d6c4ec5d40", readinNested.ManyA[0].UUID)
+	req.Equal(readinNested.ManyA[0], readinNested.SingleSpecA.End, "Two rels should have the same node instance")
 }
