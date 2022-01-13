@@ -21,28 +21,86 @@ package gogm
 
 import (
 	"errors"
-	"github.com/cornelk/hashmap"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
-	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/cornelk/hashmap"
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"github.com/stretchr/testify/require"
 )
+
+func TestTraverseResultRecordValues(t *testing.T) {
+	req := require.New(t)
+
+	// empty case
+	pArr, rArr, nArr := traverseResultRecordValues([]interface{}{})
+	req.Len(pArr, 0)
+	req.Len(rArr, 0)
+	req.Len(nArr, 0)
+
+	// garbage record case
+	pArr, rArr, nArr = traverseResultRecordValues([]interface{}{"hello", []interface{}{"there"}})
+	req.Len(pArr, 0)
+	req.Len(rArr, 0)
+	req.Len(nArr, 0)
+
+	// define our test paths, rels, and nodes
+	p1 := neo4j.Path{
+		Nodes: []neo4j.Node{
+			{
+				Id:     1,
+				Labels: []string{"start"},
+			},
+			{
+				Id:     2,
+				Labels: []string{"end"},
+			},
+		},
+		Relationships: []neo4j.Relationship{
+			{
+				Id:      3,
+				StartId: 1,
+				EndId:   2,
+				Type:    "someType",
+			},
+		},
+	}
+
+	n1 := neo4j.Node{
+		Id:     4,
+		Labels: []string{"start"},
+	}
+
+	n2 := neo4j.Node{
+		Id:     5,
+		Labels: []string{"end"},
+	}
+
+	r1 := neo4j.Relationship{
+		Id:      6,
+		StartId: 4,
+		EndId:   5,
+		Type:    "someType",
+	}
+
+	// normal case (paths, nodes, and rels, but no nested results)
+	pArr, rArr, nArr = traverseResultRecordValues([]interface{}{p1, n1, n2, r1})
+	req.Equal(pArr[0], p1)
+	req.Equal(rArr[0], r1)
+	req.ElementsMatch(nArr, []interface{}{n1, n2})
+
+	// case with nested nodes and rels
+	pArr, rArr, nArr = traverseResultRecordValues([]interface{}{p1, []interface{}{n1, n2, r1}})
+	req.Equal(pArr[0], p1)
+	req.Equal(rArr[0], r1)
+	req.ElementsMatch(nArr, []interface{}{n1, n2})
+}
 
 type TestStruct struct {
 	Id         *int64
 	UUID       string
 	OtherField string
-}
-
-func toHashmap(m map[string]interface{}) *hashmap.HashMap {
-	h := &hashmap.HashMap{}
-
-	for k, v := range m {
-		h.Set(k, v)
-	}
-
-	return h
 }
 
 func toHashmapStructdecconf(m map[string]structDecoratorConfig) *hashmap.HashMap {
@@ -868,4 +926,70 @@ func TestDecode2(t *testing.T) {
 	req.Equal(int64(55), *readin9.Id)
 	req.Equal("dasdfas", readin9.UUID)
 
+	// decode should be able to handle queries that return nested lists of paths, relationships, and nodes
+	decodeResultNested := [][]interface{}{
+		{
+			neo4j.Node{
+				Id:     18,
+				Labels: []string{"a"},
+				Props: map[string]interface{}{
+					"uuid": "2588baca-7561-43f8-9ddb-9c7aecf87284",
+				},
+			},
+		},
+		{
+			[]interface{}{
+				[]interface{}{
+					[]interface{}{
+						[]interface{}{
+							neo4j.Relationship{
+								Id:      0,
+								StartId: 19,
+								EndId:   18,
+								Type:    "testm2o",
+							},
+							neo4j.Node{
+								Id:     19,
+								Labels: []string{"b"},
+								Props: map[string]interface{}{
+									"test_fielda": "1234",
+									"uuid":        "b6d8c2ab-06c2-43d0-8452-89d6c4ec5d40",
+								},
+							},
+						},
+					},
+					[]interface{}{},
+					[]interface{}{
+						[]interface{}{
+							neo4j.Relationship{
+								Id:      1,
+								StartId: 18,
+								EndId:   19,
+								Type:    "special_single",
+								Props: map[string]interface{}{
+									"test": "testing",
+								},
+							},
+							neo4j.Node{
+								Id:     19,
+								Labels: []string{"b"},
+								Props: map[string]interface{}{
+									"test_fielda": "1234",
+									"uuid":        "b6d8c2ab-06c2-43d0-8452-89d6c4ec5d40",
+								},
+							},
+						},
+					},
+				},
+				[]interface{}{},
+				[]interface{}{},
+			},
+		},
+	}
+	var readinNested a
+	req.Nil(decode(gogm, newMockResult(decodeResultNested), &readinNested))
+	req.Equal("2588baca-7561-43f8-9ddb-9c7aecf87284", readinNested.UUID)
+	req.Len(readinNested.ManyA, 1)
+	req.Equal("b6d8c2ab-06c2-43d0-8452-89d6c4ec5d40", readinNested.ManyA[0].UUID)
+	req.Equal(readinNested.ManyA[0], readinNested.SingleSpecA.End, "Two rels should have the same node instance")
 }

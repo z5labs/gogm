@@ -22,10 +22,40 @@ package gogm
 import (
 	"errors"
 	"fmt"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"reflect"
 	"strings"
+
+	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
+
+func traverseResultRecordValues(values []interface{}) ([]neo4j.Path, []neo4j.Relationship, []neo4j.Node) {
+	var paths []neo4j.Path
+	var strictRels []neo4j.Relationship
+	var isolatedNodes []neo4j.Node
+
+	for _, value := range values {
+		switch ct := value.(type) {
+		case neo4j.Path:
+			paths = append(paths, ct)
+		case neo4j.Relationship:
+			strictRels = append(strictRels, ct)
+		case neo4j.Node:
+			isolatedNodes = append(isolatedNodes, ct)
+		case []interface{}:
+			v, ok := value.([]interface{})
+			if ok {
+				p, r, n := traverseResultRecordValues(v)
+				paths = append(paths, p...)
+				strictRels = append(strictRels, r...)
+				isolatedNodes = append(isolatedNodes, n...)
+			}
+		default:
+			continue
+		}
+	}
+
+	return paths, strictRels, isolatedNodes
+}
 
 //decodes raw path response from driver
 //example query `match p=(n)-[*0..5]-() return p`
@@ -61,21 +91,10 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 	var isolatedNodes []neo4j.Node
 
 	for result.Next() {
-		for _, value := range result.Record().Values {
-			switch ct := value.(type) {
-			case neo4j.Path:
-				paths = append(paths, ct)
-				break
-			case neo4j.Relationship:
-				strictRels = append(strictRels, ct)
-				break
-			case neo4j.Node:
-				isolatedNodes = append(isolatedNodes, ct)
-				break
-			default:
-				continue
-			}
-		}
+		p, r, n := traverseResultRecordValues(result.Record().Values)
+		paths = append(paths, p...)
+		strictRels = append(strictRels, r...)
+		isolatedNodes = append(isolatedNodes, n...)
 	}
 
 	nodeLookup := make(map[int64]*reflect.Value)
@@ -84,21 +103,21 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 	rels := make(map[int64]*neoEdgeConfig)
 	labelLookup := map[int64]string{}
 
-	if paths != nil && len(paths) != 0 {
+	if len(paths) != 0 {
 		err = sortPaths(gogm, paths, &nodeLookup, &rels, &pks, primaryLabel, &relMaps)
 		if err != nil {
 			return err
 		}
 	}
 
-	if isolatedNodes != nil && len(isolatedNodes) != 0 {
+	if len(isolatedNodes) != 0 {
 		err = sortIsolatedNodes(gogm, isolatedNodes, &labelLookup, &nodeLookup, &pks, primaryLabel, &relMaps)
 		if err != nil {
 			return err
 		}
 	}
 
-	if strictRels != nil && len(strictRels) != 0 {
+	if len(strictRels) != 0 {
 		err = sortStrictRels(strictRels, &labelLookup, &rels)
 		if err != nil {
 			return err
@@ -232,14 +251,14 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 
 			//can ensure that it implements proper interface if it made it this far
 			res := val.MethodByName("SetStartNode").Call([]reflect.Value{startCall})
-			if res == nil || len(res) == 0 {
+			if len(res) == 0 {
 				return fmt.Errorf("invalid response from edge callback - %w", err)
 			} else if !res[0].IsNil() {
 				return fmt.Errorf("failed call to SetStartNode - %w", res[0].Interface().(error))
 			}
 
 			res = val.MethodByName("SetEndNode").Call([]reflect.Value{endCall})
-			if res == nil || len(res) == 0 {
+			if len(res) == 0 {
 				return fmt.Errorf("invalid response from edge callback - %w", err)
 			} else if !res[0].IsNil() {
 				return fmt.Errorf("failed call to SetEndNode - %w", res[0].Interface().(error))
@@ -359,7 +378,7 @@ func sortIsolatedNodes(gogm *Gogm, isolatedNodes []neo4j.Node, labelLookup *map[
 			}
 
 			//set label map
-			if _, ok := (*labelLookup)[node.Id]; !ok && len(node.Labels) != 0 && node.Labels[0] == pkLabel {
+			if _, ok := (*labelLookup)[node.Id]; !ok && len(node.Labels) != 0 { //&& node.Labels[0] == pkLabel {
 				(*labelLookup)[node.Id] = node.Labels[0]
 			}
 		}

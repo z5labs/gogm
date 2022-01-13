@@ -41,7 +41,6 @@ type Session struct {
 	neoSess      neo4j.Session
 	tx           neo4j.Transaction
 	DefaultDepth int
-	LoadStrategy LoadStrategy
 	mode         neo4j.AccessMode
 }
 
@@ -65,8 +64,7 @@ func newSession(gogm *Gogm, readonly bool) (*Session, error) {
 	}
 
 	session := &Session{
-		gogm:         gogm,
-		LoadStrategy: PATH_LOAD_STRATEGY,
+		gogm: gogm,
 	}
 
 	var mode neo4j.AccessMode
@@ -116,7 +114,6 @@ func newSessionWithConfig(gogm *Gogm, conf SessionConfig) (*Session, error) {
 		DefaultDepth: defaultDepth,
 		mode:         conf.AccessMode,
 		gogm:         gogm,
-		LoadStrategy: PATH_LOAD_STRATEGY,
 	}, nil
 }
 
@@ -192,7 +189,7 @@ func (s *Session) LoadDepth(respObj interface{}, id string, depth int) error {
 	return s.LoadDepthFilterPagination(respObj, id, depth, nil, nil, nil)
 }
 
-func (s *Session) LoadDepthFilter(respObj interface{}, id string, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
+func (s *Session) LoadDepthFilter(respObj interface{}, id string, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error {
 	return s.LoadDepthFilterPagination(respObj, id, depth, filter, params, nil)
 }
 
@@ -217,14 +214,17 @@ func (s *Session) LoadDepthFilterPagination(respObj interface{}, id string, dept
 	var err error
 
 	//make the query based off of the load strategy
-	switch s.LoadStrategy {
+	switch s.gogm.config.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
 		query, err = PathLoadStrategyOne(varName, respObjName, "uuid", "uuid", false, depth, filter)
 		if err != nil {
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
-		return errors.New("schema load strategy not supported yet")
+		query, err = SchemaLoadStrategyOne(s.gogm, varName, respObjName, "uuid", "uuid", false, depth, filter)
+		if err != nil {
+			return err
+		}
 	default:
 		return errors.New("unknown load strategy")
 	}
@@ -308,14 +308,17 @@ func (s *Session) LoadAllDepthFilterPagination(respObj interface{}, depth int, f
 	var err error
 
 	//make the query based off of the load strategy
-	switch s.LoadStrategy {
+	switch s.gogm.config.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
 		query, err = PathLoadStrategyMany(varName, respObjName, depth, filter)
 		if err != nil {
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
-		return errors.New("schema load strategy not supported yet")
+		query, err = SchemaLoadStrategyMany(s.gogm, varName, respObjName, depth, filter)
+		if err != nil {
+			return err
+		}
 	default:
 		return errors.New("unknown load strategy")
 	}
@@ -378,17 +381,10 @@ func (s *Session) LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNod
 	var query dsl.Cypher
 	var err error
 
-	//make the query based off of the load strategy
-	switch s.LoadStrategy {
-	case PATH_LOAD_STRATEGY:
-		query, err = PathLoadStrategyEdgeConstraint(varName, respObjName, endNodeType, endNodeField, minJumps, maxJumps, depth, filter)
-		if err != nil {
-			return err
-		}
-	case SCHEMA_LOAD_STRATEGY:
-		return errors.New("schema load strategy not supported yet")
-	default:
-		return errors.New("unknown load strategy")
+	// there is no Schema Load Strategy implementation of EdgeConstraint as it would involve pathfinding within the schema (which would be expensive)
+	query, err = PathLoadStrategyEdgeConstraint(varName, respObjName, endNodeType, endNodeField, minJumps, maxJumps, depth, filter)
+	if err != nil {
+		return err
 	}
 
 	// handle if in transaction
@@ -565,16 +561,12 @@ func (s *Session) parseResult(res neo4j.Result) [][]interface{} {
 				switch v := val.(type) {
 				case neo4j.Path:
 					vals[i] = v
-					break
 				case neo4j.Relationship:
 					vals[i] = v
-					break
 				case neo4j.Node:
 					vals[i] = v
-					break
 				default:
 					vals[i] = v
-					continue
 				}
 			}
 			result = append(result, vals)

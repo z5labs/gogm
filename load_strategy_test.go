@@ -18,3 +18,68 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package gogm
+
+import (
+	"testing"
+
+	dsl "github.com/mindstand/go-cypherdsl"
+	"github.com/stretchr/testify/require"
+)
+
+func TestSchemaLoadStrategyMany(t *testing.T) {
+	req := require.New(t)
+
+	// reusing structs from decode_test
+	gogm, err := getTestGogm()
+	req.Nil(err)
+	req.NotNil(gogm)
+
+	// test base case with no schema expansion
+	cypher, err := SchemaLoadStrategyMany(gogm, "n", "a", 0, nil)
+	req.Nil(err)
+	cypherStr, err := cypher.ToCypher()
+	req.Nil(err)
+	req.Equal(cypherStr, "MATCH (n:a) RETURN n")
+
+	// test base case with no schema expansion
+	cypher, err = SchemaLoadStrategyMany(gogm, "n", "a", 0, dsl.C(&dsl.ConditionConfig{
+		Name:              "n",
+		ConditionOperator: dsl.EqualToOperator,
+		Field:             "test_field",
+		Check:             dsl.ParamString("$someParam"),
+	}))
+	req.Nil(err)
+	cypherStr, err = cypher.ToCypher()
+	req.Nil(err)
+	req.Equal(cypherStr, "MATCH (n:a) WHERE n.test_field = $someParam RETURN n")
+
+	// test more complex case with schema expansion
+	cypher, err = SchemaLoadStrategyMany(gogm, "n", "a", 2, nil)
+	req.Nil(err)
+	req.NotNil(cypher)
+	cypherStr, err = cypher.ToCypher()
+	req.Nil(err)
+	req.NotContains(cypherStr, ":c)", "Spec edge should not be treated as a node")
+	req.Regexp("\\[[^\\(\\)\\[\\]]+:special[^\\(\\)\\[\\]]+]..\\([^\\(\\)\\[\\]]+:b\\)", cypherStr, "Spec edge rels should properly link to b")
+
+	// test fail condition of non-existing label
+	cypher, err = SchemaLoadStrategyMany(gogm, "n", "nonexisting", 2, nil)
+	req.NotNil(err, "Should fail due to non-existing label")
+	req.Nil(cypher)
+}
+
+func TestSchemaLoadStrategyOne(t *testing.T) {
+	req := require.New(t)
+
+	// reusing structs from decode_test
+	gogm, err := getTestGogm()
+	req.Nil(err)
+	req.NotNil(gogm)
+
+	// test base case with no schema expansion
+	cypher, err := SchemaLoadStrategyOne(gogm, "n", "a", "uuid", "uuid", false, 0, nil)
+	req.Nil(err)
+	cypherStr, err := cypher.ToCypher()
+	req.Nil(err)
+	req.Equal(cypherStr, "MATCH (n:a) WHERE n.uuid = $uuid RETURN n")
+}

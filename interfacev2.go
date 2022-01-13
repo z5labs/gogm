@@ -21,6 +21,7 @@ package gogm
 
 import (
 	"context"
+
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
@@ -61,7 +62,7 @@ type ogmFunctions interface {
 	LoadDepth(ctx context.Context, respObj, id interface{}, depth int) error
 
 	//load with depth and filter
-	LoadDepthFilter(ctx context.Context, respObj, id interface{}, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error
+	LoadDepthFilter(ctx context.Context, respObj, id interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error
 
 	//load with depth, filter and pagination
 	LoadDepthFilterPagination(ctx context.Context, respObj, id interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error

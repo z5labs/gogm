@@ -23,10 +23,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/opentracing/opentracing-go"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/opentracing/opentracing-go"
 
 	dsl "github.com/mindstand/go-cypherdsl"
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
@@ -37,7 +38,6 @@ type SessionV2Impl struct {
 	neoSess      neo4j.Session
 	tx           neo4j.Transaction
 	DefaultDepth int
-	LoadStrategy LoadStrategy
 	conf         SessionConfig
 	lastBookmark string
 }
@@ -67,7 +67,6 @@ func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, err
 		DefaultDepth: defaultDepth,
 		conf:         conf,
 		gogm:         gogm,
-		LoadStrategy: PATH_LOAD_STRATEGY,
 	}, nil
 }
 func (s *SessionV2Impl) Begin(ctx context.Context) error {
@@ -199,7 +198,7 @@ func (s *SessionV2Impl) LoadDepth(ctx context.Context, respObj, id interface{}, 
 	return s.LoadDepthFilterPagination(ctx, respObj, id, depth, nil, nil, nil)
 }
 
-func (s *SessionV2Impl) LoadDepthFilter(ctx context.Context, respObj, id interface{}, depth int, filter *dsl.ConditionBuilder, params map[string]interface{}) error {
+func (s *SessionV2Impl) LoadDepthFilter(ctx context.Context, respObj, id interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}) error {
 	var span opentracing.Span
 	if ctx != nil && s.gogm.config.OpentracingEnabled {
 		span, ctx = opentracing.StartSpanFromContext(ctx, "gogm.SessionV2Impl.LoadDepthFilter")
@@ -243,14 +242,17 @@ func (s *SessionV2Impl) LoadDepthFilterPagination(ctx context.Context, respObj, 
 	isGraphId := s.gogm.pkStrategy.StrategyName == DefaultPrimaryKeyStrategy.StrategyName
 	field := s.gogm.pkStrategy.DBName
 	//make the query based off of the load strategy
-	switch s.LoadStrategy {
+	switch s.gogm.config.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
 		query, err = PathLoadStrategyOne(varName, respObjName, field, paramName, isGraphId, depth, filter)
 		if err != nil {
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
-		return errors.New("schema load strategy not supported yet")
+		query, err = SchemaLoadStrategyOne(s.gogm, varName, respObjName, field, paramName, isGraphId, depth, filter)
+		if err != nil {
+			return err
+		}
 	default:
 		return errors.New("unknown load strategy")
 	}
@@ -362,14 +364,17 @@ func (s *SessionV2Impl) LoadAllDepthFilterPagination(ctx context.Context, respOb
 	var err error
 
 	//make the query based off of the load strategy
-	switch s.LoadStrategy {
+	switch s.gogm.config.LoadStrategy {
 	case PATH_LOAD_STRATEGY:
 		query, err = PathLoadStrategyMany(varName, respObjName, depth, filter)
 		if err != nil {
 			return err
 		}
 	case SCHEMA_LOAD_STRATEGY:
-		return errors.New("schema load strategy not supported yet")
+		query, err = SchemaLoadStrategyMany(s.gogm, varName, respObjName, depth, filter)
+		if err != nil {
+			return err
+		}
 	default:
 		return errors.New("unknown load strategy")
 	}
@@ -436,7 +441,7 @@ func (s *SessionV2Impl) runReadOnly(ctx context.Context, cyp string, params map[
 		}
 
 		return nil, decode(s.gogm, res, respObj)
-	}, neo4j.WithTxTimeout(s.getDeadline(ctx).Sub(time.Now())))
+	}, neo4j.WithTxTimeout(time.Until(s.getDeadline(ctx))))
 	if err != nil {
 		return fmt.Errorf("failed auto read tx, %w", err)
 	}
@@ -535,7 +540,7 @@ func (s *SessionV2Impl) runWrite(ctx context.Context, work neo4j.TransactionWork
 	}
 
 	s.gogm.logger.Debug("running in managed write transaction")
-	_, err := s.neoSess.WriteTransaction(work, neo4j.WithTxTimeout(s.getDeadline(ctx).Sub(time.Now())))
+	_, err := s.neoSess.WriteTransaction(work, neo4j.WithTxTimeout(time.Until(s.getDeadline(ctx))))
 	if err != nil {
 		return fmt.Errorf("failed to save in auto transaction, %w", err)
 	}
@@ -653,16 +658,12 @@ func (s *SessionV2Impl) parseResult(res neo4j.Result) [][]interface{} {
 				switch v := val.(type) {
 				case neo4j.Path:
 					vals[i] = v
-					break
 				case neo4j.Relationship:
 					vals[i] = v
-					break
 				case neo4j.Node:
 					vals[i] = v
-					break
 				default:
 					vals[i] = v
-					continue
 				}
 			}
 			result = append(result, vals)
@@ -742,7 +743,7 @@ func (s *SessionV2Impl) ManagedTransaction(ctx context.Context, work Transaction
 	deadline := s.getDeadline(ctx)
 
 	if s.conf.AccessMode == AccessModeWrite {
-		_, err := s.neoSess.WriteTransaction(txWork, neo4j.WithTxTimeout(deadline.Sub(time.Now())))
+		_, err := s.neoSess.WriteTransaction(txWork, neo4j.WithTxTimeout(time.Until(deadline)))
 		if err != nil {
 			return fmt.Errorf("failed managed write tx, %w", err)
 		}

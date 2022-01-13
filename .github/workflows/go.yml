@@ -18,9 +18,12 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 name: Go
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request: {}
 jobs:
-
   build:
     name: Build
     runs-on: ubuntu-latest
