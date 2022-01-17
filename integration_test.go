@@ -84,6 +84,34 @@ func (integrationTest *IntegrationTestSuite) SetupSuite() {
 	integrationTest.gogm = gogm
 }
 
+func (integrationTest *IntegrationTestSuite) TestQueryRaw() {
+	sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+	integrationTest.Require().NotNil(sess)
+	integrationTest.Require().Nil(err)
+	ctx := context.Background()
+
+	err = sess.SaveDepth(ctx, &a{
+		Created: time.Now().UTC(),
+	}, 0)
+	integrationTest.Require().Nil(err)
+
+	// test outside tx
+	res, _, err := sess.QueryRaw(ctx, "match (n) return n", nil)
+	integrationTest.Require().Nil(err)
+	integrationTest.Require().NotEmpty(res)
+
+	// test in tx
+	err = sess.Begin(ctx)
+	integrationTest.Require().Nil(err)
+
+	res, _, err = sess.QueryRaw(ctx, "match (n) return n", nil)
+	integrationTest.Require().Nil(err)
+	integrationTest.Require().NotEmpty(res)
+
+	err = sess.Commit(ctx)
+	integrationTest.Require().Nil(err)
+}
+
 func (integrationTest *IntegrationTestSuite) TestV4Index() {
 	if integrationTest.gogm.neoVersion < 4 {
 		integrationTest.T().Log("skipping because of incompatible version", integrationTest.gogm.neoVersion)

@@ -585,12 +585,14 @@ func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties m
 			return nil, nil, fmt.Errorf("failed to execute query, %w", err)
 		}
 
+		parsedResult := s.parseResult(res)
+
 		sum, err := res.Consume()
 		if err != nil {
 			return nil, nil, err
 		}
 
-		return s.parseResult(res), sum, nil
+		return parsedResult, sum, nil
 	} else {
 		var ires interface{}
 		var sum neo4j.ResultSummary
