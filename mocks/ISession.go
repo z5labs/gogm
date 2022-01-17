@@ -183,11 +183,11 @@ func (_m *ISession) LoadDepth(respObj interface{}, id string, depth int) error {
 }
 
 // LoadDepthFilter provides a mock function with given fields: respObj, id, depth, filter, params
-func (_m *ISession) LoadDepthFilter(respObj interface{}, id string, depth int, filter *go_cypherdsl.ConditionOperator, params map[string]interface{}) error {
+func (_m *ISession) LoadDepthFilter(respObj interface{}, id string, depth int, filter go_cypherdsl.ConditionOperator, params map[string]interface{}) error {
 	ret := _m.Called(respObj, id, depth, filter, params)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(interface{}, string, int, *go_cypherdsl.ConditionOperator, map[string]interface{}) error); ok {
+	if rf, ok := ret.Get(0).(func(interface{}, string, int, go_cypherdsl.ConditionOperator, map[string]interface{}) error); ok {
 		r0 = rf(respObj, id, depth, filter, params)
 	} else {
 		r0 = ret.Error(0)

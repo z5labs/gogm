@@ -145,11 +145,11 @@ func (_m *TransactionV2) LoadDepth(ctx context.Context, respObj interface{}, id 
 }
 
 // LoadDepthFilter provides a mock function with given fields: ctx, respObj, id, depth, filter, params
-func (_m *TransactionV2) LoadDepthFilter(ctx context.Context, respObj interface{}, id interface{}, depth int, filter *go_cypherdsl.ConditionOperator, params map[string]interface{}) error {
+func (_m *TransactionV2) LoadDepthFilter(ctx context.Context, respObj interface{}, id interface{}, depth int, filter go_cypherdsl.ConditionOperator, params map[string]interface{}) error {
 	ret := _m.Called(ctx, respObj, id, depth, filter, params)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, interface{}, interface{}, int, *go_cypherdsl.ConditionOperator, map[string]interface{}) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, interface{}, interface{}, int, go_cypherdsl.ConditionOperator, map[string]interface{}) error); ok {
 		r0 = rf(ctx, respObj, id, depth, filter, params)
 	} else {
 		r0 = ret.Error(0)
