@@ -13,3 +13,5 @@ certs/
 *.out
 .idea/
 vendor/
+
+.vscode

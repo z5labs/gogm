@@ -19,24 +19,20 @@
 
 package gogm
 
-import (
-	"github.com/stretchr/testify/require"
-)
+// func testDelete(req *require.Assertions) {
+// 	conn, err := driver.Session(neo4j.AccessModeWrite)
+// 	if err != nil {
+// 		req.Nil(err)
+// 	}
+// 	defer conn.Close()
 
-func testDelete(req *require.Assertions) {
-	//conn, err := driver.Session(neo4j.AccessModeWrite)
-	//if err != nil {
-	//	req.Nil(err)
-	//}
-	//defer conn.Close()
-	//
-	//del := a{
-	//	BaseNode: BaseNode{
-	//		Id:   0,
-	//		UUID: "5334ee8c-6231-40fd-83e5-16c8016ccde6",
-	//	},
-	//}
-	//
-	//err = deleteNode(runWrap(conn), &del)
-	//req.Nil(err)
-}
+// 	del := a{
+// 		BaseNode: BaseNode{
+// 			Id:   0,
+// 			UUID: "5334ee8c-6231-40fd-83e5-16c8016ccde6",
+// 		},
+// 	}
+
+// 	err = deleteNode(runWrap(conn), &del)
+// 	req.Nil(err)
+// }
