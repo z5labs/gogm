@@ -564,7 +564,7 @@ func getStructDecoratorConfig(gogm *Gogm, i interface{}, mappedRelations *relati
 					endType = field.Type
 				}
 
-				endTypeName, err := traverseRelType(gogm, endType, config.Direction)
+				endTypeName, err := traverseRelType(endType, config.Direction)
 				if err != nil {
 					return nil, err
 				}

@@ -20,10 +20,11 @@
 package gogm
 
 import (
-	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestSetUuidIfNeeded(t *testing.T) {
@@ -92,7 +93,7 @@ func TestGetTypeName(t *testing.T) {
 
 func TestToCypherParamsMap(t *testing.T) {
 	req := require.New(t)
-	gogm, err := getTestGogm()
+	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(gogm)
 

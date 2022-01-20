@@ -31,7 +31,7 @@ import (
 func TestParseStruct(t *testing.T) {
 	req := require.New(t)
 
-	gogm, err := getTestGogm()
+	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(gogm)
 
@@ -261,7 +261,7 @@ func parseM2M(gogm *Gogm, req *require.Assertions) {
 func TestCalculateCurRels(t *testing.T) {
 	req := require.New(t)
 
-	gogm, err := getTestGogm()
+	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(gogm)
 

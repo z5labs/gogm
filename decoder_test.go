@@ -115,7 +115,7 @@ func toHashmapStructdecconf(m map[string]structDecoratorConfig) *hashmap.HashMap
 
 func TestConvertNodeToValue(t *testing.T) {
 	req := require.New(t)
-	gogm, err := getTestGogm()
+	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(gogm)
 	mappedTypes := toHashmapStructdecconf(map[string]structDecoratorConfig{
@@ -281,7 +281,11 @@ type propsTest struct {
 	PropsTest8 tdMapTdSliceOfTd       `gogm:"name=props8;properties"`
 }
 
-func getTestGogm() (*Gogm, error) {
+func getTestGogmWithDefaultStructs() (*Gogm, error) {
+	return getTestGogm(&a{}, &b{}, &c{}, &f{}, &propsTest{})
+}
+
+func getTestGogm(types ...interface{}) (*Gogm, error) {
 	g := &Gogm{
 		config: &Config{
 			Logger:   GetDefaultLogger(),
@@ -293,7 +297,7 @@ func getTestGogm() (*Gogm, error) {
 		mappedTypes:     &hashmap.HashMap{},
 		driver:          nil,
 		mappedRelations: &relationConfigs{},
-		ogmTypes:        []interface{}{&a{}, &b{}, &c{}, &f{}, &propsTest{}},
+		ogmTypes:        types,
 		isNoOp:          false,
 	}
 
@@ -307,7 +311,7 @@ func getTestGogm() (*Gogm, error) {
 
 func TestDecode(t *testing.T) {
 	req := require.New(t)
-	gogm, err := getTestGogm()
+	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(gogm)
 
@@ -326,7 +330,7 @@ func TestDecode(t *testing.T) {
 func TestDecode2(t *testing.T) {
 	req := require.New(t)
 
-	gogm, err := getTestGogm()
+	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(gogm)
 

@@ -24,8 +24,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/mindstand/gogm/v2/cmd/gogmcli/util"
 	"go/format"
 	"html/template"
 	"log"
@@ -33,6 +31,9 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	dsl "github.com/mindstand/go-cypherdsl"
+	"github.com/mindstand/gogm/v2/cmd/gogmcli/util"
 )
 
 // Generate searches for all go source files, then generates link and unlink functions for all gogm structs
@@ -120,11 +121,7 @@ func Generate(directory string, debug bool) error {
 				log.Printf("adding relationship [%s] from field [%s]", field.RelationshipName, field.Field)
 			}
 
-			if _, ok := relations[field.RelationshipName]; ok {
-				relations[field.RelationshipName] = append(relations[field.RelationshipName], field)
-			} else {
-				relations[field.RelationshipName] = []*relConf{field}
-			}
+			relations[field.RelationshipName] = append(relations[field.RelationshipName], field)
 		}
 	}
 
@@ -173,11 +170,7 @@ func Generate(directory string, debug bool) error {
 				log.Printf("adding function to node [%s]", rel.NodeName)
 			}
 
-			if _, ok := funcs[rel.NodeName]; ok {
-				funcs[rel.NodeName] = append(funcs[rel.NodeName], tplRel)
-			} else {
-				funcs[rel.NodeName] = []*tplRelConf{tplRel}
-			}
+			funcs[rel.NodeName] = append(funcs[rel.NodeName], tplRel)
 		}
 	}
 

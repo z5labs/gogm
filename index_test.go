@@ -21,13 +21,14 @@ package gogm
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"log"
 	"reflect"
+
+	"github.com/stretchr/testify/require"
 )
 
 func testIndexManagement(req *require.Assertions) {
-	gogm, err := getTestGogm()
+	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(gogm)
 	//delete everything

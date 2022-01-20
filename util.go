@@ -280,6 +280,7 @@ type validation struct {
 	Outgoing []string
 	None     []string
 	Both     []string
+	BothSelf []string
 }
 
 func (r *relationConfigs) Validate() error {
@@ -294,7 +295,7 @@ func (r *relationConfigs) Validate() error {
 			return fmt.Errorf("invalid length for parts [%v] should be 2. Rel is [%s], %w", len(parts), title, ErrValidation)
 		}
 
-		//vType := parts[0]
+		// vType := parts[0]
 		relType := parts[1]
 
 		for field, configs := range confMap {
@@ -305,6 +306,7 @@ func (r *relationConfigs) Validate() error {
 						Outgoing: []string{},
 						None:     []string{},
 						Both:     []string{},
+						BothSelf: []string{},
 					}
 				}
 
@@ -318,7 +320,22 @@ func (r *relationConfigs) Validate() error {
 				case dsl.DirectionNone:
 					validate.None = append(validate.None, field)
 				case dsl.DirectionBoth:
-					validate.Both = append(validate.Both, field)
+					otherNodeType := config.Type.Elem()
+					if config.Type.Kind() == reflect.Slice {
+						otherNodeType = otherNodeType.Elem()
+					}
+
+					if reflect.PtrTo(otherNodeType).Implements(edgeType) {
+						return fmt.Errorf("bidirectional special types are not supported [%s.%s]", field, config.FieldName)
+					}
+
+					otherNodeName := otherNodeType.Name()
+
+					if field == otherNodeName {
+						validate.BothSelf = append(validate.BothSelf, field)
+					} else {
+						validate.Both = append(validate.Both, field)
+					}
 				default:
 					return fmt.Errorf("unrecognized direction [%s], %w", config.Direction.ToString(), ErrValidation)
 				}
@@ -418,12 +435,11 @@ func int64Ptr(n int64) *int64 {
 
 // traverseRelType finds the label of a node from a relationship (decoratorConfig).
 // if a special edge is passed in, the linked node's label is returned.
-func traverseRelType(gogm *Gogm, endType reflect.Type, direction dsl.Direction) (string, error) {
+func traverseRelType(endType reflect.Type, direction dsl.Direction) (string, error) {
 	if !reflect.PtrTo(endType).Implements(edgeType) {
 		return endType.Name(), nil
 	}
 
-	gogm.logger.Debug(endType.Name())
 	endVal := reflect.New(endType)
 	var endTypeVal []reflect.Value
 

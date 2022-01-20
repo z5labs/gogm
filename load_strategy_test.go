@@ -30,7 +30,7 @@ func TestSchemaLoadStrategyMany(t *testing.T) {
 	req := require.New(t)
 
 	// reusing structs from decode_test
-	gogm, err := getTestGogm()
+	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(gogm)
 
@@ -72,7 +72,7 @@ func TestSchemaLoadStrategyOne(t *testing.T) {
 	req := require.New(t)
 
 	// reusing structs from decode_test
-	gogm, err := getTestGogm()
+	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(gogm)
 

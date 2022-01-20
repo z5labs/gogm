@@ -267,7 +267,7 @@ func listComprehension(gogm *Gogm, fromNodeVar, label string, rel decoratorConfi
 		toNodeType = toNodeType.Elem()
 	}
 
-	toNodeLabel, err := traverseRelType(gogm, toNodeType, rel.Direction)
+	toNodeLabel, err := traverseRelType(toNodeType, rel.Direction)
 	if err != nil {
 		return "", err
 	}

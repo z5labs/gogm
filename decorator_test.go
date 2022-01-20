@@ -20,16 +20,17 @@
 package gogm
 
 import (
-	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/stretchr/testify/require"
 	"log"
 	"reflect"
 	"testing"
+
+	dsl "github.com/mindstand/go-cypherdsl"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecoratorConfig_Validate(t *testing.T) {
 	req := require.New(t)
-	gogm, err := getTestGogm()
+	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(gogm)
 
@@ -261,7 +262,7 @@ func TestStructDecoratorConfig_Validate(t *testing.T) {
 
 func TestNewDecoratorConfig(t *testing.T) {
 	req := require.New(t)
-	testGogm, err := getTestGogm()
+	testGogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(testGogm)
 	var compare *decoratorConfig
@@ -489,9 +490,38 @@ func (i *uuidlessEdge) GetLabels() []string {
 	return []string{"uuidlessEdge"}
 }
 
+func TestGetStructDecoratorConfig_RelDirectionBoth(t *testing.T) {
+	req := require.New(t)
+
+	// Rel within single type
+	type TypeWithRelWithinType struct {
+		BaseUUIDNode
+		Bidirectional []*TypeWithRelWithinType `gogm:"relationship=BIDIRECTIONAL;direction=both"`
+	}
+
+	testGogm, err := getTestGogm(&TypeWithRelWithinType{})
+	req.Nil(err)
+	req.NotNil(testGogm)
+
+	// Invalid both config
+	type UnrequitedRelType struct {
+		BaseUUIDNode
+		Unrequited []*UnrequitedRelType `gogm:"relationship=BIDIRECTIONAL;direction=both"`
+	}
+
+	type UnrequitingRelType struct {
+		BaseUUIDNode
+		// relationship not returned :(
+	}
+
+	testGogm, err = getTestGogm(&UnrequitedRelType{}, &UnrequitingRelType{})
+	req.NotNil(err)
+	req.Nil(testGogm)
+}
+
 func TestGetStructDecoratorConfig(t *testing.T) {
 	req := require.New(t)
-	testGogm, err := getTestGogm()
+	testGogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(testGogm)
 	mappedRelations := &relationConfigs{}
