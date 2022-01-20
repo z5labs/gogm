@@ -554,27 +554,31 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 		Label:    "validStruct",
 		Fields: map[string]decoratorConfig{
 			"Id": {
-				Name:      "id",
-				FieldName: "Id",
-				Type:      reflect.TypeOf(int64(0)),
+				Name:       "id",
+				FieldName:  "Id",
+				Type:       reflect.TypeOf(int64(0)),
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"UUID": {
 				Name:       "uuid",
 				FieldName:  "UUID",
 				PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
 				Type:       reflect.TypeOf(""),
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"IndexField": {
-				FieldName: "IndexField",
-				Name:      "index_field",
-				Index:     true,
-				Type:      reflect.TypeOf(""),
+				FieldName:  "IndexField",
+				Name:       "index_field",
+				Index:      true,
+				Type:       reflect.TypeOf(""),
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"UniqueField": {
-				FieldName: "UniqueField",
-				Unique:    true,
-				Name:      "unique_field",
-				Type:      reflect.TypeOf(int(1)),
+				FieldName:  "UniqueField",
+				Unique:     true,
+				Name:       "unique_field",
+				Type:       reflect.TypeOf(int(1)),
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"OneToOne": {
 				FieldName:    "OneToOne",
@@ -582,6 +586,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Relationship: "one2one",
 				Direction:    dsl.DirectionIncoming,
 				Type:         reflect.TypeOf(&validStruct{}),
+				ParentType:   reflect.TypeOf(validStruct{}),
 			},
 			"SpecialOne": {
 				FieldName:    "SpecialOne",
@@ -590,6 +595,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Direction:    dsl.DirectionOutgoing,
 				UsesEdgeNode: true,
 				Type:         reflect.TypeOf(&c{}),
+				ParentType:   reflect.TypeOf(validStruct{}),
 			},
 			"SpecialMany": {
 				FieldName:        "SpecialMany",
@@ -599,6 +605,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				UsesEdgeNode:     true,
 				ManyRelationship: true,
 				Type:             reflect.TypeOf([]*c{}),
+				ParentType:       reflect.TypeOf(validStruct{}),
 			},
 			"ManyToOne": {
 				FieldName:        "ManyToOne",
@@ -607,6 +614,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Direction:        dsl.DirectionOutgoing,
 				ManyRelationship: true,
 				Type:             reflect.TypeOf([]*a{}),
+				ParentType:       reflect.TypeOf(validStruct{}),
 			},
 			"PropsMapInterface": {
 				FieldName:  "PropsMapInterface",
@@ -618,6 +626,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 					IsMapSlice: false,
 					SubType:    emptyInterfaceType,
 				},
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"PropsMapPrimitive": {
 				FieldName:  "PropsMapPrimitive",
@@ -629,6 +638,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 					IsMapSlice: false,
 					SubType:    reflect.TypeOf(int(0)),
 				},
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"PropsMapSlicePrimitive": {
 				FieldName:  "PropsMapSlicePrimitive",
@@ -641,6 +651,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 					SubType:      reflect.TypeOf(int(0)),
 					MapSliceType: reflect.TypeOf([]int{}),
 				},
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"PropsSliceInterface": {
 				FieldName:  "PropsSliceInterface",
@@ -652,6 +663,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 					IsMapSlice: false,
 					SubType:    reflect.TypeOf(""),
 				},
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"PropsPrimitive": {
 				FieldName:  "PropsPrimitive",
@@ -663,12 +675,14 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 					IsMapSlice: false,
 					SubType:    reflect.TypeOf(int(0)),
 				},
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"IgnoreMe": {
-				FieldName: "IgnoreMe",
-				Name:      "IgnoreMe",
-				Ignore:    true,
-				Type:      reflect.TypeOf(int(1)),
+				FieldName:  "IgnoreMe",
+				Name:       "IgnoreMe",
+				Ignore:     true,
+				Type:       reflect.TypeOf(int(1)),
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 		},
 	}
