@@ -269,11 +269,12 @@ func TestNewDecoratorConfig(t *testing.T) {
 
 	decName := "name=id"
 	decNameStruct := decoratorConfig{
-		Name: "id",
-		Type: reflect.TypeOf(int64(1)),
+		Name:       "id",
+		Type:       reflect.TypeOf(int64(1)),
+		ParentType: reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decName, "", reflect.TypeOf(int64(0)))
+	compare, err = newDecoratorConfig(testGogm, decName, "", reflect.TypeOf(int64(0)), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decNameStruct, *compare)
@@ -284,33 +285,36 @@ func TestNewDecoratorConfig(t *testing.T) {
 		FieldName:  "UUID",
 		PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
 		Type:       reflect.TypeOf(""),
+		ParentType: reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decUUID, "", reflect.TypeOf(""))
+	compare, err = newDecoratorConfig(testGogm, decUUID, "", reflect.TypeOf(""), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decUUIDStruct, *compare)
 
 	decIndexField := "index;name=index_field"
 	decIndexFieldStruct := decoratorConfig{
-		Index: true,
-		Name:  "index_field",
-		Type:  reflect.TypeOf(""),
+		Index:      true,
+		Name:       "index_field",
+		Type:       reflect.TypeOf(""),
+		ParentType: reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decIndexField, "", reflect.TypeOf(""))
+	compare, err = newDecoratorConfig(testGogm, decIndexField, "", reflect.TypeOf(""), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decIndexFieldStruct, *compare)
 
 	decUniqueField := "unique;name=unique_name"
 	decUniqueFieldStruct := decoratorConfig{
-		Unique: true,
-		Name:   "unique_name",
-		Type:   reflect.TypeOf(""),
+		Unique:     true,
+		Name:       "unique_name",
+		Type:       reflect.TypeOf(""),
+		ParentType: reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decUniqueField, "", reflect.TypeOf(""))
+	compare, err = newDecoratorConfig(testGogm, decUniqueField, "", reflect.TypeOf(""), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decUniqueFieldStruct, *compare)
@@ -322,9 +326,10 @@ func TestNewDecoratorConfig(t *testing.T) {
 		Relationship: "one2one",
 		Direction:    dsl.DirectionIncoming,
 		Type:         reflect.TypeOf(a{}),
+		ParentType:   reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decOne2One, "test_name", reflect.TypeOf(a{}))
+	compare, err = newDecoratorConfig(testGogm, decOne2One, "test_name", reflect.TypeOf(a{}), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decOne2OneStruct, *compare)
@@ -339,31 +344,45 @@ func TestNewDecoratorConfig(t *testing.T) {
 			IsMapSlice: false,
 			SubType:    emptyInterfaceType,
 		},
+		ParentType: reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decProps, "", reflect.TypeOf(map[string]interface{}{}))
+	compare, err = newDecoratorConfig(testGogm, decProps, "", reflect.TypeOf(map[string]interface{}{}), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decPropsStruct, *compare)
 
 	decIgnore := "-"
 
-	compare, err = newDecoratorConfig(testGogm, decIgnore, "", reflect.TypeOf(int64(0)))
+	compare, err = newDecoratorConfig(testGogm, decIgnore, "", reflect.TypeOf(int64(0)), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.True(compare.Ignore)
 
 	decInvalidRelName := "relationship=A_REL;direction=incoming;name=ISHOULDNTBEHERE"
 
-	compare, err = newDecoratorConfig(testGogm, decInvalidRelName, "TestFieldName", reflect.TypeOf(a{}))
+	compare, err = newDecoratorConfig(testGogm, decInvalidRelName, "TestFieldName", reflect.TypeOf(a{}), reflect.TypeOf(a{}))
 	req.NotNil(err)
 	req.Nil(compare)
 
 	decInvalidIgnore := "-;index"
 
-	compare, err = newDecoratorConfig(testGogm, decInvalidIgnore, "", reflect.TypeOf(int64(0)))
+	compare, err = newDecoratorConfig(testGogm, decInvalidIgnore, "", reflect.TypeOf(int64(0)), reflect.TypeOf(a{}))
 	req.NotNil(err)
 	req.Nil(compare)
+
+	// Both relationship on self
+	compare, err = newDecoratorConfig(testGogm, "relationship=self2self;direction=both", "test_name", reflect.TypeOf(a{}), reflect.TypeOf(a{}))
+	req.Nil(err)
+	req.NotNil(compare)
+	req.EqualValues(decoratorConfig{
+		ParentType:   reflect.TypeOf(a{}),
+		FieldName:    "test_name",
+		Name:         "test_name",
+		Relationship: "self2self",
+		Direction:    dsl.DirectionBoth,
+		Type:         reflect.TypeOf(a{}),
+	}, *compare)
 }
 
 //structs with decorators for testing
@@ -503,15 +522,15 @@ func TestGetStructDecoratorConfig_RelDirectionBoth(t *testing.T) {
 	req.Nil(err)
 	req.NotNil(testGogm)
 
-	// Invalid both config
-	type UnrequitedRelType struct {
-		BaseUUIDNode
-		Unrequited []*UnrequitedRelType `gogm:"relationship=BIDIRECTIONAL;direction=both"`
-	}
-
 	type UnrequitingRelType struct {
 		BaseUUIDNode
 		// relationship not returned :(
+	}
+
+	// Invalid both config
+	type UnrequitedRelType struct {
+		BaseUUIDNode
+		Unrequited []*UnrequitingRelType `gogm:"relationship=BIDIRECTIONAL;direction=both"`
 	}
 
 	testGogm, err = getTestGogm(&UnrequitedRelType{}, &UnrequitingRelType{})

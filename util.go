@@ -39,16 +39,6 @@ func int64SliceContains(s []int64, e int64) bool {
 	return false
 }
 
-// checks if string is in slice
-func stringSliceContains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
 // sets uuid for stuct if uuid field is empty
 func handleNodeState(pkStrat *PrimaryKeyStrategy, val *reflect.Value) (isNew bool, id int64, relConfig map[string]*RelationConfig, err error) {
 	if val == nil {
@@ -320,18 +310,7 @@ func (r *relationConfigs) Validate() error {
 				case dsl.DirectionNone:
 					validate.None = append(validate.None, field)
 				case dsl.DirectionBoth:
-					otherNodeType := config.Type.Elem()
-					if config.Type.Kind() == reflect.Slice {
-						otherNodeType = otherNodeType.Elem()
-					}
-
-					if reflect.PtrTo(otherNodeType).Implements(edgeType) {
-						return fmt.Errorf("bidirectional special types are not supported [%s.%s]", field, config.FieldName)
-					}
-
-					otherNodeName := otherNodeType.Name()
-
-					if field == otherNodeName {
+					if field == config.ParentType.Name() {
 						validate.BothSelf = append(validate.BothSelf, field)
 					} else {
 						validate.Both = append(validate.Both, field)

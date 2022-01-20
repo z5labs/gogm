@@ -130,8 +130,15 @@ func Generate(directory string, debug bool) error {
 	}
 
 	// validate relationships (i.e even number)
-	for name, rel := range relations {
-		if len(rel)%2 != 0 {
+	for name, rels := range relations {
+		nonBothSelfRelCount := 0
+		for _, rel := range rels {
+			if rel.Direction != dsl.DirectionBoth || rel.NodeName != rel.Type {
+				nonBothSelfRelCount += 1
+			}
+		}
+
+		if nonBothSelfRelCount%2 != 0 {
 			return fmt.Errorf("relationship [%s] is invalid", name)
 		}
 	}
