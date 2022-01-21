@@ -170,7 +170,7 @@ func Generate(directory string, debug bool) error {
 			}
 
 			if tplRel.OtherStructField == "" {
-				return fmt.Errorf("oposite side not found for node [%s] on relationship [%s] and field [%s]", rel.NodeName, rel.RelationshipName, rel.Field)
+				return fmt.Errorf("opposite side not found for node [%s] on relationship [%s] and field [%s]", rel.NodeName, rel.RelationshipName, rel.Field)
 			}
 
 			if debug {

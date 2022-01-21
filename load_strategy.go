@@ -231,7 +231,7 @@ func expand(gogm *Gogm, variable, label string, rels []decoratorConfig, level, d
 	clause := ""
 
 	for i, rel := range rels {
-		// check if a seperator is needed
+		// check if a separator is needed
 		if i > 0 {
 			clause += ", "
 		}
