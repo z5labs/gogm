@@ -82,6 +82,8 @@ type propConfig struct {
 
 //decorator config defines configuration of GoGM field
 type decoratorConfig struct {
+	// ParentType holds the type of the parent object in order to validate some relationships
+	ParentType reflect.Type
 	// holds reflect type for the field
 	Type reflect.Type `json:"-"`
 	// holds the name of the field for neo4j
@@ -287,7 +289,7 @@ var edgeType = reflect.TypeOf(new(Edge)).Elem()
 
 // newDecoratorConfig generates decorator config for field
 // takes in the raw tag, name of the field and reflect type
-func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type) (*decoratorConfig, error) {
+func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type, parentType reflect.Type) (*decoratorConfig, error) {
 	fields := strings.Split(decorator, deliminator)
 
 	if len(fields) == 0 {
@@ -296,11 +298,12 @@ func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type
 
 	//init bools to false
 	toReturn := decoratorConfig{
-		Unique:    false,
-		Ignore:    false,
-		Direction: 0,
-		Type:      varType,
-		FieldName: name,
+		ParentType: parentType,
+		Unique:     false,
+		Ignore:     false,
+		Direction:  0,
+		Type:       varType,
+		FieldName:  name,
 	}
 
 	for _, field := range fields {
@@ -535,7 +538,7 @@ func getStructDecoratorConfig(gogm *Gogm, i interface{}, mappedRelations *relati
 		tag := field.Tag.Get(decoratorName)
 
 		if tag != "" {
-			config, err := newDecoratorConfig(gogm, tag, field.Name, field.Type)
+			config, err := newDecoratorConfig(gogm, tag, field.Name, field.Type, t)
 			if err != nil {
 				return nil, err
 			}
@@ -564,7 +567,7 @@ func getStructDecoratorConfig(gogm *Gogm, i interface{}, mappedRelations *relati
 					endType = field.Type
 				}
 
-				endTypeName, err := traverseRelType(gogm, endType, config.Direction)
+				endTypeName, err := traverseRelType(endType, config.Direction)
 				if err != nil {
 					return nil, err
 				}

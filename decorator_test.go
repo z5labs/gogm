@@ -20,16 +20,17 @@
 package gogm
 
 import (
-	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/stretchr/testify/require"
 	"log"
 	"reflect"
 	"testing"
+
+	dsl "github.com/mindstand/go-cypherdsl"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecoratorConfig_Validate(t *testing.T) {
 	req := require.New(t)
-	gogm, err := getTestGogm()
+	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(gogm)
 
@@ -261,18 +262,19 @@ func TestStructDecoratorConfig_Validate(t *testing.T) {
 
 func TestNewDecoratorConfig(t *testing.T) {
 	req := require.New(t)
-	testGogm, err := getTestGogm()
+	testGogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(testGogm)
 	var compare *decoratorConfig
 
 	decName := "name=id"
 	decNameStruct := decoratorConfig{
-		Name: "id",
-		Type: reflect.TypeOf(int64(1)),
+		Name:       "id",
+		Type:       reflect.TypeOf(int64(1)),
+		ParentType: reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decName, "", reflect.TypeOf(int64(0)))
+	compare, err = newDecoratorConfig(testGogm, decName, "", reflect.TypeOf(int64(0)), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decNameStruct, *compare)
@@ -283,33 +285,36 @@ func TestNewDecoratorConfig(t *testing.T) {
 		FieldName:  "UUID",
 		PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
 		Type:       reflect.TypeOf(""),
+		ParentType: reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decUUID, "", reflect.TypeOf(""))
+	compare, err = newDecoratorConfig(testGogm, decUUID, "", reflect.TypeOf(""), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decUUIDStruct, *compare)
 
 	decIndexField := "index;name=index_field"
 	decIndexFieldStruct := decoratorConfig{
-		Index: true,
-		Name:  "index_field",
-		Type:  reflect.TypeOf(""),
+		Index:      true,
+		Name:       "index_field",
+		Type:       reflect.TypeOf(""),
+		ParentType: reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decIndexField, "", reflect.TypeOf(""))
+	compare, err = newDecoratorConfig(testGogm, decIndexField, "", reflect.TypeOf(""), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decIndexFieldStruct, *compare)
 
 	decUniqueField := "unique;name=unique_name"
 	decUniqueFieldStruct := decoratorConfig{
-		Unique: true,
-		Name:   "unique_name",
-		Type:   reflect.TypeOf(""),
+		Unique:     true,
+		Name:       "unique_name",
+		Type:       reflect.TypeOf(""),
+		ParentType: reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decUniqueField, "", reflect.TypeOf(""))
+	compare, err = newDecoratorConfig(testGogm, decUniqueField, "", reflect.TypeOf(""), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decUniqueFieldStruct, *compare)
@@ -321,9 +326,10 @@ func TestNewDecoratorConfig(t *testing.T) {
 		Relationship: "one2one",
 		Direction:    dsl.DirectionIncoming,
 		Type:         reflect.TypeOf(a{}),
+		ParentType:   reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decOne2One, "test_name", reflect.TypeOf(a{}))
+	compare, err = newDecoratorConfig(testGogm, decOne2One, "test_name", reflect.TypeOf(a{}), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decOne2OneStruct, *compare)
@@ -338,31 +344,45 @@ func TestNewDecoratorConfig(t *testing.T) {
 			IsMapSlice: false,
 			SubType:    emptyInterfaceType,
 		},
+		ParentType: reflect.TypeOf(a{}),
 	}
 
-	compare, err = newDecoratorConfig(testGogm, decProps, "", reflect.TypeOf(map[string]interface{}{}))
+	compare, err = newDecoratorConfig(testGogm, decProps, "", reflect.TypeOf(map[string]interface{}{}), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.EqualValues(decPropsStruct, *compare)
 
 	decIgnore := "-"
 
-	compare, err = newDecoratorConfig(testGogm, decIgnore, "", reflect.TypeOf(int64(0)))
+	compare, err = newDecoratorConfig(testGogm, decIgnore, "", reflect.TypeOf(int64(0)), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
 	req.True(compare.Ignore)
 
 	decInvalidRelName := "relationship=A_REL;direction=incoming;name=ISHOULDNTBEHERE"
 
-	compare, err = newDecoratorConfig(testGogm, decInvalidRelName, "TestFieldName", reflect.TypeOf(a{}))
+	compare, err = newDecoratorConfig(testGogm, decInvalidRelName, "TestFieldName", reflect.TypeOf(a{}), reflect.TypeOf(a{}))
 	req.NotNil(err)
 	req.Nil(compare)
 
 	decInvalidIgnore := "-;index"
 
-	compare, err = newDecoratorConfig(testGogm, decInvalidIgnore, "", reflect.TypeOf(int64(0)))
+	compare, err = newDecoratorConfig(testGogm, decInvalidIgnore, "", reflect.TypeOf(int64(0)), reflect.TypeOf(a{}))
 	req.NotNil(err)
 	req.Nil(compare)
+
+	// Both relationship on self
+	compare, err = newDecoratorConfig(testGogm, "relationship=self2self;direction=both", "test_name", reflect.TypeOf(a{}), reflect.TypeOf(a{}))
+	req.Nil(err)
+	req.NotNil(compare)
+	req.EqualValues(decoratorConfig{
+		ParentType:   reflect.TypeOf(a{}),
+		FieldName:    "test_name",
+		Name:         "test_name",
+		Relationship: "self2self",
+		Direction:    dsl.DirectionBoth,
+		Type:         reflect.TypeOf(a{}),
+	}, *compare)
 }
 
 //structs with decorators for testing
@@ -489,9 +509,38 @@ func (i *uuidlessEdge) GetLabels() []string {
 	return []string{"uuidlessEdge"}
 }
 
+func TestGetStructDecoratorConfig_RelDirectionBoth(t *testing.T) {
+	req := require.New(t)
+
+	// Rel within single type
+	type TypeWithRelWithinType struct {
+		BaseUUIDNode
+		Bidirectional []*TypeWithRelWithinType `gogm:"relationship=BIDIRECTIONAL;direction=both"`
+	}
+
+	testGogm, err := getTestGogm(&TypeWithRelWithinType{})
+	req.Nil(err)
+	req.NotNil(testGogm)
+
+	type UnrequitingRelType struct {
+		BaseUUIDNode
+		// relationship not returned :(
+	}
+
+	// Invalid both config
+	type UnrequitedRelType struct {
+		BaseUUIDNode
+		Unrequited []*UnrequitingRelType `gogm:"relationship=BIDIRECTIONAL;direction=both"`
+	}
+
+	testGogm, err = getTestGogm(&UnrequitedRelType{}, &UnrequitingRelType{})
+	req.NotNil(err)
+	req.Nil(testGogm)
+}
+
 func TestGetStructDecoratorConfig(t *testing.T) {
 	req := require.New(t)
-	testGogm, err := getTestGogm()
+	testGogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(testGogm)
 	mappedRelations := &relationConfigs{}
@@ -505,27 +554,31 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 		Label:    "validStruct",
 		Fields: map[string]decoratorConfig{
 			"Id": {
-				Name:      "id",
-				FieldName: "Id",
-				Type:      reflect.TypeOf(int64(0)),
+				Name:       "id",
+				FieldName:  "Id",
+				Type:       reflect.TypeOf(int64(0)),
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"UUID": {
 				Name:       "uuid",
 				FieldName:  "UUID",
 				PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
 				Type:       reflect.TypeOf(""),
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"IndexField": {
-				FieldName: "IndexField",
-				Name:      "index_field",
-				Index:     true,
-				Type:      reflect.TypeOf(""),
+				FieldName:  "IndexField",
+				Name:       "index_field",
+				Index:      true,
+				Type:       reflect.TypeOf(""),
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"UniqueField": {
-				FieldName: "UniqueField",
-				Unique:    true,
-				Name:      "unique_field",
-				Type:      reflect.TypeOf(int(1)),
+				FieldName:  "UniqueField",
+				Unique:     true,
+				Name:       "unique_field",
+				Type:       reflect.TypeOf(int(1)),
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"OneToOne": {
 				FieldName:    "OneToOne",
@@ -533,6 +586,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Relationship: "one2one",
 				Direction:    dsl.DirectionIncoming,
 				Type:         reflect.TypeOf(&validStruct{}),
+				ParentType:   reflect.TypeOf(validStruct{}),
 			},
 			"SpecialOne": {
 				FieldName:    "SpecialOne",
@@ -541,6 +595,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Direction:    dsl.DirectionOutgoing,
 				UsesEdgeNode: true,
 				Type:         reflect.TypeOf(&c{}),
+				ParentType:   reflect.TypeOf(validStruct{}),
 			},
 			"SpecialMany": {
 				FieldName:        "SpecialMany",
@@ -550,6 +605,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				UsesEdgeNode:     true,
 				ManyRelationship: true,
 				Type:             reflect.TypeOf([]*c{}),
+				ParentType:       reflect.TypeOf(validStruct{}),
 			},
 			"ManyToOne": {
 				FieldName:        "ManyToOne",
@@ -558,6 +614,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Direction:        dsl.DirectionOutgoing,
 				ManyRelationship: true,
 				Type:             reflect.TypeOf([]*a{}),
+				ParentType:       reflect.TypeOf(validStruct{}),
 			},
 			"PropsMapInterface": {
 				FieldName:  "PropsMapInterface",
@@ -569,6 +626,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 					IsMapSlice: false,
 					SubType:    emptyInterfaceType,
 				},
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"PropsMapPrimitive": {
 				FieldName:  "PropsMapPrimitive",
@@ -580,6 +638,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 					IsMapSlice: false,
 					SubType:    reflect.TypeOf(int(0)),
 				},
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"PropsMapSlicePrimitive": {
 				FieldName:  "PropsMapSlicePrimitive",
@@ -592,6 +651,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 					SubType:      reflect.TypeOf(int(0)),
 					MapSliceType: reflect.TypeOf([]int{}),
 				},
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"PropsSliceInterface": {
 				FieldName:  "PropsSliceInterface",
@@ -603,6 +663,7 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 					IsMapSlice: false,
 					SubType:    reflect.TypeOf(""),
 				},
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"PropsPrimitive": {
 				FieldName:  "PropsPrimitive",
@@ -614,12 +675,14 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 					IsMapSlice: false,
 					SubType:    reflect.TypeOf(int(0)),
 				},
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"IgnoreMe": {
-				FieldName: "IgnoreMe",
-				Name:      "IgnoreMe",
-				Ignore:    true,
-				Type:      reflect.TypeOf(int(1)),
+				FieldName:  "IgnoreMe",
+				Name:       "IgnoreMe",
+				Ignore:     true,
+				Type:       reflect.TypeOf(int(1)),
+				ParentType: reflect.TypeOf(validStruct{}),
 			},
 		},
 	}

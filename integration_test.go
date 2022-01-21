@@ -80,7 +80,7 @@ func (integrationTest *IntegrationTestSuite) SetupSuite() {
 		DefaultTransactionTimeout: 2 * time.Minute,
 	}
 
-	gogm, err := New(&conf, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{})
+	gogm, err := New(&conf, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{}, &narcissisticTestNode{})
 	integrationTest.Require().Nil(err)
 	integrationTest.Require().NotNil(gogm)
 	integrationTest.gogm = gogm
@@ -631,7 +631,7 @@ func testSaveV2(sess SessionV2, req *require.Assertions) {
 	req.EqualValues(prop1.TdMapTdSliceOfTd, prop2.TdMapTdSliceOfTd)
 }
 
-const testUuid = "f64953a5-8b40-4a87-a26b-6427e661570c"
+const testUuid1 = "f64953a5-8b40-4a87-a26b-6427e661570c"
 
 func (i *IntegrationTestSuite) TestSchemaLoadStrategy() {
 	req := i.Require()
@@ -670,7 +670,7 @@ func (i *IntegrationTestSuite) TestSchemaLoadStrategy() {
 	req.Len(raw[0][1], 5)
 
 	var res a
-	err = sess.LoadDepth(ctx, &res, testUuid, 2)
+	err = sess.LoadDepth(ctx, &res, testUuid1, 2)
 	req.Nil(err, "Load should not fail")
 
 	req.Len(res.ManyA, 1, "B node should be loaded properly")
@@ -711,11 +711,77 @@ func testSchemaLoadStrategy_Setup(gogm *Gogm, req *require.Assertions) {
 	b1.SingleSpec = c1
 	b1.ManyB = a1
 
-	a1.UUID = testUuid
+	a1.UUID = testUuid1
 
 	ctx := context.Background()
 	req.Nil(sess.Begin(ctx))
 
 	req.Nil(sess.SaveDepth(ctx, a1, 3))
+	req.Nil(sess.Commit(ctx))
+}
+
+type narcissisticTestNode struct {
+	BaseUUIDNode
+	SelfBothOne  *narcissisticTestNode   `gogm:"direction=both;relationship=self_both_one"`
+	SelfBothMany []*narcissisticTestNode `gogm:"direction=both;relationship=self_both_many"`
+}
+
+const testUuid2 = "f64953a5-8b40-4a87-a26b-6427e661570d"
+const testUuid3 = "f64953a5-8b40-4a87-a26b-6427e661571d"
+const testUuid4 = "f64953a5-8b40-4a87-a26b-6427e661572d"
+
+func (i *IntegrationTestSuite) TestRelationshipWithinSingleType() {
+	req := i.Require()
+
+	testRelationshipWithinSingleType_Setup(i.gogm, req)
+
+	sess, err := i.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeRead})
+	req.Nil(err)
+	defer req.Nil(sess.Close())
+
+	ctx := context.Background()
+	req.Nil(sess.Begin(ctx))
+	defer req.Nil(sess.Close())
+
+	var n1 narcissisticTestNode
+	err = sess.LoadDepth(ctx, &n1, testUuid2, 2)
+	req.Nil(err, "Load should not fail")
+
+	n2 := n1.SelfBothOne
+	req.Equal(testUuid3, n2.UUID)
+
+	n3 := n1.SelfBothMany[0]
+	req.Equal(testUuid4, n3.UUID)
+	req.NotNil(n3.SelfBothOne)
+	req.Equal(&n3, &n3.SelfBothOne)
+
+}
+
+func testRelationshipWithinSingleType_Setup(gogm *Gogm, req *require.Assertions) {
+	sess, err := gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
+	req.Nil(err)
+	defer req.Nil(sess.Close())
+
+	n1 := &narcissisticTestNode{}
+	n1.UUID = testUuid2
+
+	n2 := &narcissisticTestNode{}
+	n2.UUID = testUuid3
+
+	n1.SelfBothOne = n2
+	n2.SelfBothOne = n1
+
+	n3 := &narcissisticTestNode{}
+	n3.UUID = testUuid4
+	n3.SelfBothOne = n3
+
+	n1.SelfBothMany = []*narcissisticTestNode{n3}
+	n2.SelfBothMany = []*narcissisticTestNode{n3}
+	n3.SelfBothMany = []*narcissisticTestNode{n1, n2}
+
+	ctx := context.Background()
+	req.Nil(sess.Begin(ctx))
+
+	req.Nil(sess.SaveDepth(ctx, n1, 3))
 	req.Nil(sess.Commit(ctx))
 }

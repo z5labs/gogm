@@ -44,8 +44,8 @@ type Edge interface {
 
 //inspiration from -- https://github.com/neo4j/neo4j-ogm/blob/master/core/src/main/java/org/neo4j/ogm/session/Session.java
 
-// deprecated
-//session object for ogm interactions
+// ISession: V1 session object for ogm interactions
+// Deprecated: use SessionV2 instead
 type ISession interface {
 	//transaction functions
 	ITransaction
@@ -74,7 +74,8 @@ type ISession interface {
 	//load all with depth, filter and pagination
 	LoadAllDepthFilterPagination(respObj interface{}, depth int, filter dsl.ConditionOperator, params map[string]interface{}, pagination *Pagination) error
 
-	//load all edge query
+	// load all edge query
+	// Deprecated: No equivalent function in SessionV2
 	LoadAllEdgeConstraint(respObj interface{}, endNodeType, endNodeField string, edgeConstraint interface{}, minJumps, maxJumps, depth int, filter dsl.ConditionOperator) error
 
 	//save object
@@ -103,6 +104,7 @@ type ISession interface {
 }
 
 // ITransaction specifies functions for Neo4j ACID transactions
+// Deprecated: Use TransactionV2 instead
 type ITransaction interface {
 	// Begin begins transaction
 	Begin() error

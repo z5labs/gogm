@@ -1,6 +1,6 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/mindstand/gogm)](https://goreportcard.com/report/github.com/mindstand/gogm)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mindstand/gogm/v2)](https://goreportcard.com/report/github.com/mindstand/gogm/v2)
 [![Actions Status](https://github.com/mindstand/gogm/workflows/Go/badge.svg)](https://github.com/mindstand/gogm/actions)
-[![GoDoc](https://godoc.org/github.com/mindstand/gogm?status.svg)](https://godoc.org/github.com/mindstand/gogm)
+[![GoDoc](https://godoc.org/github.com/mindstand/gogm/v2?status.svg)](https://godoc.org/github.com/mindstand/gogm/v2)
 # GoGM Golang Object Graph Mapper v2
 
 ```
@@ -25,6 +25,7 @@ go get -u github.com/mindstand/gogm/v2
 - Primary Key strategies to use any type of primary key. GoGM is no longer UUID only!
 - TLS now supported
 
+| Note: GoGM v1 has been deprecated.
 
 ## Usage
 

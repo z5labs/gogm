@@ -22,14 +22,15 @@ package gen
 import (
 	"bytes"
 	"errors"
-	go_cypherdsl "github.com/mindstand/go-cypherdsl"
-	"github.com/mindstand/gogm/v2/cmd/gogmcli/util"
 	"go/ast"
 	"go/parser"
 	"go/printer"
 	"go/token"
 	"log"
 	"strings"
+
+	go_cypherdsl "github.com/mindstand/go-cypherdsl"
+	"github.com/mindstand/gogm/v2/cmd/gogmcli/util"
 )
 
 type relConf struct {
@@ -148,22 +149,16 @@ func parseGogmEdge(node *ast.File, label string) (bool, error) {
 					switch funcDecl.Name.Name {
 					case "GetStartNode":
 						GetStartNode = true
-						break
 					case "GetStartNodeType":
 						GetStartNodeType = true
-						break
 					case "SetStartNode":
 						SetStartNode = true
-						break
 					case "GetEndNode":
 						GetEndNode = true
-						break
 					case "GetEndNodeType":
 						GetEndNodeType = true
-						break
 					case "SetEndNode":
 						SetEndNode = true
-						break
 					default:
 						continue
 					}
@@ -198,16 +193,12 @@ func parseGogmNode(strType *ast.StructType, confs *map[string][]*relConf, label 
 								switch str {
 								case "incoming":
 									dir = go_cypherdsl.DirectionIncoming
-									break
 								case "outgoing":
 									dir = go_cypherdsl.DirectionOutgoing
-									break
 								case "both":
 									dir = go_cypherdsl.DirectionBoth
-									break
 								case "none":
 									dir = go_cypherdsl.DirectionNone
-									break
 								default:
 									log.Printf("direction %s not found", str)
 									continue fieldLoop

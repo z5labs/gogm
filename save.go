@@ -631,10 +631,6 @@ func parseStruct(gogm *Gogm, parentPtr uintptr, edgeLabel string, parentIsStart 
 	}
 
 	curPtr := current.Pointer()
-	if curPtr == parentPtr {
-		// dont go in circles
-		return nil
-	}
 
 	//get the type
 	nodeType, err := getTypeName(current.Type())

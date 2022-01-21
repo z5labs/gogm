@@ -231,7 +231,7 @@ func expand(gogm *Gogm, variable, label string, rels []decoratorConfig, level, d
 	clause := ""
 
 	for i, rel := range rels {
-		// check if a seperator is needed
+		// check if a separator is needed
 		if i > 0 {
 			clause += ", "
 		}
@@ -267,7 +267,7 @@ func listComprehension(gogm *Gogm, fromNodeVar, label string, rel decoratorConfi
 		toNodeType = toNodeType.Elem()
 	}
 
-	toNodeLabel, err := traverseRelType(gogm, toNodeType, rel.Direction)
+	toNodeLabel, err := traverseRelType(toNodeType, rel.Direction)
 	if err != nil {
 		return "", err
 	}
