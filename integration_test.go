@@ -115,8 +115,8 @@ func (integrationTest *IntegrationTestSuite) TestQueryRaw() {
 }
 
 func (integrationTest *IntegrationTestSuite) TestV4Index() {
-	if integrationTest.gogm.neoVersion < 4 {
-		integrationTest.T().Log("skipping because of incompatible version", integrationTest.gogm.neoVersion)
+	if integrationTest.gogm.boltMajorVersion < 4 {
+		integrationTest.T().Log("skipping because of incompatible version", integrationTest.gogm.boltMajorVersion)
 		integrationTest.T().Skip()
 		return
 	}
@@ -133,7 +133,7 @@ func (integrationTest *IntegrationTestSuite) TestV4Index() {
 }
 
 func (integrationTest *IntegrationTestSuite) TestSecureConnection() {
-	if integrationTest.gogm.neoVersion < 4 {
+	if integrationTest.gogm.boltMajorVersion < 4 {
 		integrationTest.T().Log("skipping secure test for v3")
 		return
 	}
@@ -168,8 +168,8 @@ func (integrationTest *IntegrationTestSuite) TestSecureConnection() {
 
 func (integrationTest *IntegrationTestSuite) TestManagedTx() {
 	//req := integrationTest.Require()
-	if integrationTest.gogm.neoVersion < 4 {
-		integrationTest.T().Log("skipping because of incompatible version", integrationTest.gogm.neoVersion)
+	if integrationTest.gogm.boltMajorVersion < 4 {
+		integrationTest.T().Log("skipping because of incompatible version", integrationTest.gogm.boltMajorVersion)
 		integrationTest.T().Skip()
 		return
 	}

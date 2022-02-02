@@ -291,14 +291,14 @@ func getTestGogm(types ...interface{}) (*Gogm, error) {
 			Logger:   GetDefaultLogger(),
 			LogLevel: "DEBUG",
 		},
-		pkStrategy:      UUIDPrimaryKeyStrategy,
-		logger:          GetDefaultLogger(),
-		neoVersion:      4,
-		mappedTypes:     &hashmap.HashMap{},
-		driver:          nil,
-		mappedRelations: &relationConfigs{},
-		ogmTypes:        types,
-		isNoOp:          false,
+		pkStrategy:       UUIDPrimaryKeyStrategy,
+		logger:           GetDefaultLogger(),
+		boltMajorVersion: 4,
+		mappedTypes:      &hashmap.HashMap{},
+		driver:           nil,
+		mappedRelations:  &relationConfigs{},
+		ogmTypes:         types,
+		isNoOp:           false,
 	}
 
 	err := g.parseOgmTypes()
