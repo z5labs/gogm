@@ -26,7 +26,7 @@ import (
 
 //drops all known indexes
 func dropAllIndexesAndConstraints(ctx context.Context, gogm *Gogm) error {
-	if gogm.neoVersion >= 4 {
+	if gogm.boltMajorVersion >= 4 {
 		return dropAllIndexesAndConstraintsV4(ctx, gogm)
 	}
 
@@ -35,7 +35,7 @@ func dropAllIndexesAndConstraints(ctx context.Context, gogm *Gogm) error {
 
 //creates all indexes
 func createAllIndexesAndConstraints(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
-	if gogm.neoVersion >= 4 {
+	if gogm.boltMajorVersion >= 4 {
 		return createAllIndexesAndConstraintsV4(ctx, gogm, mappedTypes)
 	}
 
@@ -44,7 +44,7 @@ func createAllIndexesAndConstraints(ctx context.Context, gogm *Gogm, mappedTypes
 
 //verifies all indexes
 func verifyAllIndexesAndConstraints(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
-	if gogm.neoVersion >= 4 {
+	if gogm.boltMajorVersion >= 4 {
 		return verifyAllIndexesAndConstraintsV4(ctx, gogm, mappedTypes)
 	}
 

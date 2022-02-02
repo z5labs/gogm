@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/cornelk/hashmap"
@@ -46,14 +45,14 @@ func G() *Gogm {
 }
 
 type Gogm struct {
-	config          *Config
-	pkStrategy      *PrimaryKeyStrategy
-	logger          Logger
-	neoVersion      float64
-	mappedTypes     *hashmap.HashMap
-	driver          neo4j.Driver
-	mappedRelations *relationConfigs
-	ogmTypes        []interface{}
+	config           *Config
+	pkStrategy       *PrimaryKeyStrategy
+	logger           Logger
+	boltMajorVersion int
+	mappedTypes      *hashmap.HashMap
+	driver           neo4j.Driver
+	mappedRelations  *relationConfigs
+	ogmTypes         []interface{}
 	// isNoOp specifies whether this instance of gogm can do anything
 	// is only used for the default global gogm
 	isNoOp bool
@@ -77,14 +76,14 @@ func NewContext(ctx context.Context, config *Config, pkStrategy *PrimaryKeyStrat
 	}
 
 	g := &Gogm{
-		config:          config,
-		logger:          config.Logger,
-		neoVersion:      0,
-		mappedTypes:     &hashmap.HashMap{},
-		driver:          nil,
-		mappedRelations: &relationConfigs{},
-		ogmTypes:        mapTypes,
-		pkStrategy:      pkStrategy,
+		config:           config,
+		logger:           config.Logger,
+		boltMajorVersion: 0,
+		mappedTypes:      &hashmap.HashMap{},
+		driver:           nil,
+		mappedRelations:  &relationConfigs{},
+		ogmTypes:         mapTypes,
+		pkStrategy:       pkStrategy,
 	}
 
 	err := g.init(ctx)
@@ -268,12 +267,7 @@ func (g *Gogm) initDriverRoutine(neoConfig func(neoConf *neo4j.Config), doneChan
 		return
 	}
 
-	version := strings.Split(strings.Replace(strings.ToLower(sum.Server().Version()), "neo4j/", "", -1), ".")
-	g.neoVersion, err = strconv.ParseFloat(version[0], 64)
-	if err != nil {
-		doneChan <- err
-		return
-	}
+	g.boltMajorVersion = sum.Server().ProtocolVersion().Major
 	doneChan <- nil
 }
 
@@ -318,13 +312,13 @@ func (g *Gogm) initIndex(ctx context.Context) error {
 
 func (g *Gogm) Copy() *Gogm {
 	return &Gogm{
-		config:          g.config,
-		logger:          g.logger,
-		neoVersion:      g.neoVersion,
-		mappedTypes:     g.mappedTypes,
-		driver:          g.driver,
-		mappedRelations: g.mappedRelations,
-		ogmTypes:        g.ogmTypes,
+		config:           g.config,
+		logger:           g.logger,
+		boltMajorVersion: g.boltMajorVersion,
+		mappedTypes:      g.mappedTypes,
+		driver:           g.driver,
+		mappedRelations:  g.mappedRelations,
+		ogmTypes:         g.ogmTypes,
 	}
 }
 
