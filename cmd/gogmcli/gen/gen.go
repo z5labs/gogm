@@ -39,7 +39,7 @@ import (
 // Generate searches for all go source files, then generates link and unlink functions for all gogm structs
 // takes in root directory and whether to log in debug mode
 // note: Generate is not recursive, it only looks in the target directory
-func Generate(directory string, debug bool) error {
+func Generate(directory string, debug bool, generator string) error {
 	confs := map[string][]*relConf{}
 	imps := map[string][]string{}
 	var edges []string
@@ -203,6 +203,7 @@ func Generate(directory string, debug bool) error {
 
 	buf := new(bytes.Buffer)
 	err = tpl.Execute(buf, templateConfig{
+		Generator:   generator,
 		Imports:     imports,
 		PackageName: packageName,
 		Funcs:       funcs,

@@ -21,10 +21,12 @@ package main
 
 import (
 	"errors"
-	"github.com/mindstand/gogm/v2/cmd/gogmcli/gen"
-	"github.com/urfave/cli/v2"
+	"fmt"
 	"log"
 	"os"
+
+	"github.com/mindstand/gogm/v2/cmd/gogmcli/gen"
+	"github.com/urfave/cli/v2"
 )
 
 //main is the main function
@@ -34,7 +36,7 @@ func main() {
 	app := &cli.App{
 		Name:                 "gogmcli",
 		HelpName:             "gogmcli",
-		Version:              "2.1.0",
+		Version:              "2.1.1",
 		Usage:                "used for neo4j operations from gogm schema",
 		Description:          "cli for generating and executing migrations with gogm",
 		EnableBashCompletion: true,
@@ -58,7 +60,7 @@ func main() {
 						log.Printf("generating link and unlink from directory [%s]", directory)
 					}
 
-					return gen.Generate(directory, debug)
+					return gen.Generate(directory, debug, fmt.Sprintf("GoGM %s", c.App.Version))
 				},
 			},
 		},
