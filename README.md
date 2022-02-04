@@ -311,7 +311,7 @@ USAGE:
    gogmcli [global options] command [command options] [arguments...]
 
 VERSION:
-   2.0.0
+   2.1.1
 
 COMMANDS:
    generate, g, gen  to generate link and unlink functions for nodes
