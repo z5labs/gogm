@@ -20,6 +20,7 @@
 package gogm
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"time"
@@ -53,9 +54,13 @@ type Config struct {
 
 	Realm string `yaml:"realm" json:"realm" mapstructure:"realm"`
 
-	// these security configurations will be ignored if the protocol does not contain +s
-	UseSystemCertPool bool   `yaml:"use_system_cert_pool" mapstructure:"use_system_cert_pool"`
-	CAFileLocation    string `yaml:"ca_file_location" mapstructure:"ca_file_location"`
+	// deprecated: in favor of tls config
+	//these security configurations will be ignored if the protocol does not contain +s
+	UseSystemCertPool bool `yaml:"use_system_cert_pool" mapstructure:"use_system_cert_pool"`
+	// deprecated: in favor of tls config
+	CAFileLocation string `yaml:"ca_file_location" mapstructure:"ca_file_location"`
+
+	TLSConfig *tls.Config `yaml:"tls_config" mapstructure:"tls_config"`
 
 	// Index Strategy defines the index strategy for GoGM
 	IndexStrategy IndexStrategy `yaml:"index_strategy" json:"index_strategy" mapstructure:"index_strategy"`

@@ -21,6 +21,7 @@ package gogm
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -166,27 +167,33 @@ func (g *Gogm) parseOgmTypes() error {
 }
 
 func (g *Gogm) initDriver(ctx context.Context) error {
-	var certPool *x509.CertPool
 	isEncrypted := strings.Contains(g.config.Protocol, "+s")
 
 	if isEncrypted {
-		if g.config.UseSystemCertPool {
-			var err error
-			certPool, err = x509.SystemCertPool()
-			if err != nil {
-				return fmt.Errorf("failed to get system cert pool")
-			}
-		} else {
-			certPool = x509.NewCertPool()
+		if g.config.TLSConfig == nil {
+			g.config.TLSConfig = &tls.Config{}
 		}
 
+		// handle deprecated config support
 		if g.config.CAFileLocation != "" {
 			bytes, err := ioutil.ReadFile(g.config.CAFileLocation)
 			if err != nil {
 				return fmt.Errorf("failed to open ca file, %w", err)
 			}
 
+			var certPool *x509.CertPool
+			if g.config.UseSystemCertPool {
+				var err error
+				certPool, err = x509.SystemCertPool()
+				if err != nil {
+					return fmt.Errorf("failed to get system cert pool")
+				}
+			} else {
+				certPool = x509.NewCertPool()
+			}
+
 			certPool.AppendCertsFromPEM(bytes)
+			g.config.TLSConfig.RootCAs = certPool
 		}
 	}
 
@@ -198,7 +205,7 @@ func (g *Gogm) initDriver(ctx context.Context) error {
 		neoConf.MaxConnectionPoolSize = g.config.PoolSize
 
 		if isEncrypted {
-			neoConf.RootCAs = certPool
+			neoConf.TLSConfig = g.config.TLSConfig
 		}
 	}
 
