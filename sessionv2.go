@@ -540,7 +540,11 @@ func (s *SessionV2Impl) runWrite(ctx context.Context, work neo4j.TransactionWork
 	}
 
 	s.gogm.logger.Debug("running in managed write transaction")
-	_, err := s.neoSess.WriteTransaction(work, neo4j.WithTxTimeout(time.Until(s.getDeadline(ctx))))
+	duration := time.Until(s.getDeadline(ctx))
+	if duration < 0 {
+		duration = 0
+	}
+	_, err := s.neoSess.WriteTransaction(work, neo4j.WithTxTimeout(duration))
 	if err != nil {
 		return fmt.Errorf("failed to save in auto transaction, %w", err)
 	}
