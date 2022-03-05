@@ -423,6 +423,7 @@ func (s *SessionV2Impl) runReadOnly(ctx context.Context, cyp string, params map[
 		if span != nil {
 			span.LogKV("info", "running in existing transaction")
 		}
+		s.gogm.logger.Debugf("cypher - %v - {%v}", cyp, params)
 		result, err := s.tx.Run(cyp, params)
 		if err != nil {
 			return err
@@ -435,6 +436,7 @@ func (s *SessionV2Impl) runReadOnly(ctx context.Context, cyp string, params map[
 		span.LogKV("info", "running in driver managed transaction")
 	}
 	_, err := s.neoSess.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
+		s.gogm.logger.Debugf("cypher - %v - {%v}", cyp, params)
 		res, err := tx.Run(cyp, params)
 		if err != nil {
 			return nil, err
@@ -495,7 +497,7 @@ func (s *SessionV2Impl) Delete(ctx context.Context, deleteObj interface{}) error
 	}
 
 	// handle if in transaction
-	workFunc, err := deleteNode(deleteObj)
+	workFunc, err := deleteNode(s.gogm, deleteObj)
 	if err != nil {
 		return fmt.Errorf("failed to generate work func for delete, %w", err)
 	}
@@ -517,7 +519,7 @@ func (s *SessionV2Impl) DeleteUUID(ctx context.Context, uuid string) error {
 	}
 
 	// handle if in transaction
-	return s.runWrite(ctx, deleteByUuids(uuid))
+	return s.runWrite(ctx, deleteByUuids(s.gogm, uuid))
 }
 
 func (s *SessionV2Impl) runWrite(ctx context.Context, work neo4j.TransactionWork) error {
@@ -574,6 +576,7 @@ func (s *SessionV2Impl) Query(ctx context.Context, query string, properties map[
 	}
 
 	return s.runWrite(ctx, func(tx neo4j.Transaction) (interface{}, error) {
+		s.gogm.logger.Debugf("cypher - %v - {%v}", query, properties)
 		res, err := tx.Run(query, properties)
 		if err != nil {
 			return nil, err
@@ -589,6 +592,7 @@ func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties m
 	}
 	var err error
 	if s.tx != nil {
+		s.gogm.logger.Debugf("cypher - %v - {%v}", query, properties)
 		res, err := s.tx.Run(query, properties)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to execute query, %w", err)
@@ -607,6 +611,7 @@ func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties m
 		var sum neo4j.ResultSummary
 		if s.conf.AccessMode == AccessModeRead {
 			ires, err = s.neoSess.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
+				s.gogm.logger.Debugf("cypher - %v - {%v}", query, properties)
 				res, err := tx.Run(query, properties)
 				if err != nil {
 					return nil, err
@@ -623,6 +628,7 @@ func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties m
 			})
 		} else {
 			ires, err = s.neoSess.WriteTransaction(func(tx neo4j.Transaction) (interface{}, error) {
+				s.gogm.logger.Debugf("cypher - %v - {%v}", query, properties)
 				res, err := tx.Run(query, properties)
 				if err != nil {
 					return nil, err

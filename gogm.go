@@ -251,8 +251,9 @@ func (g *Gogm) initDriverRoutine(neoConfig func(neoConf *neo4j.Config), doneChan
 		AccessMode: neo4j.AccessModeRead,
 		//	DatabaseName: "neo4j",
 	})
-
-	res, err := sess.Run("return 1", nil)
+	cyp := "return 1"
+	g.logger.Debugf("cypher - %v - {%v}", cyp, nil)
+	res, err := sess.Run(cyp, nil)
 	if err != nil {
 		doneChan <- err
 		return

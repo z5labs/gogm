@@ -27,7 +27,7 @@ import (
 )
 
 // deleteNode is used to remove nodes from the database
-func deleteNode(deleteObj interface{}) (neo4j.TransactionWork, error) {
+func deleteNode(gogm *Gogm, deleteObj interface{}) (neo4j.TransactionWork, error) {
 	rawType := reflect.TypeOf(deleteObj)
 
 	if rawType.Kind() != reflect.Ptr && rawType.Kind() != reflect.Slice {
@@ -72,11 +72,11 @@ func deleteNode(deleteObj interface{}) (neo4j.TransactionWork, error) {
 		}
 	}
 
-	return deleteByIds(ids...), nil
+	return deleteByIds(gogm, ids...), nil
 }
 
 // deleteByIds deletes node by graph ids
-func deleteByIds(ids ...int64) neo4j.TransactionWork {
+func deleteByIds(gogm *Gogm, ids ...int64) neo4j.TransactionWork {
 	return func(tx neo4j.Transaction) (interface{}, error) {
 		cyp, err := dsl.QB().
 			Cypher("UNWIND $rows as row").
@@ -93,9 +93,11 @@ func deleteByIds(ids ...int64) neo4j.TransactionWork {
 			return nil, err
 		}
 
-		_, err = tx.Run(cyp, map[string]interface{}{
+		xp := map[string]interface{}{
 			"rows": ids,
-		})
+		}
+		gogm.logger.Debugf("cypher - %v - {%v}", cyp, xp)
+		_, err = tx.Run(cyp, xp)
 		if err != nil {
 			return nil, err
 		}
@@ -105,7 +107,7 @@ func deleteByIds(ids ...int64) neo4j.TransactionWork {
 }
 
 // deleteByUuids deletes nodes by uuids
-func deleteByUuids(ids ...string) neo4j.TransactionWork {
+func deleteByUuids(gogm *Gogm, ids ...string) neo4j.TransactionWork {
 	return func(tx neo4j.Transaction) (interface{}, error) {
 		cyp, err := dsl.QB().
 			Cypher("UNWIND {rows} as row").
@@ -121,9 +123,11 @@ func deleteByUuids(ids ...string) neo4j.TransactionWork {
 		if err != nil {
 			return nil, err
 		}
-		_, err = tx.Run(cyp, map[string]interface{}{
+		xp := map[string]interface{}{
 			"rows": ids,
-		})
+		}
+		gogm.logger.Debugf("cypher - %v - {%v}", cyp, xp)
+		_, err = tx.Run(cyp, xp)
 		if err != nil {
 			return nil, err
 		}

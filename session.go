@@ -447,7 +447,7 @@ func (s *Session) Delete(deleteObj interface{}) error {
 	}
 
 	// handle if in transaction
-	workFunc, err := deleteNode(deleteObj)
+	workFunc, err := deleteNode(s.gogm, deleteObj)
 	if err != nil {
 		return fmt.Errorf("failed to generate work func for delete, %w", err)
 	}
@@ -461,7 +461,7 @@ func (s *Session) DeleteUUID(uuid string) error {
 	}
 
 	// handle if in transaction
-	return s.runWrite(deleteByUuids(uuid))
+	return s.runWrite(deleteByUuids(s.gogm, uuid))
 }
 
 func (s *Session) runWrite(work neo4j.TransactionWork) error {
