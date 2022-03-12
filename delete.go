@@ -96,7 +96,7 @@ func deleteByIds(gogm *Gogm, ids ...int64) neo4j.TransactionWork {
 		xp := map[string]interface{}{
 			"rows": ids,
 		}
-		gogm.logger.Debugf("cypher - %v - {%v}", cyp, xp)
+		gogm.LogQuery(cyp, xp)
 		_, err = tx.Run(cyp, xp)
 		if err != nil {
 			return nil, err
@@ -126,7 +126,7 @@ func deleteByUuids(gogm *Gogm, ids ...string) neo4j.TransactionWork {
 		xp := map[string]interface{}{
 			"rows": ids,
 		}
-		gogm.logger.Debugf("cypher - %v - {%v}", cyp, xp)
+		gogm.LogQuery(cyp, xp)
 		_, err = tx.Run(cyp, xp)
 		if err != nil {
 			return nil, err

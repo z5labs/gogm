@@ -252,7 +252,7 @@ func (g *Gogm) initDriverRoutine(neoConfig func(neoConf *neo4j.Config), doneChan
 		//	DatabaseName: "neo4j",
 	})
 	cyp := "return 1"
-	g.logger.Debugf("cypher - %v - {%v}", cyp, nil)
+	g.LogQuery(cyp, nil)
 	res, err := sess.Run(cyp, nil)
 	if err != nil {
 		doneChan <- err
@@ -345,4 +345,12 @@ func (g *Gogm) NewSessionV2(conf SessionConfig) (SessionV2, error) {
 	}
 
 	return newSessionWithConfigV2(g, conf)
+}
+
+func (g *Gogm) LogQuery(query string, params map[string]interface{}) {
+	if g.config.EnableLogParams {
+		g.logger.Debugf("cypher - %v - {%v}", query, params)
+	} else {
+		g.logger.Debugf("cypher - %v", query)
+	}
 }

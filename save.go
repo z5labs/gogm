@@ -247,7 +247,7 @@ func relateNodes(gogm *Gogm, transaction neo4j.Transaction, relations map[string
 		xp := map[string]interface{}{
 			"rows": params,
 		}
-		gogm.logger.Debugf("cypher - %v - {%v}", cyp, xp)
+		gogm.LogQuery(cyp, xp)
 		res, err := transaction.Run(cyp, xp)
 		if err != nil {
 			return fmt.Errorf("failed to relate nodes, %w", err)
@@ -294,7 +294,7 @@ func removeRelations(gogm *Gogm, transaction neo4j.Transaction, dels map[int64][
 	xp := map[string]interface{}{
 		"rows": params,
 	}
-	gogm.logger.Debugf("cypher - %v - {%v}", cyq, xp)
+	gogm.LogQuery(cyq, xp)
 	res, err := transaction.Run(cyq, xp)
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrInternal)
@@ -547,7 +547,7 @@ func createNodes(gogm *Gogm, transaction neo4j.Transaction, crNodes map[string]m
 			xp := map[string]interface{}{
 				"rows": newRows,
 			}
-			gogm.logger.Debugf("cypher - %v - {%v}", cyp, xp)
+			gogm.LogQuery(cyp, xp)
 			res, err := transaction.Run(cyp, xp)
 			if err != nil {
 				return fmt.Errorf("failed to execute new node query, %w", err)
@@ -615,7 +615,7 @@ func createNodes(gogm *Gogm, transaction neo4j.Transaction, crNodes map[string]m
 			xp := map[string]interface{}{
 				"rows": updateRows,
 			}
-			gogm.logger.Debugf("cypher - %v - {%v}", cyp, xp)
+			gogm.LogQuery(cyp, xp)
 			res, err := transaction.Run(cyp, xp)
 			if err != nil {
 				return fmt.Errorf("failed to run update query, %w", err)
