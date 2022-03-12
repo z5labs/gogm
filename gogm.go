@@ -251,9 +251,8 @@ func (g *Gogm) initDriverRoutine(neoConfig func(neoConf *neo4j.Config), doneChan
 		AccessMode: neo4j.AccessModeRead,
 		//	DatabaseName: "neo4j",
 	})
-	cyp := "return 1"
-	g.LogQuery(cyp, nil)
-	res, err := sess.Run(cyp, nil)
+
+	res, err := sess.Run("return 1", nil)
 	if err != nil {
 		doneChan <- err
 		return
@@ -345,12 +344,4 @@ func (g *Gogm) NewSessionV2(conf SessionConfig) (SessionV2, error) {
 	}
 
 	return newSessionWithConfigV2(g, conf)
-}
-
-func (g *Gogm) LogQuery(query string, params map[string]interface{}) {
-	if g.config.EnableLogParams {
-		g.logger.Debugf("cypher - %v - {%v}", query, params)
-	} else {
-		g.logger.Debugf("cypher - %v", query)
-	}
 }

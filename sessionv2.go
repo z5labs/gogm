@@ -42,6 +42,18 @@ type SessionV2Impl struct {
 	lastBookmark string
 }
 
+type cypherLogger func(cypher string, params map[string]interface{})
+
+type transactionWithLog struct {
+	neo4j.Transaction
+	log cypherLogger
+}
+
+type sessionWithLog struct {
+	neo4j.Session
+	log cypherLogger
+}
+
 func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, error) {
 	if gogm == nil {
 		return nil, errors.New("gogm instance can not be nil")
@@ -55,12 +67,12 @@ func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, err
 		return nil, errors.New("gogm driver not initialized")
 	}
 
-	neoSess := gogm.driver.NewSession(neo4j.SessionConfig{
+	neoSess := &sessionWithLog{gogm.driver.NewSession(neo4j.SessionConfig{
 		AccessMode:   conf.AccessMode,
 		Bookmarks:    conf.Bookmarks,
 		DatabaseName: conf.DatabaseName,
 		FetchSize:    neo4j.FetchDefault,
-	})
+	}), newCypherLogger(gogm)}
 
 	return &SessionV2Impl{
 		neoSess:      neoSess,
@@ -91,7 +103,7 @@ func (s *SessionV2Impl) Begin(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
+	s.tx = &transactionWithLog{s.tx, newCypherLogger(s.gogm)}
 	return nil
 }
 
@@ -423,7 +435,6 @@ func (s *SessionV2Impl) runReadOnly(ctx context.Context, cyp string, params map[
 		if span != nil {
 			span.LogKV("info", "running in existing transaction")
 		}
-		s.gogm.LogQuery(cyp, params)
 		result, err := s.tx.Run(cyp, params)
 		if err != nil {
 			return err
@@ -436,7 +447,6 @@ func (s *SessionV2Impl) runReadOnly(ctx context.Context, cyp string, params map[
 		span.LogKV("info", "running in driver managed transaction")
 	}
 	_, err := s.neoSess.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
-		s.gogm.LogQuery(cyp, params)
 		res, err := tx.Run(cyp, params)
 		if err != nil {
 			return nil, err
@@ -497,7 +507,7 @@ func (s *SessionV2Impl) Delete(ctx context.Context, deleteObj interface{}) error
 	}
 
 	// handle if in transaction
-	workFunc, err := deleteNode(s.gogm, deleteObj)
+	workFunc, err := deleteNode(deleteObj)
 	if err != nil {
 		return fmt.Errorf("failed to generate work func for delete, %w", err)
 	}
@@ -519,7 +529,7 @@ func (s *SessionV2Impl) DeleteUUID(ctx context.Context, uuid string) error {
 	}
 
 	// handle if in transaction
-	return s.runWrite(ctx, deleteByUuids(s.gogm, uuid))
+	return s.runWrite(ctx, deleteByUuids(uuid))
 }
 
 func (s *SessionV2Impl) runWrite(ctx context.Context, work neo4j.TransactionWork) error {
@@ -576,7 +586,6 @@ func (s *SessionV2Impl) Query(ctx context.Context, query string, properties map[
 	}
 
 	return s.runWrite(ctx, func(tx neo4j.Transaction) (interface{}, error) {
-		s.gogm.LogQuery(query, properties)
 		res, err := tx.Run(query, properties)
 		if err != nil {
 			return nil, err
@@ -592,7 +601,6 @@ func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties m
 	}
 	var err error
 	if s.tx != nil {
-		s.gogm.LogQuery(query, properties)
 		res, err := s.tx.Run(query, properties)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to execute query, %w", err)
@@ -611,7 +619,6 @@ func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties m
 		var sum neo4j.ResultSummary
 		if s.conf.AccessMode == AccessModeRead {
 			ires, err = s.neoSess.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
-				s.gogm.LogQuery(query, properties)
 				res, err := tx.Run(query, properties)
 				if err != nil {
 					return nil, err
@@ -628,7 +635,6 @@ func (s *SessionV2Impl) QueryRaw(ctx context.Context, query string, properties m
 			})
 		} else {
 			ires, err = s.neoSess.WriteTransaction(func(tx neo4j.Transaction) (interface{}, error) {
-				s.gogm.LogQuery(query, properties)
 				res, err := tx.Run(query, properties)
 				if err != nil {
 					return nil, err
@@ -795,4 +801,37 @@ func (s *SessionV2Impl) Close() error {
 	}
 
 	return s.neoSess.Close()
+}
+
+func (w *transactionWithLog) Run(cypher string, params map[string]interface{}) (neo4j.Result, error) {
+	w.log(cypher, params)
+	return w.Transaction.Run(cypher, params)
+}
+
+func (s *sessionWithLog) ReadTransaction(work neo4j.TransactionWork, configurers ...func(*neo4j.TransactionConfig)) (interface{}, error) {
+	return s.Session.ReadTransaction(transactionWorkWithLog(work, s.log), configurers...)
+}
+
+func (s *sessionWithLog) WriteTransaction(work neo4j.TransactionWork, configurers ...func(*neo4j.TransactionConfig)) (interface{}, error) {
+	return s.Session.WriteTransaction(transactionWorkWithLog(work, s.log), configurers...)
+}
+
+func (s *sessionWithLog) Run(cypher string, params map[string]interface{}, configurers ...func(*neo4j.TransactionConfig)) (neo4j.Result, error) {
+	return s.Session.Run(cypher, params, configurers...)
+}
+
+func transactionWorkWithLog(work neo4j.TransactionWork, log cypherLogger) neo4j.TransactionWork {
+	return func(tx neo4j.Transaction) (interface{}, error) {
+		return work(&transactionWithLog{tx, log})
+	}
+}
+
+func newCypherLogger(gogm *Gogm) cypherLogger {
+	return func(query string, params map[string]interface{}) {
+		if gogm.config.EnableLogParams {
+			gogm.logger.Debugf("cypher - %v - {%v}", query, params)
+		} else {
+			gogm.logger.Debugf("cypher - %v", query)
+		}
+	}
 }

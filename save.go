@@ -101,7 +101,7 @@ func saveDepth(gogm *Gogm, obj interface{}, depth int) neo4j.TransactionWork {
 			return nil, fmt.Errorf("failed to parse struct, %w", err)
 		}
 		// save/update nodes
-		err = createNodes(gogm, tx, nodes, nodeRef, nodeIdRef)
+		err = createNodes(tx, nodes, nodeRef, nodeIdRef)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create nodes, %w", err)
 		}
@@ -137,14 +137,14 @@ func saveDepth(gogm *Gogm, obj interface{}, depth int) neo4j.TransactionWork {
 		}
 
 		if len(dels) != 0 {
-			err := removeRelations(gogm, tx, dels)
+			err := removeRelations(tx, dels)
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if len(relations) != 0 {
-			err := relateNodes(gogm, tx, relations, nodeIdRef)
+			err := relateNodes(tx, relations, nodeIdRef)
 			if err != nil {
 				return nil, err
 			}
@@ -155,7 +155,7 @@ func saveDepth(gogm *Gogm, obj interface{}, depth int) neo4j.TransactionWork {
 }
 
 // relateNodes connects nodes together using edge config
-func relateNodes(gogm *Gogm, transaction neo4j.Transaction, relations map[string][]*relCreate, lookup map[uintptr]int64) error {
+func relateNodes(transaction neo4j.Transaction, relations map[string][]*relCreate, lookup map[uintptr]int64) error {
 	if len(relations) == 0 {
 		return errors.New("relations can not be nil or empty")
 	}
@@ -244,11 +244,10 @@ func relateNodes(gogm *Gogm, transaction neo4j.Transaction, relations map[string
 		if err != nil {
 			return fmt.Errorf("failed to build query, %w", err)
 		}
-		xp := map[string]interface{}{
+
+		res, err := transaction.Run(cyp, map[string]interface{}{
 			"rows": params,
-		}
-		gogm.LogQuery(cyp, xp)
-		res, err := transaction.Run(cyp, xp)
+		})
 		if err != nil {
 			return fmt.Errorf("failed to relate nodes, %w", err)
 		} else if err = res.Err(); err != nil {
@@ -260,7 +259,7 @@ func relateNodes(gogm *Gogm, transaction neo4j.Transaction, relations map[string
 }
 
 // removes relationships between specified nodes
-func removeRelations(gogm *Gogm, transaction neo4j.Transaction, dels map[int64][]int64) error {
+func removeRelations(transaction neo4j.Transaction, dels map[int64][]int64) error {
 	if len(dels) == 0 {
 		return nil
 	}
@@ -291,11 +290,9 @@ func removeRelations(gogm *Gogm, transaction neo4j.Transaction, dels map[int64][
 		return err
 	}
 
-	xp := map[string]interface{}{
+	res, err := transaction.Run(cyq, map[string]interface{}{
 		"rows": params,
-	}
-	gogm.LogQuery(cyq, xp)
-	res, err := transaction.Run(cyq, xp)
+	})
 	if err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrInternal)
 	} else if err = res.Err(); err != nil {
@@ -506,7 +503,7 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 }
 
 // createNodes updates existing nodes and creates new nodes while also making a lookup table for ptr -> neoid
-func createNodes(gogm *Gogm, transaction neo4j.Transaction, crNodes map[string]map[uintptr]*nodeCreate, nodeRef map[uintptr]*reflect.Value, nodeIdRef map[uintptr]int64) error {
+func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*nodeCreate, nodeRef map[uintptr]*reflect.Value, nodeIdRef map[uintptr]int64) error {
 	for label, nodes := range crNodes {
 		var updateRows, newRows []interface{}
 		for ptr, config := range nodes {
@@ -544,11 +541,9 @@ func createNodes(gogm *Gogm, transaction neo4j.Transaction, crNodes map[string]m
 				return fmt.Errorf("failed to build query, %w", err)
 			}
 
-			xp := map[string]interface{}{
+			res, err := transaction.Run(cyp, map[string]interface{}{
 				"rows": newRows,
-			}
-			gogm.LogQuery(cyp, xp)
-			res, err := transaction.Run(cyp, xp)
+			})
 			if err != nil {
 				return fmt.Errorf("failed to execute new node query, %w", err)
 			} else if res.Err() != nil {
@@ -612,11 +607,9 @@ func createNodes(gogm *Gogm, transaction neo4j.Transaction, crNodes map[string]m
 				return fmt.Errorf("failed to build query, %w", err)
 			}
 
-			xp := map[string]interface{}{
+			res, err := transaction.Run(cyp, map[string]interface{}{
 				"rows": updateRows,
-			}
-			gogm.LogQuery(cyp, xp)
-			res, err := transaction.Run(cyp, xp)
+			})
 			if err != nil {
 				return fmt.Errorf("failed to run update query, %w", err)
 			} else if res.Err() != nil {
