@@ -206,6 +206,9 @@ func (g *Gogm) initDriver(ctx context.Context) error {
 
 		if isEncrypted {
 			neoConf.TLSConfig = g.config.TLSConfig
+			if g.config.TLSConfig.RootCAs != nil {
+				neoConf.RootCAs = g.config.TLSConfig.RootCAs
+			}
 		}
 	}
 

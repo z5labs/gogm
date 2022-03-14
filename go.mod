@@ -20,4 +20,4 @@ require (
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )
 
-replace github.com/neo4j/neo4j-go-driver/v4 => github.com/mindstand/neo4j-go-driver/v4 v4.4.0-beta1.0.20220222145400-d3c6fddab3cc
+replace github.com/neo4j/neo4j-go-driver/v4 => github.com/mindstand/neo4j-go-driver/v4 v4.4.0-beta1.0.20220314193855-8ea056066b14

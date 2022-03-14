@@ -49,6 +49,8 @@ github.com/mindstand/neo4j-go-driver/v4 v4.3.4-0.20220222141004-33255dc85550 h1:
 github.com/mindstand/neo4j-go-driver/v4 v4.3.4-0.20220222141004-33255dc85550/go.mod h1:HQcN7yHl5H0hJKaYuF3TBH9m/Ym0C0ua4NHzKUr9uSc=
 github.com/mindstand/neo4j-go-driver/v4 v4.4.0-beta1.0.20220222145400-d3c6fddab3cc h1:PY2MtEh34XJ/r4rHgxqnsby9lpmijQLWVcC7h0s+pyU=
 github.com/mindstand/neo4j-go-driver/v4 v4.4.0-beta1.0.20220222145400-d3c6fddab3cc/go.mod h1:NexOfrm4c317FVjekrhVV8pHBXgtMG5P6GeweJWCyo4=
+github.com/mindstand/neo4j-go-driver/v4 v4.4.0-beta1.0.20220314193855-8ea056066b14 h1:+C3FJ2je/N1/ejuLCg6W2/NM5V5D4T6NC6Pf2bAe8t4=
+github.com/mindstand/neo4j-go-driver/v4 v4.4.0-beta1.0.20220314193855-8ea056066b14/go.mod h1:NexOfrm4c317FVjekrhVV8pHBXgtMG5P6GeweJWCyo4=
 github.com/neo4j/neo4j-go-driver/v4 v4.3.3 h1:QwM0IN1L6q1+N9cNqjv9Pmj4J4qCVauczQZdFsDafv8=
 github.com/neo4j/neo4j-go-driver/v4 v4.3.3/go.mod h1:G+DuMWSR9Auvbm6tk+fHNIegnfswAsmXgP/ibvwOY2Q=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
