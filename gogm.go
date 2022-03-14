@@ -238,7 +238,9 @@ func (g *Gogm) initDriver(ctx context.Context) error {
 }
 
 func (g *Gogm) initDriverRoutine(neoConfig func(neoConf *neo4j.Config), doneChan chan error) {
-	driver, err := neo4j.NewDriver(g.config.ConnectionString(), neo4j.BasicAuth(g.config.Username, g.config.Password, g.config.Realm), neoConfig)
+	connStr := g.config.ConnectionString()
+	g.logger.Debugf("connection string: %s\n", connStr)
+	driver, err := neo4j.NewDriver(connStr, neo4j.BasicAuth(g.config.Username, g.config.Password, g.config.Realm), neoConfig)
 	if err != nil {
 		doneChan <- fmt.Errorf("failed to create driver, %w", err)
 		return
