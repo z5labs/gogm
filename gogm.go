@@ -176,23 +176,29 @@ func (g *Gogm) initDriver(ctx context.Context) error {
 
 		// handle deprecated config support
 		if g.config.CAFileLocation != "" {
+			g.logger.Debugf("loading ca file at location `%s`", g.config.CAFileLocation)
 			bytes, err := ioutil.ReadFile(g.config.CAFileLocation)
 			if err != nil {
 				return fmt.Errorf("failed to open ca file, %w", err)
 			}
+			g.logger.Debugf("successfully loaded ca file")
 
 			var certPool *x509.CertPool
 			if g.config.UseSystemCertPool {
+				g.logger.Debug("loading system cert pool")
 				var err error
 				certPool, err = x509.SystemCertPool()
 				if err != nil {
 					return fmt.Errorf("failed to get system cert pool")
 				}
+				g.logger.Debug("successfully loaded system cert pool")
 			} else {
 				certPool = x509.NewCertPool()
 			}
 
-			certPool.AppendCertsFromPEM(bytes)
+			if !certPool.AppendCertsFromPEM(bytes) {
+				return errors.New("failed to load CA into cert pool")
+			}
 			g.config.TLSConfig.RootCAs = certPool
 		}
 	}
