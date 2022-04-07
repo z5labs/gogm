@@ -21,32 +21,62 @@ package gogm
 
 import (
 	"context"
+	"fmt"
 	"github.com/cornelk/hashmap"
 )
 
 //drops all known indexes
 func dropAllIndexesAndConstraints(ctx context.Context, gogm *Gogm) error {
 	if gogm.boltMajorVersion >= 4 {
-		return dropAllIndexesAndConstraintsV4(ctx, gogm)
+		for _, db := range gogm.config.TargetDbs {
+			err := dropAllIndexesAndConstraintsV4(ctx, gogm, db)
+			if err != nil {
+				return fmt.Errorf("failed to drop indexes and constraints for db %s on db version 4+, %w", db, err)
+			}
+		}
+	} else {
+		err := dropAllIndexesAndConstraintsV3(ctx, gogm)
+		if err != nil {
+			return fmt.Errorf("failed to drop indexes and constraints on db version 3, %w", err)
+		}
 	}
 
-	return dropAllIndexesAndConstraintsV3(ctx, gogm)
+	return nil
 }
 
 //creates all indexes
 func createAllIndexesAndConstraints(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
 	if gogm.boltMajorVersion >= 4 {
-		return createAllIndexesAndConstraintsV4(ctx, gogm, mappedTypes)
+		for _, db := range gogm.config.TargetDbs {
+			err := createAllIndexesAndConstraintsV4(ctx, gogm, mappedTypes, db)
+			if err != nil {
+				return fmt.Errorf("failed to create indexes and constraints for db %s on db version 4+, %w", db, err)
+			}
+		}
+	} else {
+		err := createAllIndexesAndConstraintsV3(ctx, gogm, mappedTypes)
+		if err != nil {
+			return fmt.Errorf("failed to create indexes and constraints on db version 3, %w", err)
+		}
 	}
-
-	return createAllIndexesAndConstraintsV3(ctx, gogm, mappedTypes)
+	return nil
 }
 
 //verifies all indexes
 func verifyAllIndexesAndConstraints(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
 	if gogm.boltMajorVersion >= 4 {
-		return verifyAllIndexesAndConstraintsV4(ctx, gogm, mappedTypes)
+		for _, db := range gogm.config.TargetDbs {
+			err := verifyAllIndexesAndConstraintsV4(ctx, gogm, mappedTypes, db)
+			if err != nil {
+				return fmt.Errorf("failed to verify indexes and constraints for db %s on db version 4+, %w", db, err)
+			}
+		}
+	} else {
+		err := verifyAllIndexesAndConstraintsV3(ctx, gogm, mappedTypes)
+		if err != nil {
+			return fmt.Errorf("failed to verify all indexes and contraints on db version 3, %w", err)
+		}
 	}
 
-	return verifyAllIndexesAndConstraintsV3(ctx, gogm, mappedTypes)
+	return nil
 }

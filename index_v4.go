@@ -93,278 +93,232 @@ func resultToStringArrV4(isConstraint bool, result [][]interface{}) ([]string, e
 }
 
 //drops all known indexes
-func dropAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm) error {
-	for _, db := range gogm.config.TargetDbs {
-		sess, err := gogm.NewSessionV2(SessionConfig{
-			AccessMode:   neo4j.AccessModeWrite,
-			DatabaseName: db,
-		})
-		if err != nil {
-			return err
-		}
-
-		err = sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
-			res, _, err := tx.QueryRaw(ctx, "CALL db.constraints()", nil)
-			if err != nil {
-				return err
-			}
-
-			if len(res) == 0 {
-				// no constraints to kill off, return from here
-				return nil
-			}
-
-			constraints, err := resultToStringArrV4(true, res)
-			if err != nil {
-				return err
-			}
-
-			//if there is anything, get rid of it
-			if len(constraints) != 0 {
-				for _, constraint := range constraints {
-					gogm.logger.Debugf("dropping constraint '%s'", constraint)
-					_, _, err := tx.QueryRaw(ctx, fmt.Sprintf("DROP CONSTRAINT %s IF EXISTS", constraint), nil)
-					if err != nil {
-						return err
-					}
-				}
-			}
-
-			res, _, err = tx.QueryRaw(ctx, "CALL db.indexes()", nil)
-			if err != nil {
-				return tx.RollbackWithError(ctx, err)
-			}
-
-			indexes, err := resultToStringArrV4(false, res)
-			if err != nil {
-				return err
-			}
-
-			//if there is anything, get rid of it
-			if len(indexes) != 0 {
-				for _, index := range indexes {
-					if len(index) == 0 {
-						return errors.New("invalid index config")
-					}
-
-					_, _, err := tx.QueryRaw(ctx, fmt.Sprintf("DROP INDEX %s IF EXISTS", index), nil)
-					if err != nil {
-						return tx.RollbackWithError(ctx, err)
-					}
-				}
-			}
-			return nil
-		})
-		if err != nil {
-			_err := sess.Close()
-			if err != nil {
-				err = fmt.Errorf("%s: %w", err, _err)
-			}
-			return fmt.Errorf("drop index transaction failed, %w", err)
-		}
-
-		err = sess.Close()
-		if err != nil {
-			return err
-		}
+func dropAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, db string) error {
+	sess, err := gogm.NewSessionV2(SessionConfig{
+		AccessMode:   neo4j.AccessModeWrite,
+		DatabaseName: db,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to open session to db %s, %w", db, err)
 	}
+
+	defer sess.Close()
+
+	res, _, err := sess.QueryRaw(ctx, "CALL db.constraints()", nil)
+	if err != nil {
+		return fmt.Errorf("failed to query current constraints, %w", err)
+	}
+
+	if len(res) == 0 {
+		// no constraints to kill off, return from here
+		return nil
+	}
+
+	constraints, err := resultToStringArrV4(true, res)
+	if err != nil {
+		return fmt.Errorf("failed to convert constraints to string array, %w", err)
+	}
+
+	err = sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
+		//if there is anything, get rid of it
+		if len(constraints) != 0 {
+			for _, constraint := range constraints {
+				gogm.logger.Debugf("dropping constraint '%s'", constraint)
+				_, _, err := tx.QueryRaw(ctx, fmt.Sprintf("DROP CONSTRAINT %s IF EXISTS", constraint), nil)
+				if err != nil {
+					return fmt.Errorf("failed to drop contraint `%s`, %w", constraint, err)
+				}
+			}
+		}
+
+		res, _, err = tx.QueryRaw(ctx, "CALL db.indexes()", nil)
+		if err != nil {
+			return fmt.Errorf("failed to call db.indexes(), %w", err)
+		}
+
+		indexes, err := resultToStringArrV4(false, res)
+		if err != nil {
+			return fmt.Errorf("failed to convert result to string array, %w", err)
+		}
+
+		//if there is anything, get rid of it
+		if len(indexes) != 0 {
+			for _, index := range indexes {
+				if len(index) == 0 {
+					return errors.New("invalid index config")
+				}
+
+				_, _, err := tx.QueryRaw(ctx, fmt.Sprintf("DROP INDEX %s IF EXISTS", index), nil)
+				if err != nil {
+					return fmt.Errorf("failed to drop index %s, %w", index, err)
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("drop index and constraint transaction failed, %w", err)
+	}
+
 	return nil
 }
 
 //creates all indexes
-func createAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
-	for _, db := range gogm.config.TargetDbs {
-		sess, err := gogm.NewSessionV2(SessionConfig{
-			AccessMode:   neo4j.AccessModeWrite,
-			DatabaseName: db,
-		})
-		if err != nil {
-			return err
-		}
-
-		//validate that we have to do anything
-		if mappedTypes == nil || mappedTypes.Len() == 0 {
-			return errors.New("must have types to map")
-		}
-
-		numIndexCreated := 0
-		//index and/or create unique constraints wherever necessary
-		//for node, structConfig := range mappedTypes{
-		err = sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
-			for nodes := range mappedTypes.Iter() {
-				node := nodes.Key.(string)
-				structConfig := nodes.Value.(structDecoratorConfig)
-				if structConfig.Fields == nil || len(structConfig.Fields) == 0 {
-					continue
-				}
-
-				var indexFields []string
-
-				for _, config := range structConfig.Fields {
-					//pk is a special unique key
-					if config.PrimaryKey != "" || config.Unique {
-						numIndexCreated++
-						_, _, err = tx.QueryRaw(ctx, buildConstraintQuery(true, node, structConfig.Label, config.Name), nil)
-						if err != nil {
-							return err
-						}
-					} else if config.Index {
-						indexFields = append(indexFields, config.Name)
-					}
-				}
-
-				//create composite index
-				if len(indexFields) > 0 {
-					numIndexCreated++
-					_, _, err = tx.QueryRaw(ctx, buildIndexQuery(structConfig.Label, indexFields...), nil)
-					if err != nil {
-						return err
-					}
-				}
-			}
-
-			gogm.logger.Debugf("created (%v) indexes", numIndexCreated)
-			return nil
-		})
-		if err != nil {
-			_err := sess.Close()
-			if err != nil {
-				err = fmt.Errorf("%s: %w", err, _err)
-			}
-			return err
-		}
-		err = sess.Close()
-		if err != nil {
-			return err
-		}
+func createAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap, db string) error {
+	sess, err := gogm.NewSessionV2(SessionConfig{
+		AccessMode:   neo4j.AccessModeWrite,
+		DatabaseName: db,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to open session to %s, %w", db, err)
 	}
-	return nil
-}
 
-//verifies all indexes
-func verifyAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap) error {
-	for _, db := range gogm.config.TargetDbs {
-		sess, err := gogm.NewSessionV2(SessionConfig{
-			AccessMode:   neo4j.AccessModeWrite,
-			DatabaseName: db,
-		})
-		if err != nil {
-			return err
-		}
+	defer sess.Close()
 
-		//validate that we have to do anything
-		if mappedTypes == nil || mappedTypes.Len() == 0 {
-			return errors.New("must have types to map")
-		}
+	//validate that we have to do anything
+	if mappedTypes == nil || mappedTypes.Len() == 0 {
+		return errors.New("must have types to map")
+	}
 
-		var constraints []string
-		var indexes []string
-
-		//build constraint strings
+	numIndexCreated := 0
+	//index and/or create unique constraints wherever necessary
+	//for node, structConfig := range mappedTypes{
+	err = sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
 		for nodes := range mappedTypes.Iter() {
 			node := nodes.Key.(string)
 			structConfig := nodes.Value.(structDecoratorConfig)
-
 			if structConfig.Fields == nil || len(structConfig.Fields) == 0 {
 				continue
 			}
 
-			fields := []string{}
+			var indexFields []string
 
 			for _, config := range structConfig.Fields {
-
+				//pk is a special unique key
 				if config.PrimaryKey != "" || config.Unique {
-					t := fmt.Sprintf("CONSTRAINT ON (%s:%s) ASSERT %s.%s IS UNIQUE", node, structConfig.Label, node, config.Name)
-					constraints = append(constraints, t)
-
-					indexes = append(indexes, fmt.Sprintf("INDEX ON :%s(%s)", structConfig.Label, config.Name))
-
+					numIndexCreated++
+					_, _, err = tx.QueryRaw(ctx, buildConstraintQuery(true, node, structConfig.Label, config.Name), nil)
+					if err != nil {
+						return fmt.Errorf("failed to add constraint, %w", err)
+					}
 				} else if config.Index {
-					fields = append(fields, config.Name)
+					indexFields = append(indexFields, config.Name)
 				}
 			}
 
-			f := "("
-			for _, field := range fields {
-				f += field
+			//create composite index
+			if len(indexFields) > 0 {
+				numIndexCreated++
+				_, _, err = tx.QueryRaw(ctx, buildIndexQuery(structConfig.Label, indexFields...), nil)
+				if err != nil {
+					return fmt.Errorf("failed to add index, %w", err)
+				}
 			}
-
-			f += ")"
-
-			indexes = append(indexes, fmt.Sprintf("INDEX ON :%s%s", structConfig.Label, f))
-
 		}
 
-		//get whats there now
-		foundResult, _, err := sess.QueryRaw(ctx, "CALL db.constraints", nil)
-		if err != nil {
-			_err := sess.Close()
-			if err != nil {
-				err = fmt.Errorf("%s: %w", err, _err)
-			}
-			return fmt.Errorf("no constraints found, %w", err)
-		}
-
-		foundConstraints, err := resultToStringArrV4(true, foundResult)
-		if err != nil {
-			_err := sess.Close()
-			if err != nil {
-				err = fmt.Errorf("%s: %w", err, _err)
-			}
-			return fmt.Errorf("failed to convert result to string array, %w", err)
-		}
-
-		foundInxdexResult, _, err := sess.QueryRaw(ctx, "CALL db.indexes()", nil)
-		if err != nil {
-			_err := sess.Close()
-			if err != nil {
-				err = fmt.Errorf("%s: %w", err, _err)
-			}
-			return fmt.Errorf("no indices found, %w", err)
-		}
-
-		foundIndexes, err := resultToStringArrV4(false, foundInxdexResult)
-		if err != nil {
-			_err := sess.Close()
-			if err != nil {
-				err = fmt.Errorf("%s: %w", err, _err)
-			}
-			return fmt.Errorf("failed to convert result to array, %w", err)
-		}
-
-		//verify from there
-		delta, found := arrayOperations.Difference(foundIndexes, indexes)
-		if !found {
-			err = fmt.Errorf("found differences in remote vs ogm for found indexes, %v", delta)
-			_err := sess.Close()
-			if _err != nil {
-				err = fmt.Errorf("%s: %w", err, _err)
-			}
-			return err
-		}
-
-		gogm.logger.Debugf("%+v", delta)
-
-		var founds []string
-
-		founds = append(founds, foundConstraints...)
-
-		delta, found = arrayOperations.Difference(founds, constraints)
-		if !found {
-			err = fmt.Errorf("found differences in remote vs ogm for found constraints, %v", delta)
-			_err := sess.Close()
-			if _err != nil {
-				err = fmt.Errorf("%s: %w", err, _err)
-			}
-			return err
-		}
-
-		gogm.logger.Debugf("%+v", delta)
-		err = sess.Close()
-		if err != nil {
-			return err
-		}
+		gogm.logger.Debugf("created (%v) indexes", numIndexCreated)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("tx to add indexes and contraints failed, %w", err)
 	}
 
+	return nil
+}
+
+//verifies all indexes
+func verifyAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTypes *hashmap.HashMap, db string) error {
+	sess, err := gogm.NewSessionV2(SessionConfig{
+		AccessMode:   neo4j.AccessModeWrite,
+		DatabaseName: db,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to open session %s, %w", db, err)
+	}
+
+	defer sess.Close()
+
+	//validate that we have to do anything
+	if mappedTypes == nil || mappedTypes.Len() == 0 {
+		return errors.New("must have types to map")
+	}
+
+	var constraints []string
+	var indexes []string
+
+	//build constraint strings
+	for nodes := range mappedTypes.Iter() {
+		node := nodes.Key.(string)
+		structConfig := nodes.Value.(structDecoratorConfig)
+
+		if structConfig.Fields == nil || len(structConfig.Fields) == 0 {
+			continue
+		}
+
+		fields := []string{}
+
+		for _, config := range structConfig.Fields {
+
+			if config.PrimaryKey != "" || config.Unique {
+				t := fmt.Sprintf("CONSTRAINT ON (%s:%s) ASSERT %s.%s IS UNIQUE", node, structConfig.Label, node, config.Name)
+				constraints = append(constraints, t)
+
+				indexes = append(indexes, fmt.Sprintf("INDEX ON :%s(%s)", structConfig.Label, config.Name))
+
+			} else if config.Index {
+				fields = append(fields, config.Name)
+			}
+		}
+
+		f := "("
+		for _, field := range fields {
+			f += field
+		}
+
+		f += ")"
+
+		indexes = append(indexes, fmt.Sprintf("INDEX ON :%s%s", structConfig.Label, f))
+
+	}
+
+	//get what's there now
+	foundResult, _, err := sess.QueryRaw(ctx, "CALL db.constraints", nil)
+	if err != nil {
+		return fmt.Errorf("no constraints found, %w", err)
+	}
+
+	foundConstraints, err := resultToStringArrV4(true, foundResult)
+	if err != nil {
+		return fmt.Errorf("failed to convert result to string array, %w", err)
+	}
+
+	foundInxdexResult, _, err := sess.QueryRaw(ctx, "CALL db.indexes()", nil)
+	if err != nil {
+		return fmt.Errorf("no indices found, %w", err)
+	}
+
+	foundIndexes, err := resultToStringArrV4(false, foundInxdexResult)
+	if err != nil {
+		return fmt.Errorf("failed to convert result to array, %w", err)
+	}
+
+	//verify from there
+	delta, found := arrayOperations.Difference(foundIndexes, indexes)
+	if !found {
+		return fmt.Errorf("found differences in remote vs ogm for found indexes, %v", delta)
+	}
+
+	gogm.logger.Debugf("%+v", delta)
+
+	var founds []string
+
+	founds = append(founds, foundConstraints...)
+
+	delta, found = arrayOperations.Difference(founds, constraints)
+	if !found {
+		return fmt.Errorf("found differences in remote vs ogm for found constraints, %v", delta)
+	}
+
+	gogm.logger.Debugf("%+v", delta)
 	return nil
 }
