@@ -216,7 +216,6 @@ func (g *Gogm) initDriver(ctx context.Context) error {
 		neoConf.MaxConnectionPoolSize = g.config.PoolSize
 
 		if isEncrypted {
-			neoConf.TLSConfig = g.config.TLSConfig
 			if g.config.TLSConfig.RootCAs != nil {
 				neoConf.RootCAs = g.config.TLSConfig.RootCAs
 			}
