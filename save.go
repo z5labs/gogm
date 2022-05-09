@@ -161,7 +161,7 @@ func relateNodes(transaction neo4j.Transaction, relations map[string][]*relCreat
 	}
 
 	for label, rels := range relations {
-		var params []interface{}
+		var _params []interface{}
 
 		if len(rels) == 0 {
 			continue
@@ -184,7 +184,7 @@ func relateNodes(transaction neo4j.Transaction, relations map[string][]*relCreat
 				rel.Params = map[string]interface{}{}
 			}
 
-			params = append(params, map[string]interface{}{
+			_params = append(_params, map[string]interface{}{
 				"startNodeId": startId,
 				"endNodeId":   endId,
 				"props":       rel.Params,
@@ -245,10 +245,10 @@ func relateNodes(transaction neo4j.Transaction, relations map[string][]*relCreat
 			return fmt.Errorf("failed to build query, %w", err)
 		}
 
-		fmt.Printf("\n\nrelateNodes --------\n%s\n%+v\n--------------\n\n", cyp, params)
+		fmt.Printf("\n\nrelateNodes --------\n%s\n%+v\n--------------\n\n", cyp, _params)
 
 		res, err := transaction.Run(cyp, map[string]interface{}{
-			"rows": params,
+			"rows": _params,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to relate nodes, %w", err)
