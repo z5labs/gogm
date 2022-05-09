@@ -245,6 +245,8 @@ func relateNodes(transaction neo4j.Transaction, relations map[string][]*relCreat
 			return fmt.Errorf("failed to build query, %w", err)
 		}
 
+		fmt.Printf("\n\nrelateNodes --------\n%s\n%+v\n--------------\n\n", cyp, params)
+
 		res, err := transaction.Run(cyp, map[string]interface{}{
 			"rows": params,
 		})
@@ -289,6 +291,8 @@ func removeRelations(transaction neo4j.Transaction, dels map[int64][]int64) erro
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("\n\nremoveRelations --------\n%s\n%+v\n--------------\n\n", cyq, params)
 
 	res, err := transaction.Run(cyq, map[string]interface{}{
 		"rows": params,
@@ -541,6 +545,8 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 				return fmt.Errorf("failed to build query, %w", err)
 			}
 
+			fmt.Printf("\n\ncreateNodes(new) --------\n%s\n%+v\n--------------\n\n", cyp, newRows)
+
 			res, err := transaction.Run(cyp, map[string]interface{}{
 				"rows": newRows,
 			})
@@ -606,6 +612,8 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 			if err != nil {
 				return fmt.Errorf("failed to build query, %w", err)
 			}
+
+			fmt.Printf("\n\ncreateNodes (update) --------\n%s\n%+v\n--------------\n\n", cyp, updateRows)
 
 			res, err := transaction.Run(cyp, map[string]interface{}{
 				"rows": updateRows,
