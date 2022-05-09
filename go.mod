@@ -1,6 +1,6 @@
 module github.com/mindstand/gogm/v2
 
-go 1.13
+go 1.16
 
 require (
 	github.com/adam-hanna/arrayOperations v0.2.6
