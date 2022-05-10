@@ -112,6 +112,7 @@ func saveDepth(gogm *Gogm, obj interface{}, depth int) neo4j.TransactionWork {
 			return nil, fmt.Errorf("failed to calculate current relationships, %w", err)
 		}
 
+		fmt.Printf("\n----curdelsbefore---\n%+v\n%+v\n%+v\n-----\n", oldRels, curRels, nodeIdRef)
 		dels, err := calculateDels(oldRels, curRels, nodeIdRef)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate relationships to delete, %w", err)
@@ -137,6 +138,8 @@ func saveDepth(gogm *Gogm, obj interface{}, depth int) neo4j.TransactionWork {
 		}
 
 		if len(dels) != 0 {
+			fmt.Printf("\n----dels after---\n%+v\n%+v\n%+v\n-----\n", oldRels, curRels, nodeIdRef)
+
 			err := removeRelations(tx, dels)
 			if err != nil {
 				return nil, err
