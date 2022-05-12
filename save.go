@@ -112,7 +112,6 @@ func saveDepth(gogm *Gogm, obj interface{}, depth int) neo4j.TransactionWork {
 			return nil, fmt.Errorf("failed to calculate current relationships, %w", err)
 		}
 
-		fmt.Printf("\n----curdelsbefore---\n%+v\n%+v\n%+v\n-----\n", oldRels, curRels, nodeIdRef)
 		dels, err := calculateDels(oldRels, curRels, nodeIdRef)
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate relationships to delete, %w", err)
@@ -138,8 +137,6 @@ func saveDepth(gogm *Gogm, obj interface{}, depth int) neo4j.TransactionWork {
 		}
 
 		if len(dels) != 0 {
-			fmt.Printf("\n----dels after---\n%+v\n%+v\n%+v\n-----\n", oldRels, curRels, nodeIdRef)
-
 			err := removeRelations(tx, dels)
 			if err != nil {
 				return nil, err
@@ -248,8 +245,6 @@ func relateNodes(transaction neo4j.Transaction, relations map[string][]*relCreat
 			return fmt.Errorf("failed to build query, %w", err)
 		}
 
-		fmt.Printf("\n\nrelateNodes --------\n%s\n%+v\n--------------\n\n", cyp, _params)
-
 		res, err := transaction.Run(cyp, map[string]interface{}{
 			"rows": _params,
 		})
@@ -294,8 +289,6 @@ func removeRelations(transaction neo4j.Transaction, dels map[int64][]int64) erro
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("\n\nremoveRelations --------\n%s\n%+v\n--------------\n\n", cyq, params)
 
 	res, err := transaction.Run(cyq, map[string]interface{}{
 		"rows": params,
@@ -545,8 +538,6 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 				return fmt.Errorf("failed to build query, %w", err)
 			}
 
-			fmt.Printf("\n\ncreateNodes(new) --------\n%s\n%+v\n--------------\n\n", cyp, newRows)
-
 			res, err := transaction.Run(cyp, map[string]interface{}{
 				"rows": newRows,
 			})
@@ -612,9 +603,7 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 			if err != nil {
 				return fmt.Errorf("failed to build query, %w", err)
 			}
-
-			fmt.Printf("\n\ncreateNodes (update) --------\n%s\n%+v\n--------------\n\n", cyp, updateRows)
-
+			
 			res, err := transaction.Run(cyp, map[string]interface{}{
 				"rows": updateRows,
 			})
