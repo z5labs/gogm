@@ -270,8 +270,7 @@ func (g *Gogm) initDriverRoutine(neoConfig func(neoConf *neo4j.Config), doneChan
 
 	// get neoversion
 	sess := driver.NewSession(neo4j.SessionConfig{
-		AccessMode:   neo4j.AccessModeRead,
-		DatabaseName: "neo4j",
+		AccessMode: neo4j.AccessModeRead,
 	})
 
 	res, err := sess.Run("return 1", nil)
