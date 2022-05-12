@@ -319,22 +319,20 @@ type Sides struct {
 	BaseUUIDNode
 	Name string `gogm:"name=name"`
 
-	MatchIncoming []*Middle `gogm:"direction=outgoing;relationship=incoming_test"`
-	MatchOutgoing []*Middle `gogm:"direction=incoming;relationship=outgoing_test"`
+	MatchIncoming []*Middle `gogm:"direction=incoming;relationship=outgoing_test"`
 }
 
 type Bottom struct {
 	BaseUUIDNode
 	Name   string    `gogm:"name=name"`
-	Middle []*Middle `gogm:"direction=outgoing;relationship=bottom"`
+	Middle []*Middle `gogm:"direction=incoming;relationship=bottom"`
 }
 
 type Middle struct {
 	BaseUUIDNode
 
-	IncomingSides []*Sides  `gogm:"direction=incoming;relationship=incoming_test"`
-	OutgoingSides []*Sides  `gogm:"direction=outgoing;relationship=outgoing_test"`
-	Bottom        []*Bottom `gogm:"direction=incoming;relationship=bottom"`
+	IncomingSides []*Sides  `gogm:"direction=outgoing;relationship=outgoing_test"`
+	Bottom        []*Bottom `gogm:"direction=outgoing;relationship=bottom"`
 }
 
 func (integrationTest *IntegrationTestSuite) TestMultiSaveEdgeCase() {
@@ -351,106 +349,12 @@ func (integrationTest *IntegrationTestSuite) TestMultiSaveEdgeCase() {
 	numMiddles := 30
 
 	for _, testCase := range []struct {
-		TestFunction func(t *testing.T)
+		TestFunction func(req *require.Assertions, db string)
 		Name         string
 	}{
 		{
-			Name: "incoming single non transaction test",
-			TestFunction: func(t *testing.T) {
-				req := require.New(t)
-				left, right := &Sides{Name: "left"}, &Sides{Name: "right"}
-				middle := &Middle{}
-				bottom := &Bottom{}
-
-				bottom.Middle = []*Middle{middle}
-				middle.Bottom = []*Bottom{bottom}
-				middle.IncomingSides = []*Sides{left, right}
-				left.MatchIncoming = []*Middle{middle}
-				right.MatchIncoming = []*Middle{middle}
-
-				sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
-					AccessMode: neo4j.AccessModeWrite,
-				})
-				req.Nil(err)
-				req.NotNil(sess)
-
-				req.Nil(sess.SaveDepth(context.Background(), left, 1))
-				req.Nil(sess.SaveDepth(context.Background(), right, 1))
-				req.Nil(sess.SaveDepth(context.Background(), bottom, 1))
-				req.Nil(sess.Close())
-
-				var matchMiddle Middle
-				sess, err = integrationTest.gogm.NewSessionV2(SessionConfig{
-					AccessMode: neo4j.AccessModeRead,
-				})
-				req.Nil(err)
-				req.NotNil(sess)
-				defer sess.Close()
-				req.Nil(sess.LoadDepth(context.Background(), &matchMiddle, middle.UUID, 1))
-
-				req.Equal(len(matchMiddle.IncomingSides), 2, "Expected size of middle")
-				req.Equal(len(matchMiddle.Bottom), 1, "Expected size of bottom")
-			},
-		},
-		{
-			Name: "incoming single transaction test",
-			TestFunction: func(t *testing.T) {
-				req := require.New(t)
-				left, right := &Sides{Name: "left"}, &Sides{Name: "right"}
-				middle := &Middle{}
-				bottom := &Bottom{}
-
-				bottom.Middle = []*Middle{middle}
-				middle.Bottom = []*Bottom{bottom}
-				middle.IncomingSides = []*Sides{left, right}
-				left.MatchIncoming = []*Middle{middle}
-				right.MatchIncoming = []*Middle{middle}
-
-				sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
-					AccessMode: neo4j.AccessModeWrite,
-				})
-				req.Nil(err)
-				req.NotNil(sess)
-
-				ctx := context.Background()
-				req.Nil(sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
-					err = tx.SaveDepth(context.Background(), left, 1)
-					if err != nil {
-						return err
-					}
-
-					err = tx.SaveDepth(context.Background(), right, 1)
-					if err != nil {
-						return err
-					}
-
-					err = tx.SaveDepth(context.Background(), bottom, 1)
-					if err != nil {
-						return err
-					}
-
-					return nil
-				}))
-				req.Nil(sess.Close())
-
-				var matchMiddle Middle
-				sess, err = integrationTest.gogm.NewSessionV2(SessionConfig{
-					AccessMode: neo4j.AccessModeRead,
-				})
-				req.Nil(err)
-				req.NotNil(sess)
-				defer sess.Close()
-				req.Nil(sess.LoadDepth(context.Background(), &matchMiddle, middle.UUID, 1))
-
-				req.Equal(len(matchMiddle.IncomingSides), 2, "Expected size of middle")
-				req.Equal(len(matchMiddle.Bottom), 1, "Expected size of bottom")
-			},
-		},
-
-		{
 			Name: "incoming multi non transaction test",
-			TestFunction: func(t *testing.T) {
-				req := require.New(t)
+			TestFunction: func(req *require.Assertions, db string) {
 				left, right := &Sides{Name: "left"}, &Sides{Name: "right"}
 				bottom := &Bottom{}
 				middles := make([]*Middle, numMiddles)
@@ -465,7 +369,8 @@ func (integrationTest *IntegrationTestSuite) TestMultiSaveEdgeCase() {
 				right.MatchIncoming = middles
 
 				sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
-					AccessMode: neo4j.AccessModeWrite,
+					AccessMode:   neo4j.AccessModeWrite,
+					DatabaseName: db,
 				})
 				req.Nil(err)
 				req.NotNil(sess)
@@ -476,7 +381,8 @@ func (integrationTest *IntegrationTestSuite) TestMultiSaveEdgeCase() {
 				req.Nil(sess.Close())
 
 				sess, err = integrationTest.gogm.NewSessionV2(SessionConfig{
-					AccessMode: neo4j.AccessModeRead,
+					AccessMode:   neo4j.AccessModeRead,
+					DatabaseName: db,
 				})
 				req.Nil(err)
 				req.NotNil(sess)
@@ -496,8 +402,7 @@ func (integrationTest *IntegrationTestSuite) TestMultiSaveEdgeCase() {
 		},
 		{
 			Name: "incoming multi transaction test",
-			TestFunction: func(t *testing.T) {
-				req := require.New(t)
+			TestFunction: func(req *require.Assertions, db string) {
 				left, right := &Sides{Name: "left"}, &Sides{Name: "right"}
 				bottom := &Bottom{}
 
@@ -513,7 +418,8 @@ func (integrationTest *IntegrationTestSuite) TestMultiSaveEdgeCase() {
 				right.MatchIncoming = middles
 
 				sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
-					AccessMode: neo4j.AccessModeWrite,
+					AccessMode:   neo4j.AccessModeWrite,
+					DatabaseName: db,
 				})
 				req.Nil(err)
 				req.NotNil(sess)
@@ -535,7 +441,8 @@ func (integrationTest *IntegrationTestSuite) TestMultiSaveEdgeCase() {
 				req.Nil(sess.Close())
 
 				sess, err = integrationTest.gogm.NewSessionV2(SessionConfig{
-					AccessMode: neo4j.AccessModeRead,
+					AccessMode:   neo4j.AccessModeRead,
+					DatabaseName: db,
 				})
 				req.Nil(err)
 				req.NotNil(sess)
@@ -553,180 +460,39 @@ func (integrationTest *IntegrationTestSuite) TestMultiSaveEdgeCase() {
 				req.Equal(len(checkRight.MatchIncoming), numMiddles)
 			},
 		},
-		//
-		//{
-		//	Name: "outgoing single transaction test",
-		//	TestFunction: func(t *testing.T) {
-		//		req := require.New(t)
-		//		left, right := &Sides{Name: "left"}, &Sides{Name: "right"}
-		//		middle := &Middle{}
-		//		bottom := &Bottom{}
-		//
-		//		bottom.Middle = []*Middle{middle}
-		//		middle.Bottom = []*Bottom{bottom}
-		//		middle.OutgoingSides = []*Sides{left, right}
-		//		left.MatchOutgoing = []*Middle{middle}
-		//		right.MatchOutgoing = []*Middle{middle}
-		//
-		//		sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
-		//			AccessMode: neo4j.AccessModeWrite,
-		//		})
-		//		req.Nil(err)
-		//		req.NotNil(sess)
-		//
-		//		req.Nil(sess.SaveDepth(context.Background(), left, 1))
-		//		req.Nil(sess.SaveDepth(context.Background(), right, 1))
-		//		req.Nil(sess.Close())
-		//
-		//		var matchMiddle Middle
-		//		sess, err = integrationTest.gogm.NewSessionV2(SessionConfig{
-		//			AccessMode: neo4j.AccessModeRead,
-		//		})
-		//		req.Nil(err)
-		//		req.NotNil(sess)
-		//		defer sess.Close()
-		//		req.Nil(sess.LoadDepth(context.Background(), &matchMiddle, middle.UUID, 1))
-		//
-		//		req.Equal(len(matchMiddle.OutgoingSides), 2, "Expected size of middle")
-		//	},
-		//},
-		//{
-		//	Name: "outgoing single non transaction test",
-		//	TestFunction: func(t *testing.T) {
-		//		req := require.New(t)
-		//		left, right := &Sides{Name: "left"}, &Sides{Name: "right"}
-		//		middle := &Middle{}
-		//		bottom := &Bottom{}
-		//
-		//		bottom.Middle = []*Middle{middle}
-		//		middle.Bottom = []*Bottom{bottom}
-		//		middle.OutgoingSides = []*Sides{left, right}
-		//		left.MatchOutgoing = []*Middle{middle}
-		//		right.MatchOutgoing = []*Middle{middle}
-		//
-		//		sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
-		//			AccessMode: neo4j.AccessModeWrite,
-		//		})
-		//		req.Nil(err)
-		//		req.NotNil(sess)
-		//
-		//		ctx := context.Background()
-		//		req.Nil(sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
-		//			err = tx.SaveDepth(context.Background(), left, 1)
-		//			if err != nil {
-		//				return err
-		//			}
-		//			err = tx.SaveDepth(context.Background(), right, 1)
-		//			if err != nil {
-		//				return err
-		//			}
-		//
-		//			return nil
-		//		}))
-		//		req.Nil(sess.Close())
-		//
-		//		var matchMiddle Middle
-		//		sess, err = integrationTest.gogm.NewSessionV2(SessionConfig{
-		//			AccessMode: neo4j.AccessModeRead,
-		//		})
-		//		req.Nil(err)
-		//		req.NotNil(sess)
-		//		defer sess.Close()
-		//		req.Nil(sess.LoadDepth(context.Background(), &matchMiddle, middle.UUID, 1))
-		//
-		//		req.Equal(len(matchMiddle.OutgoingSides), 2, "Expected size of middle")
-		//	},
-		//},
-		//
-		//{
-		//	Name: "outgoing multi non transaction test",
-		//	TestFunction: func(t *testing.T) {
-		//		req := require.New(t)
-		//		left, right := &Sides{Name: "left"}, &Sides{Name: "right"}
-		//
-		//		middles := make([]*Middle, numMiddles)
-		//		for i := 0; i < numMiddles; i++ {
-		//			middles[i] = &Middle{}
-		//			middles[i].OutgoingSides = []*Sides{left, right}
-		//		}
-		//
-		//		left.MatchOutgoing = middles
-		//		right.MatchOutgoing = middles
-		//
-		//		sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
-		//			AccessMode: neo4j.AccessModeWrite,
-		//		})
-		//		req.Nil(err)
-		//		req.NotNil(sess)
-		//
-		//		req.Nil(sess.SaveDepth(context.Background(), left, 1))
-		//		req.Nil(sess.SaveDepth(context.Background(), right, 1))
-		//		req.Nil(sess.Close())
-		//
-		//		sess, err = integrationTest.gogm.NewSessionV2(SessionConfig{
-		//			AccessMode: neo4j.AccessModeRead,
-		//		})
-		//		req.Nil(err)
-		//		req.NotNil(sess)
-		//		defer sess.Close()
-		//		var checkLeft, checkRight Sides
-		//
-		//		req.Nil(sess.LoadDepth(context.Background(), &checkLeft, left.UUID, 1))
-		//		req.Equal(len(checkLeft.MatchOutgoing), numMiddles)
-		//
-		//		req.Nil(sess.LoadDepth(context.Background(), &checkRight, right.UUID, 1))
-		//		req.Equal(len(checkRight.MatchOutgoing), numMiddles)
-		//	},
-		//},
-		//{
-		//	Name: "outgoing multi transaction test",
-		//	TestFunction: func(t *testing.T) {
-		//		req := require.New(t)
-		//		left, right := &Sides{Name: "left"}, &Sides{Name: "right"}
-		//
-		//		middles := make([]*Middle, numMiddles)
-		//		for i := 0; i < numMiddles; i++ {
-		//			middles[i] = &Middle{}
-		//			middles[i].OutgoingSides = []*Sides{left, right}
-		//		}
-		//
-		//		left.MatchOutgoing = middles
-		//		right.MatchOutgoing = middles
-		//
-		//		sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
-		//			AccessMode: neo4j.AccessModeWrite,
-		//		})
-		//		req.Nil(err)
-		//		req.NotNil(sess)
-		//
-		//		ctx := context.Background()
-		//		req.Nil(sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
-		//			err = tx.SaveDepth(context.Background(), left, 1)
-		//			if err != nil {
-		//				return err
-		//			}
-		//
-		//			return tx.SaveDepth(context.Background(), right, 1)
-		//		}))
-		//		req.Nil(sess.Close())
-		//
-		//		sess, err = integrationTest.gogm.NewSessionV2(SessionConfig{
-		//			AccessMode: neo4j.AccessModeRead,
-		//		})
-		//		req.Nil(err)
-		//		req.NotNil(sess)
-		//		defer sess.Close()
-		//		var checkLeft, checkRight Sides
-		//
-		//		req.Nil(sess.LoadDepth(context.Background(), &checkLeft, left.UUID, 1))
-		//		req.Equal(len(checkLeft.MatchOutgoing), numMiddles)
-		//
-		//		req.Nil(sess.LoadDepth(context.Background(), &checkRight, right.UUID, 1))
-		//		req.Equal(len(checkRight.MatchOutgoing), numMiddles)
-		//	},
-		//},
 	} {
-		integrationTest.T().Run(testCase.Name, testCase.TestFunction)
+		integrationTest.T().Run(testCase.Name, func(t *testing.T) {
+			db := fmt.Sprintf("db-%s", uuid2.New().String())
+			req := require.New(integrationTest.T())
+			sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
+				AccessMode:   neo4j.AccessModeWrite,
+				DatabaseName: "system",
+			})
+			req.NotNil(sess)
+			req.Nil(err)
+			ctx := context.Background()
+			_, info, err := sess.QueryRaw(ctx, "CREATE DATABASE $DB IF NOT EXISTS", map[string]interface{}{
+				"DB": db,
+			})
+			req.Nil(err)
+			req.NotNil(info)
+			req.NotNil(info.Counters())
+			req.Equal(1, info.Counters().SystemUpdates())
+
+			time.Sleep(10 * time.Second)
+
+			defer func() {
+				_, info, err := sess.QueryRaw(ctx, "DROP DATABASE $DB", map[string]interface{}{
+					"DB": db,
+				})
+				req.Nil(err)
+				req.NotNil(info)
+				req.NotNil(info.Counters())
+				req.Equal(1, info.Counters().SystemUpdates())
+			}()
+
+			testCase.TestFunction(req, db)
+		})
 	}
 }
 
