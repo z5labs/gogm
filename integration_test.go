@@ -69,7 +69,7 @@ func (integrationTest *IntegrationTestSuite) TearDownSuite() {
 func (integrationTest *IntegrationTestSuite) SetupSuite() {
 	conf := Config{
 		Username: "neo4j",
-		Password: "password",
+		Password: "changeme",
 		Host:     "0.0.0.0",
 		Protocol: "bolt",
 		Port:     7687,
