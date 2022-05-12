@@ -68,19 +68,19 @@ func (integrationTest *IntegrationTestSuite) TearDownSuite() {
 
 func (integrationTest *IntegrationTestSuite) SetupSuite() {
 	conf := Config{
-		Username:  "neo4j",
-		Password:  "changeme",
-		Host:      "0.0.0.0",
-		IsCluster: false,
-		Port:      7687,
-		PoolSize:  15,
+		Username: "neo4j",
+		Password: "changeme",
+		Host:     "0.0.0.0",
+		Protocol: "bolt",
+		Port:     7687,
+		PoolSize: 15,
 		// this is ignore because index management is part of the test
 		IndexStrategy:             IGNORE_INDEX,
-		EnableDriverLogs:          true,
+		EnableDriverLogs:          false,
 		DefaultTransactionTimeout: 2 * time.Minute,
 	}
 
-	gogm, err := New(&conf, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{}, &narcissisticTestNode{})
+	gogm, err := New(&conf, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{}, &narcissisticTestNode{}, &Sides{}, &Middle{}, &Bottom{})
 	integrationTest.Require().Nil(err)
 	integrationTest.Require().NotNil(gogm)
 	integrationTest.gogm = gogm
@@ -313,6 +313,194 @@ func (integrationTest *IntegrationTestSuite) TestIntegration() {
 	testLoad(integrationTest.Require(), integrationTest.gogm, 500, 5)
 
 	integrationTest.Require().Nil(sess.Close())
+}
+
+type Sides struct {
+	BaseUUIDNode
+	Name string `gogm:"name=name"`
+
+	MatchIncoming []*Middle `gogm:"direction=incoming;relationship=outgoing_test"`
+}
+
+type Bottom struct {
+	BaseUUIDNode
+	Name   string    `gogm:"name=name"`
+	Middle []*Middle `gogm:"direction=incoming;relationship=bottom"`
+}
+
+type Middle struct {
+	BaseUUIDNode
+
+	IncomingSides []*Sides  `gogm:"direction=outgoing;relationship=outgoing_test"`
+	Bottom        []*Bottom `gogm:"direction=outgoing;relationship=bottom"`
+}
+
+func (integrationTest *IntegrationTestSuite) TestMultiSaveEdgeCase() {
+	// skipping multidb integration test for v3
+	if integrationTest.gogm.boltMajorVersion < 4 {
+		integrationTest.T().Log("skipping because of incompatible version", integrationTest.gogm.boltMajorVersion)
+		integrationTest.T().Skip()
+		return
+	}
+
+	/*
+			(left)--(middle)--(right)
+		                |
+		             (Bottom)
+			SaveDepth(left, 1)
+			SaveDepth(right,1)
+			SaveDepth(bottom, 1)
+
+			Problem is only (middle)--(right) is saved, not (left)--(middle)
+	*/
+	numMiddles := 30
+
+	for _, testCase := range []struct {
+		TestFunction func(req *require.Assertions, db string)
+		Name         string
+	}{
+		{
+			Name: "incoming multi non transaction test",
+			TestFunction: func(req *require.Assertions, db string) {
+				left, right := &Sides{Name: "left"}, &Sides{Name: "right"}
+				bottom := &Bottom{}
+				middles := make([]*Middle, numMiddles)
+				for i := 0; i < numMiddles; i++ {
+					middles[i] = &Middle{}
+					middles[i].IncomingSides = []*Sides{left, right}
+					middles[i].Bottom = []*Bottom{bottom}
+				}
+
+				bottom.Middle = middles
+				left.MatchIncoming = middles
+				right.MatchIncoming = middles
+
+				sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
+					AccessMode:   neo4j.AccessModeWrite,
+					DatabaseName: db,
+				})
+				req.Nil(err)
+				req.NotNil(sess)
+
+				req.Nil(sess.SaveDepth(context.Background(), left, 1))
+				req.Nil(sess.SaveDepth(context.Background(), right, 1))
+				req.Nil(sess.SaveDepth(context.Background(), bottom, 1))
+				req.Nil(sess.Close())
+
+				sess, err = integrationTest.gogm.NewSessionV2(SessionConfig{
+					AccessMode:   neo4j.AccessModeRead,
+					DatabaseName: db,
+				})
+				req.Nil(err)
+				req.NotNil(sess)
+				defer sess.Close()
+				var checkLeft, checkRight Sides
+				var checkBottom Bottom
+
+				req.Nil(sess.LoadDepth(context.Background(), &checkLeft, left.UUID, 1))
+				req.Equal(len(checkLeft.MatchIncoming), numMiddles)
+
+				req.Nil(sess.LoadDepth(context.Background(), &checkBottom, bottom.UUID, 1))
+				req.Equal(len(checkBottom.Middle), numMiddles)
+
+				req.Nil(sess.LoadDepth(context.Background(), &checkRight, right.UUID, 1))
+				req.Equal(len(checkRight.MatchIncoming), numMiddles)
+			},
+		},
+		{
+			Name: "incoming multi transaction test",
+			TestFunction: func(req *require.Assertions, db string) {
+				left, right := &Sides{Name: "left"}, &Sides{Name: "right"}
+				bottom := &Bottom{}
+
+				middles := make([]*Middle, numMiddles)
+				for i := 0; i < numMiddles; i++ {
+					middles[i] = &Middle{}
+					middles[i].IncomingSides = []*Sides{left, right}
+					middles[i].Bottom = []*Bottom{bottom}
+				}
+
+				bottom.Middle = middles
+				left.MatchIncoming = middles
+				right.MatchIncoming = middles
+
+				sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
+					AccessMode:   neo4j.AccessModeWrite,
+					DatabaseName: db,
+				})
+				req.Nil(err)
+				req.NotNil(sess)
+
+				ctx := context.Background()
+				req.Nil(sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
+					err = tx.SaveDepth(context.Background(), left, 1)
+					if err != nil {
+						return err
+					}
+
+					err = tx.SaveDepth(context.Background(), right, 1)
+					if err != nil {
+						return err
+					}
+
+					return tx.SaveDepth(context.Background(), bottom, 1)
+				}))
+				req.Nil(sess.Close())
+
+				sess, err = integrationTest.gogm.NewSessionV2(SessionConfig{
+					AccessMode:   neo4j.AccessModeRead,
+					DatabaseName: db,
+				})
+				req.Nil(err)
+				req.NotNil(sess)
+				defer sess.Close()
+				var checkLeft, checkRight Sides
+				var checkBottom Bottom
+
+				req.Nil(sess.LoadDepth(context.Background(), &checkLeft, left.UUID, 1))
+				req.Equal(len(checkLeft.MatchIncoming), numMiddles)
+
+				req.Nil(sess.LoadDepth(context.Background(), &checkBottom, bottom.UUID, 1))
+				req.Equal(len(checkBottom.Middle), numMiddles)
+
+				req.Nil(sess.LoadDepth(context.Background(), &checkRight, right.UUID, 1))
+				req.Equal(len(checkRight.MatchIncoming), numMiddles)
+			},
+		},
+	} {
+		integrationTest.T().Run(testCase.Name, func(t *testing.T) {
+			db := fmt.Sprintf("db-%s", uuid2.New().String())
+			req := require.New(integrationTest.T())
+			sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{
+				AccessMode:   neo4j.AccessModeWrite,
+				DatabaseName: "system",
+			})
+			req.NotNil(sess)
+			req.Nil(err)
+			ctx := context.Background()
+			_, info, err := sess.QueryRaw(ctx, "CREATE DATABASE $DB IF NOT EXISTS", map[string]interface{}{
+				"DB": db,
+			})
+			req.Nil(err)
+			req.NotNil(info)
+			req.NotNil(info.Counters())
+			req.Equal(1, info.Counters().SystemUpdates())
+
+			time.Sleep(10 * time.Second)
+
+			defer func() {
+				_, info, err := sess.QueryRaw(ctx, "DROP DATABASE $DB", map[string]interface{}{
+					"DB": db,
+				})
+				req.Nil(err)
+				req.NotNil(info)
+				req.NotNil(info.Counters())
+				req.Equal(1, info.Counters().SystemUpdates())
+			}()
+
+			testCase.TestFunction(req, db)
+		})
+	}
 }
 
 func (integrationTest *IntegrationTestSuite) TestIntegrationV2() {
@@ -633,15 +821,15 @@ func testSaveV2(sess SessionV2, req *require.Assertions) {
 
 const testUuid1 = "f64953a5-8b40-4a87-a26b-6427e661570c"
 
-func (i *IntegrationTestSuite) TestSchemaLoadStrategy() {
-	req := i.Require()
+func (integrationTest *IntegrationTestSuite) TestSchemaLoadStrategy() {
+	req := integrationTest.Require()
 
-	i.gogm.config.LoadStrategy = SCHEMA_LOAD_STRATEGY
+	integrationTest.gogm.config.LoadStrategy = SCHEMA_LOAD_STRATEGY
 
 	// create required nodes
-	testSchemaLoadStrategy_Setup(i.gogm, req)
+	testSchemaLoadStrategy_Setup(integrationTest.gogm, req)
 
-	sess, err := i.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeRead})
+	sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeRead})
 	req.Nil(err)
 	defer req.Nil(sess.Close())
 
@@ -650,7 +838,7 @@ func (i *IntegrationTestSuite) TestSchemaLoadStrategy() {
 	defer req.Nil(sess.Close())
 
 	// test raw query (verify SchemaLoadStrategy + Neo driver decoding)
-	query, err := SchemaLoadStrategyOne(i.gogm, "n", "a", "uuid", "uuid", false, 1, nil)
+	query, err := SchemaLoadStrategyOne(integrationTest.gogm, "n", "a", "uuid", "uuid", false, 1, nil)
 	req.Nil(err, "error generating SchemaLoadStrategy query")
 
 	cypher, err := query.ToCypher()
@@ -730,12 +918,12 @@ const testUuid2 = "f64953a5-8b40-4a87-a26b-6427e661570d"
 const testUuid3 = "f64953a5-8b40-4a87-a26b-6427e661571d"
 const testUuid4 = "f64953a5-8b40-4a87-a26b-6427e661572d"
 
-func (i *IntegrationTestSuite) TestRelationshipWithinSingleType() {
-	req := i.Require()
+func (integrationTest *IntegrationTestSuite) TestRelationshipWithinSingleType() {
+	req := integrationTest.Require()
 
-	testRelationshipWithinSingleType_Setup(i.gogm, req)
+	testRelationshipWithinSingleType_Setup(integrationTest.gogm, req)
 
-	sess, err := i.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeRead})
+	sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeRead})
 	req.Nil(err)
 	defer req.Nil(sess.Close())
 

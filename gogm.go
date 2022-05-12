@@ -21,6 +21,7 @@ package gogm
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -97,23 +98,28 @@ func NewContext(ctx context.Context, config *Config, pkStrategy *PrimaryKeyStrat
 func (g *Gogm) init(ctx context.Context) error {
 	err := g.validate()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to validate config, %w", err)
 	}
 
 	err = g.parseOgmTypes()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse ogm types, %w", err)
 	}
 
 	g.logger.Debug("establishing neo connection")
 
 	err = g.initDriver(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialize driver, %w", err)
 	}
 
 	g.logger.Debug("initializing indices")
-	return g.initIndex(ctx)
+	err = g.initIndex(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to init indices, %w", err)
+	}
+
+	return nil
 }
 
 func (g *Gogm) validate() error {
@@ -147,7 +153,7 @@ func (g *Gogm) parseOgmTypes() error {
 		name := reflect.TypeOf(t).Elem().Name()
 		dc, err := getStructDecoratorConfig(g, t, g.mappedRelations)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get structDecoratorConfig for %s, %w", name, err)
 		}
 
 		g.logger.Debugf("mapped type %s", name)
@@ -166,27 +172,39 @@ func (g *Gogm) parseOgmTypes() error {
 }
 
 func (g *Gogm) initDriver(ctx context.Context) error {
-	var certPool *x509.CertPool
 	isEncrypted := strings.Contains(g.config.Protocol, "+s")
 
 	if isEncrypted {
-		if g.config.UseSystemCertPool {
-			var err error
-			certPool, err = x509.SystemCertPool()
-			if err != nil {
-				return fmt.Errorf("failed to get system cert pool")
-			}
-		} else {
-			certPool = x509.NewCertPool()
+		if g.config.TLSConfig == nil {
+			g.config.TLSConfig = &tls.Config{}
 		}
 
+		// handle deprecated config support
 		if g.config.CAFileLocation != "" {
+			g.logger.Debugf("loading ca file at location `%s`", g.config.CAFileLocation)
 			bytes, err := ioutil.ReadFile(g.config.CAFileLocation)
 			if err != nil {
 				return fmt.Errorf("failed to open ca file, %w", err)
 			}
+			g.logger.Debugf("successfully loaded ca file")
 
-			certPool.AppendCertsFromPEM(bytes)
+			var certPool *x509.CertPool
+			if g.config.UseSystemCertPool {
+				g.logger.Debug("loading system cert pool")
+				var err error
+				certPool, err = x509.SystemCertPool()
+				if err != nil {
+					return fmt.Errorf("failed to get system cert pool")
+				}
+				g.logger.Debug("successfully loaded system cert pool")
+			} else {
+				certPool = x509.NewCertPool()
+			}
+
+			if !certPool.AppendCertsFromPEM(bytes) {
+				return errors.New("failed to load CA into cert pool")
+			}
+			g.config.TLSConfig.RootCAs = certPool
 		}
 	}
 
@@ -198,7 +216,9 @@ func (g *Gogm) initDriver(ctx context.Context) error {
 		neoConf.MaxConnectionPoolSize = g.config.PoolSize
 
 		if isEncrypted {
-			neoConf.RootCAs = certPool
+			if g.config.TLSConfig.RootCAs != nil {
+				neoConf.RootCAs = g.config.TLSConfig.RootCAs
+			}
 		}
 	}
 
@@ -231,7 +251,9 @@ func (g *Gogm) initDriver(ctx context.Context) error {
 }
 
 func (g *Gogm) initDriverRoutine(neoConfig func(neoConf *neo4j.Config), doneChan chan error) {
-	driver, err := neo4j.NewDriver(g.config.ConnectionString(), neo4j.BasicAuth(g.config.Username, g.config.Password, g.config.Realm), neoConfig)
+	connStr := g.config.ConnectionString()
+	g.logger.Debugf("connection string: %s\n", connStr)
+	driver, err := neo4j.NewDriver(connStr, neo4j.BasicAuth(g.config.Username, g.config.Password, g.config.Realm), neoConfig)
 	if err != nil {
 		doneChan <- fmt.Errorf("failed to create driver, %w", err)
 		return
@@ -249,21 +271,20 @@ func (g *Gogm) initDriverRoutine(neoConfig func(neoConf *neo4j.Config), doneChan
 	// get neoversion
 	sess := driver.NewSession(neo4j.SessionConfig{
 		AccessMode: neo4j.AccessModeRead,
-		//	DatabaseName: "neo4j",
 	})
 
 	res, err := sess.Run("return 1", nil)
 	if err != nil {
-		doneChan <- err
+		doneChan <- fmt.Errorf("failed to run test query, %w", err)
 		return
 	} else if err = res.Err(); err != nil {
-		doneChan <- err
+		doneChan <- fmt.Errorf("failed to run test query, %w", err)
 		return
 	}
 
 	sum, err := res.Consume()
 	if err != nil {
-		doneChan <- err
+		doneChan <- fmt.Errorf("failed to consume test query, %w", err)
 		return
 	}
 
@@ -278,19 +299,19 @@ func (g *Gogm) initIndex(ctx context.Context) error {
 		g.logger.Debug("dropping all known indexes")
 		err := dropAllIndexesAndConstraints(ctx, g)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to drop all known indexes, %w", err)
 		}
 
 		g.logger.Debug("creating all mapped indexes")
 		err = createAllIndexesAndConstraints(ctx, g, g.mappedTypes)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed t create all indexes and constraints, %w", err)
 		}
 
 		g.logger.Debug("verifying all indexes")
 		err = verifyAllIndexesAndConstraints(ctx, g, g.mappedTypes)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to verify all indexes and contraints, %w", err)
 		}
 		return nil
 	case VALIDATE_INDEX:
@@ -298,7 +319,7 @@ func (g *Gogm) initIndex(ctx context.Context) error {
 		g.logger.Debug("verifying all indexes")
 		err := verifyAllIndexesAndConstraints(ctx, g, g.mappedTypes)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to verify all indexes and contraints, %w", err)
 		}
 		return nil
 	case IGNORE_INDEX:
