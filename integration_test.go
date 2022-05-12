@@ -336,6 +336,13 @@ type Middle struct {
 }
 
 func (integrationTest *IntegrationTestSuite) TestMultiSaveEdgeCase() {
+	// skipping multidb integration test for v3
+	if integrationTest.gogm.boltMajorVersion < 4 {
+		integrationTest.T().Log("skipping because of incompatible version", integrationTest.gogm.boltMajorVersion)
+		integrationTest.T().Skip()
+		return
+	}
+
 	/*
 			(left)--(middle)--(right)
 		                |
