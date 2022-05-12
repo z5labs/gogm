@@ -468,13 +468,10 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 			var followId int64
 			if !followIdVal.IsNil() {
 				followIdVal = followIdVal.Elem()
-				if followIdVal.IsZero() {
-					followId = 0
-				} else {
-					followId = followIdVal.Int()
-				}
+				followId = followIdVal.Int()
 			} else {
-				followId = 0
+				// should not be nil, just skip this one
+				continue
 			}
 
 			//check the config is there for the specified field
@@ -603,7 +600,7 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 			if err != nil {
 				return fmt.Errorf("failed to build query, %w", err)
 			}
-			
+
 			res, err := transaction.Run(cyp, map[string]interface{}{
 				"rows": updateRows,
 			})
