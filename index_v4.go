@@ -24,7 +24,7 @@ import (
 	"errors"
 	"fmt"
 
-	arr "github.com/adam-hanna/arrayOperations"
+	"github.com/adam-hanna/arrayOperations"
 	"github.com/cornelk/hashmap"
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 	"strings"
@@ -303,7 +303,7 @@ func verifyAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTyp
 	}
 
 	//verify from there
-	delta, found := arr.Difference(foundIndexes, indexes)
+	delta, found := arrayOperations.Difference(foundIndexes, indexes)
 	if !found {
 		return fmt.Errorf("found differences in remote vs ogm for found indexes, %v", delta)
 	}
@@ -314,7 +314,7 @@ func verifyAllIndexesAndConstraintsV4(ctx context.Context, gogm *Gogm, mappedTyp
 
 	founds = append(founds, foundConstraints...)
 
-	delta, found = arr.Difference(founds, constraints)
+	delta, found = arrayOperations.Difference(founds, constraints)
 	if !found {
 		return fmt.Errorf("found differences in remote vs ogm for found constraints, %v", delta)
 	}
