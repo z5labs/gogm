@@ -499,6 +499,10 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 // createNodes updates existing nodes and creates new nodes while also making a lookup table for ptr -> neoid
 func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*nodeCreate, nodeRef map[uintptr]*reflect.Value, nodeIdRef map[uintptr]int64) error {
 	for label, nodes := range crNodes {
+		// used when the id of the node hasn't been set yet
+		var i uint64 = 0
+		var nodesArr []*nodeCreate
+
 		var updateRows, newRows []interface{}
 		for ptr, config := range nodes {
 			row := map[string]interface{}{
@@ -509,9 +513,12 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 				row["id"] = id
 				updateRows = append(updateRows, row)
 			} else {
-				row["ptr"] = fmt.Sprintf("%v", ptr)
+				row["i"] = fmt.Sprintf("%d", i)
 				newRows = append(newRows, row)
 			}
+
+			nodesArr = append(nodesArr, config)
+			i++
 		}
 
 		// create new stuff
@@ -521,8 +528,8 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 				Cypher(fmt.Sprintf("CREATE(n:`%s`)", label)).
 				Cypher("SET n += row.obj").
 				Return(false, dsl.ReturnPart{
-					Name:  "row.ptr",
-					Alias: "ptr",
+					Name:  "row.i",
+					Alias: "i",
 				}, dsl.ReturnPart{
 					Function: &dsl.FunctionConfig{
 						Name:   "ID",
@@ -555,25 +562,30 @@ func createNodes(transaction neo4j.Transaction, crNodes map[string]map[uintptr]*
 					return fmt.Errorf("cannot cast row[0] to string, %w", ErrInternal)
 				}
 
-				ptrInt, err := strconv.ParseUint(strPtr, 10, 64)
+				i, err = strconv.ParseUint(strPtr, 10, 64)
 				if err != nil {
-					return fmt.Errorf("failed to parse ptr string to int64, %w", err)
+					return fmt.Errorf("failed to parse i string to uint64, %w", err)
 				}
 
-				ptr := uintptr(ptrInt)
+				if i > uint64(len(nodesArr)) {
+					return fmt.Errorf("returned node index %d is outside of node array bounds", i)
+				}
 
 				graphId, ok := row[1].(int64)
 				if !ok {
 					return fmt.Errorf("cannot cast row[1] to int64, %w", ErrInternal)
 				}
 
+				// get node reference from index
+				ptr := nodesArr[i].Pointer
+
 				// update the lookup
 				nodeIdRef[ptr] = graphId
 
-				//set the new id
+				// set the new id
 				val, ok := nodeRef[ptr]
 				if !ok {
-					return fmt.Errorf("cannot find val for ptr [%v]", ptr)
+					return fmt.Errorf("cannot find val for ptr [%d]", ptr)
 				}
 
 				reflect.Indirect(*val).FieldByName(DefaultPrimaryKeyStrategy.FieldName).Set(reflect.ValueOf(&graphId))
