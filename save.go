@@ -279,7 +279,8 @@ func removeRelations(transaction neo4j.Transaction, dels map[int64][]int64) erro
 			V(dsl.V{
 				Name: "start",
 			}).E(dsl.E{
-			Name: "e",
+			Name:      "e",
+			Direction: dsl.DirectionNone,
 		}).V(dsl.V{
 			Name: "end",
 		}).Build()).
