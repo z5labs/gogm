@@ -1,4 +1,4 @@
-// Copyright (c) 2021 MindStand Technologies, Inc
+// Copyright (c) 2022 MindStand Technologies, Inc
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
@@ -18,3 +18,60 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package gogm
+
+import (
+	"github.com/stretchr/testify/require"
+	"testing"
+)
+
+func TestConfig_ConnectionString(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Config   *Config
+		Expected string
+	}{
+		{
+			Name: "Protocol Defined",
+			Config: &Config{
+				Host:     "localhost",
+				Port:     7687,
+				Protocol: "neo4j",
+			},
+			Expected: "neo4j://localhost:7687",
+		},
+		{
+			Name: "IsCluster False",
+			Config: &Config{
+				Host:      "localhost",
+				Port:      7687,
+				IsCluster: false,
+			},
+			Expected: "bolt://localhost:7687",
+		},
+		{
+			Name: "IsCluster True",
+			Config: &Config{
+				Host:      "localhost",
+				Port:      7687,
+				IsCluster: true,
+			},
+			Expected: "neo4j://localhost:7687",
+		},
+		{
+			Name: "IsCluster and Protocol defined",
+			Config: &Config{
+				Host:      "localhost",
+				Port:      7687,
+				IsCluster: false,
+				Protocol:  "neo4j",
+			},
+			Expected: "neo4j://localhost:7687",
+		},
+	}
+	req := require.New(t)
+	for _, _case := range cases {
+		t.Run(_case.Name, func(t *testing.T) {
+			req.Equal(_case.Expected, _case.Config.ConnectionString(), "Connection strings should be equal")
+		})
+	}
+}

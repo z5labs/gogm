@@ -1,4 +1,4 @@
-// Copyright (c) 2021 MindStand Technologies, Inc
+// Copyright (c) 2022 MindStand Technologies, Inc
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDecoratorConfig_Validate(t *testing.T) {
+func TestDecoratorConfig_validate(t *testing.T) {
 	req := require.New(t)
 	gogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
@@ -170,7 +170,7 @@ func TestDecoratorConfig_Validate(t *testing.T) {
 
 	for _, test := range tests {
 		t.Log("running test -", test.Name)
-		err = test.Decorator.Validate(gogm)
+		err = test.Decorator.validate(gogm)
 		if test.ShouldPass {
 			req.Nil(err)
 		} else {
@@ -179,7 +179,7 @@ func TestDecoratorConfig_Validate(t *testing.T) {
 	}
 }
 
-func TestStructDecoratorConfig_Validate(t *testing.T) {
+func TestStructDecoratorConfig_validate(t *testing.T) {
 	req := require.New(t)
 
 	tests := []struct {
@@ -251,7 +251,7 @@ func TestStructDecoratorConfig_Validate(t *testing.T) {
 
 	for _, test := range tests {
 		t.Log("running test", test.Name)
-		err := test.Decorator.Validate()
+		err := test.Decorator.validate()
 		if test.ShouldPass {
 			req.Nil(err)
 		} else {

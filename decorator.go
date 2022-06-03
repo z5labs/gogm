@@ -1,4 +1,4 @@
-// Copyright (c) 2021 MindStand Technologies, Inc
+// Copyright (c) 2022 MindStand Technologies, Inc
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
@@ -118,8 +118,8 @@ type decoratorConfig struct {
 	Ignore bool `json:"ignore"`
 }
 
-// Equals checks equality of decorator configs
-func (d *decoratorConfig) Equals(comp *decoratorConfig) bool {
+// equals checks equality of decorator configs
+func (d *decoratorConfig) equals(comp *decoratorConfig) bool {
 	if comp == nil {
 		return false
 	}
@@ -143,8 +143,8 @@ type structDecoratorConfig struct {
 	Type reflect.Type `json:"-"`
 }
 
-// Equals checks equality of structDecoratorConfigs
-func (s *structDecoratorConfig) Equals(comp *structDecoratorConfig) bool {
+// equals checks equality of structDecoratorConfigs
+func (s *structDecoratorConfig) equals(comp *structDecoratorConfig) bool {
 	if comp == nil {
 		return false
 	}
@@ -152,7 +152,7 @@ func (s *structDecoratorConfig) Equals(comp *structDecoratorConfig) bool {
 	if comp.Fields != nil && s.Fields != nil {
 		for field, decConfig := range s.Fields {
 			if compConfig, ok := comp.Fields[field]; ok {
-				if !compConfig.Equals(&decConfig) {
+				if !compConfig.equals(&decConfig) {
 					return false
 				}
 			} else {
@@ -166,8 +166,8 @@ func (s *structDecoratorConfig) Equals(comp *structDecoratorConfig) bool {
 	return s.IsVertex == comp.IsVertex && s.Label == comp.Label
 }
 
-// Validate checks if the configuration is valid
-func (d *decoratorConfig) Validate(gogm *Gogm) error {
+// validate checks if the configuration is valid
+func (d *decoratorConfig) validate(gogm *Gogm) error {
 	if d.Ignore {
 		if d.Relationship != "" || d.Unique || d.Index || d.ManyRelationship || d.UsesEdgeNode ||
 			d.PrimaryKey != "" || d.Properties || d.Name != d.FieldName {
@@ -445,7 +445,7 @@ func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type
 	}
 
 	//ensure config complies with constraints
-	err := toReturn.Validate(gogm)
+	err := toReturn.validate(gogm)
 	if err != nil {
 		return nil, err
 	}
@@ -454,7 +454,7 @@ func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type
 }
 
 //validates if struct decorator is valid
-func (s *structDecoratorConfig) Validate() error {
+func (s *structDecoratorConfig) validate() error {
 	if s.Fields == nil {
 		return errors.New("no fields defined")
 	}
@@ -579,7 +579,7 @@ func getStructDecoratorConfig(gogm *Gogm, i interface{}, mappedRelations *relati
 		}
 	}
 
-	err := toReturn.Validate()
+	err := toReturn.validate()
 	if err != nil {
 		return nil, err
 	}
