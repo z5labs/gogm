@@ -42,6 +42,18 @@ type SessionV2Impl struct {
 	lastBookmark string
 }
 
+type cypherLogger func(cypher string, params map[string]interface{})
+
+type transactionWithLog struct {
+	neo4j.Transaction
+	log cypherLogger
+}
+
+type sessionWithLog struct {
+	neo4j.Session
+	log cypherLogger
+}
+
 func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, error) {
 	if gogm == nil {
 		return nil, errors.New("gogm instance can not be nil")
@@ -55,7 +67,7 @@ func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, err
 		return nil, errors.New("gogm driver not initialized")
 	}
 
-	neoSess := gogm.driver.NewSession(neo4j.SessionConfig{
+	neoSess := newNeo4jSession(gogm, neo4j.SessionConfig{
 		AccessMode:   conf.AccessMode,
 		Bookmarks:    conf.Bookmarks,
 		DatabaseName: conf.DatabaseName,
@@ -91,7 +103,7 @@ func (s *SessionV2Impl) Begin(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
+	s.tx = &transactionWithLog{s.tx, getCypherLogger(s.gogm)}
 	return nil
 }
 
@@ -695,7 +707,7 @@ func (s *SessionV2Impl) reset() error {
 		s.neoSess = nil
 	}
 
-	s.neoSess = s.gogm.driver.NewSession(neo4j.SessionConfig{
+	s.neoSess = newNeo4jSession(s.gogm, neo4j.SessionConfig{
 		AccessMode:   s.conf.AccessMode,
 		Bookmarks:    s.conf.Bookmarks,
 		DatabaseName: s.conf.DatabaseName,
@@ -789,4 +801,42 @@ func (s *SessionV2Impl) Close() error {
 	}
 
 	return s.neoSess.Close()
+}
+
+func (w *transactionWithLog) Run(cypher string, params map[string]interface{}) (neo4j.Result, error) {
+	w.log(cypher, params)
+	return w.Transaction.Run(cypher, params)
+}
+
+func (s *sessionWithLog) ReadTransaction(work neo4j.TransactionWork, configurers ...func(*neo4j.TransactionConfig)) (interface{}, error) {
+	return s.Session.ReadTransaction(transactionWorkWithLog(work, s.log), configurers...)
+}
+
+func (s *sessionWithLog) WriteTransaction(work neo4j.TransactionWork, configurers ...func(*neo4j.TransactionConfig)) (interface{}, error) {
+	return s.Session.WriteTransaction(transactionWorkWithLog(work, s.log), configurers...)
+}
+
+func (s *sessionWithLog) Run(cypher string, params map[string]interface{}, configurers ...func(*neo4j.TransactionConfig)) (neo4j.Result, error) {
+	s.log(cypher, params)
+	return s.Session.Run(cypher, params, configurers...)
+}
+
+func transactionWorkWithLog(work neo4j.TransactionWork, log cypherLogger) neo4j.TransactionWork {
+	return func(tx neo4j.Transaction) (interface{}, error) {
+		return work(&transactionWithLog{tx, log})
+	}
+}
+
+func newNeo4jSession(gogm *Gogm, config neo4j.SessionConfig) neo4j.Session {
+	return &sessionWithLog{gogm.driver.NewSession(config), getCypherLogger(gogm)}
+}
+
+func getCypherLogger(gogm *Gogm) cypherLogger {
+	return func(query string, params map[string]interface{}) {
+		if gogm.config.EnableLogParams {
+			gogm.logger.Debugf("cypher - %v - {%v}", query, params)
+		} else {
+			gogm.logger.Debugf("cypher - %v", query)
+		}
+	}
 }
