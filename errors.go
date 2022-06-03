@@ -24,13 +24,13 @@ import (
 	"fmt"
 )
 
-// todo replace this with go 1.13 errors
-
+// InvalidDecoratorConfigError defines an error for a malformed struct tag
 type InvalidDecoratorConfigError struct {
 	Field string
 	Issue string
 }
 
+// NewInvalidDecoratorConfigError creates an InvalidDecoratorConfigError structure
 func NewInvalidDecoratorConfigError(issue, field string) *InvalidDecoratorConfigError {
 	return &InvalidDecoratorConfigError{
 		Issue: issue,
@@ -38,29 +38,47 @@ func NewInvalidDecoratorConfigError(issue, field string) *InvalidDecoratorConfig
 	}
 }
 
+// Error() implements builtin Error() interface
 func (i *InvalidDecoratorConfigError) Error() string {
 	return fmt.Sprintf("issue: %s. occurred on field '%s'", i.Issue, i.Field)
 }
 
+// InvalidStructConfigError defines an error for a malformed gogm structure
 type InvalidStructConfigError struct {
 	issue string
 }
 
+// NewInvalidStructConfigError creates an InvalidStructConfigError structure
 func NewInvalidStructConfigError(issue string) *InvalidStructConfigError {
 	return &InvalidStructConfigError{
 		issue: issue,
 	}
 }
 
+// Error() implements builtin Error() interface
 func (i *InvalidStructConfigError) Error() string {
 	return i.issue
 }
 
-// base errors for gogm 1.13 errors, these are pretty self explanatory
-var ErrNotFound = errors.New("gogm: data not found")
-var ErrInternal = errors.New("gogm: internal error")
-var ErrValidation = errors.New("gogm: struct validation error")
-var ErrInvalidParams = errors.New("gogm: invalid params")
-var ErrConfiguration = errors.New("gogm: configuration was malformed")
-var ErrTransaction = errors.New("gogm: transaction error")
-var ErrConnection = errors.New("gogm: connection error")
+var (
+	// ErrNotFound is returned when gogm is unable to find data
+	ErrNotFound = errors.New("gogm: data not found")
+
+	// ErrInternal is returned for general internal gogm errors
+	ErrInternal = errors.New("gogm: internal error")
+
+	// ErrValidation is returned when there is a validation error
+	ErrValidation = errors.New("gogm: struct validation error")
+
+	// ErrInvalidParams is returned when params to a function are invalid
+	ErrInvalidParams = errors.New("gogm: invalid params")
+
+	// ErrConfiguration is returned for configuration errors
+	ErrConfiguration = errors.New("gogm: configuration was malformed")
+
+	// ErrTransaction is returned for errors related to gogm transactions
+	ErrTransaction = errors.New("gogm: transaction error")
+
+	// ErrConnection is returned for connection related errors
+	ErrConnection = errors.New("gogm: connection error")
+)

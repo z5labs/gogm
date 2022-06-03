@@ -45,6 +45,7 @@ func G() *Gogm {
 	return globalGogm
 }
 
+// Gogm defines an instance of the GoGM OGM with a configuration and mapped types
 type Gogm struct {
 	config           *Config
 	pkStrategy       *PrimaryKeyStrategy
@@ -59,10 +60,13 @@ type Gogm struct {
 	isNoOp bool
 }
 
+// New returns an instance of gogm
+// mapTypes requires pointers of the types to map and will error out if pointers are not provided
 func New(config *Config, pkStrategy *PrimaryKeyStrategy, mapTypes ...interface{}) (*Gogm, error) {
 	return NewContext(context.Background(), config, pkStrategy, mapTypes...)
 }
 
+// NewContext returns an instance of gogm but also takes in a context since NewContext creates a driver instance and reaches out to the database
 func NewContext(ctx context.Context, config *Config, pkStrategy *PrimaryKeyStrategy, mapTypes ...interface{}) (*Gogm, error) {
 	if config == nil {
 		return nil, errors.New("config can not be nil")
@@ -95,6 +99,7 @@ func NewContext(ctx context.Context, config *Config, pkStrategy *PrimaryKeyStrat
 	return g, nil
 }
 
+// init initializes the gogm structure
 func (g *Gogm) init(ctx context.Context) error {
 	err := g.validate()
 	if err != nil {
@@ -122,6 +127,7 @@ func (g *Gogm) init(ctx context.Context) error {
 	return nil
 }
 
+// validate checks that the config is valid and also validates other information
 func (g *Gogm) validate() error {
 	err := g.config.validate()
 	if err != nil {
@@ -147,6 +153,7 @@ func (g *Gogm) validate() error {
 	return nil
 }
 
+// parseOgmTypes parses the provided ogm types and decodes/maps them
 func (g *Gogm) parseOgmTypes() error {
 	g.logger.Debug("mapping types")
 	for _, t := range g.ogmTypes {
@@ -171,6 +178,7 @@ func (g *Gogm) parseOgmTypes() error {
 	return nil
 }
 
+// initDriver initializes the underlying neo4j driver
 func (g *Gogm) initDriver(ctx context.Context) error {
 	isEncrypted := strings.Contains(g.config.Protocol, "+s")
 
@@ -250,6 +258,7 @@ func (g *Gogm) initDriver(ctx context.Context) error {
 	}
 }
 
+// initDriverRoutine is the goroutine that initializes the driver and verifies the version numbers
 func (g *Gogm) initDriverRoutine(neoConfig func(neoConf *neo4j.Config), doneChan chan error) {
 	connStr := g.config.ConnectionString()
 	g.logger.Debugf("connection string: %s\n", connStr)
@@ -292,6 +301,7 @@ func (g *Gogm) initDriverRoutine(neoConfig func(neoConf *neo4j.Config), doneChan
 	doneChan <- nil
 }
 
+// initIndex initializes indexes based on the provided index strategy
 func (g *Gogm) initIndex(ctx context.Context) error {
 	switch g.config.IndexStrategy {
 	case ASSERT_INDEX:
@@ -331,6 +341,9 @@ func (g *Gogm) initIndex(ctx context.Context) error {
 	}
 }
 
+// Copy creates a copy instance of gogm
+// todo verify if its copying the members or just referencing their pointers
+// if it is each member will need copy functionality
 func (g *Gogm) Copy() *Gogm {
 	return &Gogm{
 		config:           g.config,
@@ -343,6 +356,7 @@ func (g *Gogm) Copy() *Gogm {
 	}
 }
 
+// Close implements io.Closer and closes the underlying driver
 func (g *Gogm) Close() error {
 	if g.driver == nil {
 		return errors.New("unable to close nil driver")
@@ -351,17 +365,20 @@ func (g *Gogm) Close() error {
 	return g.driver.Close()
 }
 
+// deprecated: use NewSessionV2 instead.
+// NewSession returns an instance of the deprecated ISession
 func (g *Gogm) NewSession(conf SessionConfig) (ISession, error) {
 	if g.isNoOp {
-		return nil, errors.New("gogm instance is no op. Please set global logger with SetGlobalLogger() or create a new gogm instance")
+		return nil, errors.New("gogm instance is no op. Unable to create a new session. Please set global gogm with SetGlobalGogm() or create a new gogm instance")
 	}
 
 	return newSessionWithConfig(g, conf)
 }
 
+// NewSessionV2 returns an instance of SessionV2 with the provided session config
 func (g *Gogm) NewSessionV2(conf SessionConfig) (SessionV2, error) {
 	if g.isNoOp {
-		return nil, errors.New("gogm instance is no op. Please set global logger with SetGlobalLogger() or create a new gogm instance")
+		return nil, errors.New("gogm instance is no op. Unable to create a new session. Please set global gogm with SetGlobalGogm() or create a new gogm instance")
 	}
 
 	return newSessionWithConfigV2(g, conf)
