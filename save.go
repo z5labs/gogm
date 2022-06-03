@@ -266,11 +266,13 @@ func removeRelations(transaction neo4j.Transaction, dels map[int64][]int64) erro
 
 	var params []interface{}
 
+	expectedDels := 0
 	for id, ids := range dels {
 		params = append(params, map[string]interface{}{
 			"startNodeId": id,
 			"endNodeIds":  ids,
 		})
+		expectedDels += len(ids)
 	}
 
 	cyq, err := dsl.QB().
@@ -299,8 +301,17 @@ func removeRelations(transaction neo4j.Transaction, dels map[int64][]int64) erro
 	} else if err = res.Err(); err != nil {
 		return fmt.Errorf("%s: %w", err.Error(), ErrInternal)
 	}
-	//todo sanity check to make sure the affects worked
 
+	summary, err := res.Consume()
+	if err != nil {
+		return fmt.Errorf("failed to consume result summary, %s: %w", err.Error(), ErrInternal)
+	}
+
+	actualRelsDeleted := summary.Counters().RelationshipsDeleted()
+	if expectedDels != actualRelsDeleted {
+		return fmt.Errorf("expected relationship deletions not equal to actual. Expected=%v|Actual=%v", expectedDels, actualRelsDeleted)
+	}
+	
 	return nil
 }
 
