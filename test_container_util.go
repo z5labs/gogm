@@ -22,26 +22,30 @@ package gogm
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-type neo4jContainerVersion int
+type neo4jContainerVersion string
 
 const (
-	neo3 neo4jContainerVersion = iota
-	neo4
+	neo3 neo4jContainerVersion = "3"
+	neo4 neo4jContainerVersion = "4"
 )
 
 type neo4jContainer struct {
 	testcontainers.Container
 	CertDir string
+	Host    string
+	Port    int
 }
 
 const neo4jContainerUsername = "neo4j"
 const neo4jContainerPassword = "changeme"
 
-func setupNeo(ctx context.Context, version neo4jContainerVersion) (*neo4jContainer, error) {
+func setupNeo4jContainer(ctx context.Context, version neo4jContainerVersion) (*neo4jContainer, error) {
 	var err error
 
 	req := testcontainers.ContainerRequest{
@@ -51,6 +55,7 @@ func setupNeo(ctx context.Context, version neo4jContainerVersion) (*neo4jContain
 			"NEO4J_ACCEPT_LICENSE_AGREEMENT": "yes",
 			"NEO4J_AUTH":                     neo4jContainerUsername + "/" + neo4jContainerPassword,
 		},
+		WaitingFor: wait.ForLog("Started."),
 	}
 
 	// defaults to empty string if using neo3 (no certs)
@@ -62,10 +67,8 @@ func setupNeo(ctx context.Context, version neo4jContainerVersion) (*neo4jContain
 			return nil, err
 		}
 
-		req.Image = "neo4j:4.4-enterprise"
+		req.Image = "neo4j:4.3.2-enterprise"
 
-		req.Env["NEO4J_dbms_memory_heap_initial__size"] = "512m"
-		req.Env["NEO4J_dbms_memory_heap_max__size"] = "2G"
 		req.Env["NEO4J_dbms_default__listen__address"] = "0.0.0.0"
 
 		req.Env["NEO4J_dbms_allow__upgrade"] = "true"
@@ -86,10 +89,42 @@ func setupNeo(ctx context.Context, version neo4jContainerVersion) (*neo4jContain
 		Started:          true,
 	})
 	if err != nil {
+		if certDir != "" {
+			cleanupTempNeoKeypair(certDir)
+		}
 		return nil, err
 	}
 
-	return &neo4jContainer{Container: container, CertDir: certDir}, nil
+	host, err := container.Host(ctx)
+	if err != nil {
+		if certDir != "" {
+			cleanupTempNeoKeypair(certDir)
+		}
+		return nil, err
+	}
+
+	port, err := container.MappedPort(ctx, "7687")
+	if err != nil {
+		if certDir != "" {
+			cleanupTempNeoKeypair(certDir)
+		}
+		return nil, err
+	}
+
+	return &neo4jContainer{Container: container, CertDir: certDir, Host: host, Port: port.Int()}, nil
+}
+
+func (n neo4jContainer) GetGogmConfig() *Config {
+	return &Config{
+		Username:                  neo4jContainerUsername,
+		Password:                  neo4jContainerPassword,
+		Host:                      n.Host,
+		IsCluster:                 false,
+		Port:                      n.Port,
+		PoolSize:                  15,
+		EnableDriverLogs:          true,
+		DefaultTransactionTimeout: 2 * time.Minute,
+	}
 }
 
 func (n *neo4jContainer) Teminate(ctx context.Context) error {
@@ -101,7 +136,7 @@ func (n *neo4jContainer) Teminate(ctx context.Context) error {
 	containerCleanupErr := n.Container.Terminate(ctx)
 
 	if keyPairCleanupErr != nil && containerCleanupErr != nil {
-		return fmt.Errorf("Container termination (%v) and keypair cleanup (%v) failed", containerCleanupErr, keyPairCleanupErr)
+		return fmt.Errorf("container termination (%v) and keypair cleanup (%v) failed", containerCleanupErr, keyPairCleanupErr)
 	} else if keyPairCleanupErr != nil {
 		return keyPairCleanupErr
 	} else if containerCleanupErr != nil {

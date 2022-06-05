@@ -34,10 +34,12 @@ import (
 )
 
 func createTempNeoKeypair() (string, error) {
-	tempDir, err := ioutil.TempDir("gogm_test", "*")
+	tempDir, err := ioutil.TempDir(os.TempDir(), "gogm_test")
 	if err != nil {
 		return "", err
 	}
+
+	os.Chmod(tempDir, 0777)
 
 	ca := createCertificateAuthority()
 

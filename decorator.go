@@ -118,18 +118,6 @@ type decoratorConfig struct {
 	Ignore bool `json:"ignore"`
 }
 
-// equals checks equality of decorator configs
-func (d *decoratorConfig) equals(comp *decoratorConfig) bool {
-	if comp == nil {
-		return false
-	}
-
-	return d.Name == comp.Name && d.FieldName == comp.FieldName && d.Relationship == comp.Relationship &&
-		d.Direction == comp.Direction && d.Unique == comp.Unique && d.Index == comp.Index && d.ManyRelationship == comp.ManyRelationship &&
-		d.UsesEdgeNode == comp.UsesEdgeNode && d.PrimaryKey == comp.PrimaryKey && d.Properties == comp.Properties &&
-		d.IsTypeDef == comp.IsTypeDef && d.Ignore == comp.Ignore
-}
-
 // specifies configuration on GoGM node
 type structDecoratorConfig struct {
 	// Holds fields -> their configurations
@@ -141,29 +129,6 @@ type structDecoratorConfig struct {
 	IsVertex bool `json:"is_vertex"`
 	// holds the reflect type of the struct
 	Type reflect.Type `json:"-"`
-}
-
-// equals checks equality of structDecoratorConfigs
-func (s *structDecoratorConfig) equals(comp *structDecoratorConfig) bool {
-	if comp == nil {
-		return false
-	}
-
-	if comp.Fields != nil && s.Fields != nil {
-		for field, decConfig := range s.Fields {
-			if compConfig, ok := comp.Fields[field]; ok {
-				if !compConfig.equals(&decConfig) {
-					return false
-				}
-			} else {
-				return false
-			}
-		}
-	} else {
-		return false
-	}
-
-	return s.IsVertex == comp.IsVertex && s.Label == comp.Label
 }
 
 // validate checks if the configuration is valid

@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/opentracing/opentracing-go"
@@ -677,32 +676,6 @@ func (s *SessionV2Impl) parseResult(res neo4j.Result) [][]interface{} {
 	}
 
 	return result
-}
-
-func (s *SessionV2Impl) isTransientError(err error) bool {
-	return strings.Contains(err.Error(), "Neo.TransientError.Transaction")
-}
-
-func (s *SessionV2Impl) reset() error {
-	s.tx = nil
-
-	if s.neoSess != nil {
-		err := s.neoSess.Close()
-		if err != nil {
-			return err
-		}
-
-		s.neoSess = nil
-	}
-
-	s.neoSess = s.gogm.driver.NewSession(neo4j.SessionConfig{
-		AccessMode:   s.conf.AccessMode,
-		Bookmarks:    s.conf.Bookmarks,
-		DatabaseName: s.conf.DatabaseName,
-		FetchSize:    s.conf.FetchSize,
-	})
-
-	return nil
 }
 
 func (s *SessionV2Impl) getDeadline(ctx context.Context) time.Time {

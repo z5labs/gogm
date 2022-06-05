@@ -23,72 +23,41 @@ on:
     branches:
       - master
   pull_request: {}
+  workflow_dispatch: {}
 jobs:
-  build:
-    name: Build
+  codegen_linking_verify:
+    name: Verify Generated Linking Code is Current
     runs-on: ubuntu-latest
     steps:
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v1
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
       with:
         go-version: 1.13
-      id: go
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
+        cache: true
     - name: Get dependencies
+      run: go get -v -t -d ./...
+    - name: Generate a second linking.go
       run: |
-        go get -v -t -d ./...
-        if [ -f Gopkg.toml ]; then
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-            dep ensure
-        fi
-    - name: Setup gogmcli test
-      run: |
-        export ROOTDIR=`pwd`
-        rm testing_/linking.go
         cd cmd/gogmcli
         go build .
-        mv gogmcli $ROOTDIR/testing_/gogmcli
-        cd $ROOTDIR/testing_
+        mv gogmcli ../../testing_/gogmcli
+        cd ../../testing_
+        mv linking.go linking.go.old
         ./gogmcli gen .
-        cd $ROOTDIR
+    - name: Compare newly generated linking.go with existing one
+      run: cmp linking.go linking.go.old
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version: 1.13
+        cache: true
+    - name: Get dependencies
+      run: go get -v -t -d ./...
     - name: Build
       run: go build -v .
-    - name: Run Unit Tests
-      run: go test ./... -cover -short
-
-    - name: Start Neo4j V3 Docker
-      run: |
-        go clean -testcache
-        docker-compose -f .github/docker-compose-v3.yaml up -d
-    - name: Wait for neo4j v3 to be ready
-      run: |
-        sleep 45
-    - name: Run Integration Test on V3
-      run: go test ./... -run Integration
-    - name: Stop Neo4j Docker on v3
-      run: |
-        docker-compose -f .github/docker-compose-v3.yaml down --remove-orphans
-    - name: Start Neo4j V4 Docker
-      run: |
-        mkdir $GITHUB_WORKSPACE/certs
-        export ROOT=$GITHUB_WORKSPACE/certs
-        echo $ROOT
-        go run .github/genssl.go
-        echo "listing files"
-        ls $ROOT
-        echo "done listing"
-        go clean -testcache
-        docker-compose -f .github/docker-compose-v4.yaml up -d
-    - name: Wait for neo4j v4 to be ready
-      run: |
-        sleep 45
-    - name: Run Integration Test on V4
-      run: |
-        export ROOT=$GITHUB_WORKSPACE/certs
-        echo $ROOT
-        go test ./... -run Integration
-    - name: Stop Neo4j Docker on v4
-      run: |
-        docker-compose -f .github/docker-compose-v4.yaml down --remove-orphans
-        rm -rf $ROOT/certs
+    - name: Test
+      run: go test `./...` -cover

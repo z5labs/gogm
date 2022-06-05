@@ -2,9 +2,10 @@ package gogm
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
+	"path/filepath"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestSessionV2Impl_LoadAll(t *testing.T) {
@@ -13,27 +14,25 @@ func TestSessionV2Impl_LoadAll(t *testing.T) {
 		return
 	}
 
+	ctx := context.Background()
 	req := require.New(t)
-	conf := Config{
-		Username:  "neo4j",
-		Password:  "changeme",
-		Host:      "0.0.0.0",
-		IsCluster: false,
-		Port:      7687,
-		PoolSize:  15,
-		// this is ignore because index management is part of the test
-		IndexStrategy:             IGNORE_INDEX,
-		EnableDriverLogs:          true,
-		DefaultTransactionTimeout: 2 * time.Minute,
-	}
 
-	gogm, err := New(&conf, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{})
-	req.NotNil(gogm)
+	container, err := setupNeo4jContainer(ctx, neo4)
 	req.Nil(err)
+	defer container.Terminate(ctx)
+
+	config := container.GetGogmConfig()
+	// this is ignore because index management is part of the test
+	config.IndexStrategy = IGNORE_INDEX
+	config.CAFileLocation = filepath.Join(container.CertDir, "ca-public.crt")
+
+	gogm, err := New(config, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{})
+	req.Nil(err)
+	req.NotNil(gogm)
 
 	sess, err := gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
-	req.NotNil(sess)
 	req.Nil(err)
+	req.NotNil(sess)
 
 	objs := []*a{
 		{
@@ -45,18 +44,18 @@ func TestSessionV2Impl_LoadAll(t *testing.T) {
 	}
 
 	// create 2 objects
-	req.Nil(sess.ManagedTransaction(context.Background(), func(tx TransactionV2) error {
-		err := tx.SaveDepth(context.Background(), objs[0], 0)
+	req.Nil(sess.ManagedTransaction(ctx, func(tx TransactionV2) error {
+		err := tx.SaveDepth(ctx, objs[0], 0)
 		if err != nil {
 			return err
 		}
 
-		return tx.SaveDepth(context.Background(), objs[1], 0)
+		return tx.SaveDepth(ctx, objs[1], 0)
 	}))
 
 	var writeTo []*a
-	req.Nil(sess.LoadAllDepth(context.Background(), &writeTo, 0))
+	req.Nil(sess.LoadAllDepth(ctx, &writeTo, 0))
 
-	req.Nil(sess.Delete(context.Background(), writeTo[0]))
-	req.Nil(sess.Delete(context.Background(), writeTo[1]))
+	req.Nil(sess.Delete(ctx, writeTo[0]))
+	req.Nil(sess.Delete(ctx, writeTo[1]))
 }
