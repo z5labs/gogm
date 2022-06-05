@@ -46,7 +46,7 @@ jobs:
         mv linking.go linking.go.old
         ./gogmcli gen .
     - name: Compare newly generated linking.go with existing one
-      run: cmp linking.go linking.go.old
+      run: cd testing_ && cmp linking.go linking.go.old
   build:
     name: Build and Test
     runs-on: ubuntu-latest
