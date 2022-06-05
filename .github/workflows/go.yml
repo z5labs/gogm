@@ -37,16 +37,12 @@ jobs:
         cache: true
     - name: Get dependencies
       run: go get -v -t -d ./...
-    - name: Generate a second linking.go
-      run: |
-        cd cmd/gogmcli
-        go build .
-        mv gogmcli ../../testing_/gogmcli
-        cd ../../testing_
-        mv linking.go linking.go.old
-        ./gogmcli gen .
     - name: Compare newly generated linking.go with existing one
-      run: cd testing_ && cmp linking.go linking.go.old
+      run: |
+        cd testing_
+        mv linking.go linking.go.bak
+        go run ../cmd/gogmcli/gogm.go gen .
+        cmp linking.go linking.go.bak
   build:
     name: Build and Test
     runs-on: ubuntu-latest
