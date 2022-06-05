@@ -19,25 +19,54 @@
 
 package gogm
 
-import "errors"
+import (
+	"errors"
 
-// pagination configuration
+	dsl "github.com/mindstand/go-cypherdsl"
+)
+
+// Pagination is used to control the pagination behavior of `LoadAllDepthFilterPagination``
 type Pagination struct {
-	// specifies which page number to load
+	// PageNumber specifies which page number to load
 	PageNumber int
-	// limits how many records per page
+	// LimitPerPage limits how many records per page
 	LimitPerPage int
-	// specifies variable to order by
+	// OrderByVarName specifies variable to order by
 	OrderByVarName string
-	// specifies field to order by on
+	// OrderByField specifies field to order by on
 	OrderByField string
-	// specifies whether orderby is desc or asc
+	// OrderByDesc specifies whether orderby is desc or asc
 	OrderByDesc bool
 }
 
-func (p *Pagination) Validate() error {
-	if p.PageNumber >= 0 && p.LimitPerPage > 1 && p.OrderByField != "" && p.OrderByVarName != "" {
-		return errors.New("pagination configuration invalid, please double check")
+func (p *Pagination) Paginate(query dsl.Cypher) error {
+	if p.OrderByField != "" && p.OrderByVarName != "" {
+		query.OrderBy(dsl.OrderByConfig{
+			Name:   p.OrderByVarName,
+			Member: p.OrderByField,
+			Desc:   p.OrderByDesc,
+		})
+	} else if p.OrderByField != "" || p.OrderByVarName != "" {
+		return errors.New("ordering configuration invalid: OrderByVarName and OrderByField must be defined simultaneously, or not at all")
+	}
+
+	if p.PageNumber < 0 {
+		return errors.New("pagination configuration invalid: PageNumber is below 0")
+	}
+
+	if p.LimitPerPage < 0 {
+		return errors.New("pagination configuration invalid: LimitPerPage is below 0")
+	}
+
+	if p.PageNumber > 0 {
+		if p.LimitPerPage < 1 {
+			return errors.New("pagination configuration invalid: PageNumber is set but LimitPerPage is below 1")
+		}
+		query.Skip(p.LimitPerPage * p.PageNumber)
+	}
+
+	if p.LimitPerPage > 0 {
+		query.Limit(p.LimitPerPage)
 	}
 
 	return nil
