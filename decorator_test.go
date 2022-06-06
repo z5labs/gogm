@@ -36,12 +36,12 @@ func TestDecoratorConfig_validate(t *testing.T) {
 
 	tests := []struct {
 		Name       string
-		Decorator  decoratorConfig
+		Decorator  fieldDecoratorConfig
 		ShouldPass bool
 	}{
 		{
 			Name: "valid",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Properties: true,
 				Type:       reflect.TypeOf(map[string]interface{}{}),
 				Name:       "test",
@@ -50,7 +50,7 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "valid relationship",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				FieldName:    "test_rel",
 				Name:         "test_rel",
 				Relationship: "rel",
@@ -60,7 +60,7 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "valid relationship with direction",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				FieldName:    "test_rel",
 				Name:         "test_rel",
 				Relationship: "rel",
@@ -71,7 +71,7 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "valid pk (uuid)",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Name:       "uuid",
 				Type:       reflect.TypeOf(""),
 				PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
@@ -80,7 +80,7 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "valid index",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Name:  "test_index",
 				Type:  reflect.TypeOf(""),
 				Index: true,
@@ -89,7 +89,7 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "valid unique",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Name:   "test_unique",
 				Type:   reflect.TypeOf(""),
 				Unique: true,
@@ -98,7 +98,7 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "valid plain",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Name: "test",
 				Type: reflect.TypeOf(""),
 			},
@@ -106,7 +106,7 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "valid field pointer",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Name: "test",
 				Type: reflect.PtrTo(reflect.TypeOf("")),
 			},
@@ -114,16 +114,16 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "invalid with wrong sig",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Properties: true,
-				Type:       reflect.MapOf(reflect.TypeOf(decoratorConfig{}), reflect.TypeOf("")),
+				Type:       reflect.MapOf(reflect.TypeOf(fieldDecoratorConfig{}), reflect.TypeOf("")),
 				Name:       "test",
 			},
 			ShouldPass: false,
 		},
 		{
 			Name: "invalid prop extra decorator",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Properties: true,
 				Type:       reflect.TypeOf(map[string]interface{}{}),
 				Name:       "test",
@@ -133,7 +133,7 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "invalid props decorator not specified",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Type: reflect.MapOf(reflect.TypeOf(""), reflect.TypeOf(map[string]interface{}{})),
 				Name: "test",
 			},
@@ -141,7 +141,7 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "invalid relationship",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Relationship: "test",
 				Name:         "test",
 				Type:         reflect.TypeOf(""),
@@ -150,7 +150,7 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "invalid direction not defined",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Direction: dsl.DirectionOutgoing,
 				Name:      "asdfa",
 				Type:      reflect.TypeOf([]interface{}{}),
@@ -159,7 +159,7 @@ func TestDecoratorConfig_validate(t *testing.T) {
 		},
 		{
 			Name: "invalid pk ptr str",
-			Decorator: decoratorConfig{
+			Decorator: fieldDecoratorConfig{
 				Name:       "uuid",
 				PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
 				Type:       reflect.PtrTo(reflect.TypeOf("")),
@@ -190,29 +190,29 @@ func TestStructDecoratorConfig_validate(t *testing.T) {
 		{
 			Name: "nil fields",
 			Decorator: structDecoratorConfig{
-				Fields:   nil,
-				IsVertex: true,
+				Fields: nil,
+				Type:   true,
 			},
 			ShouldPass: false,
 		},
 		{
 			Name: "valid pk",
 			Decorator: structDecoratorConfig{
-				Fields: map[string]decoratorConfig{
+				Fields: map[string]fieldDecoratorConfig{
 					"uuid": {
 						PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
 						Name:       "uuid",
 						Type:       reflect.TypeOf(""),
 					},
 				},
-				IsVertex: true,
+				Type: true,
 			},
 			ShouldPass: true,
 		},
 		{
 			Name: "valid uuid with id",
 			Decorator: structDecoratorConfig{
-				Fields: map[string]decoratorConfig{
+				Fields: map[string]fieldDecoratorConfig{
 					"uuid": {
 						PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
 						Name:       "uuid",
@@ -224,14 +224,14 @@ func TestStructDecoratorConfig_validate(t *testing.T) {
 						Type:       reflect.TypeOf(int64(1)),
 					},
 				},
-				IsVertex: true,
+				Type: true,
 			},
 			ShouldPass: true,
 		},
 		{
 			Name: "invalid relations",
 			Decorator: structDecoratorConfig{
-				Fields: map[string]decoratorConfig{
+				Fields: map[string]fieldDecoratorConfig{
 					"uuid": {
 						PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
 						Name:       "uuid",
@@ -243,7 +243,7 @@ func TestStructDecoratorConfig_validate(t *testing.T) {
 						Type:         reflect.TypeOf([]interface{}{}),
 					},
 				},
-				IsVertex: false,
+				Type: false,
 			},
 			ShouldPass: false,
 		},
@@ -265,10 +265,10 @@ func TestNewDecoratorConfig(t *testing.T) {
 	testGogm, err := getTestGogmWithDefaultStructs()
 	req.Nil(err)
 	req.NotNil(testGogm)
-	var compare *decoratorConfig
+	var compare *fieldDecoratorConfig
 
 	decName := "name=id"
-	decNameStruct := decoratorConfig{
+	decNameStruct := fieldDecoratorConfig{
 		Name:       "id",
 		Type:       reflect.TypeOf(int64(1)),
 		ParentType: reflect.TypeOf(a{}),
@@ -280,7 +280,7 @@ func TestNewDecoratorConfig(t *testing.T) {
 	req.EqualValues(decNameStruct, *compare)
 
 	decUUID := "pk=UUID"
-	decUUIDStruct := decoratorConfig{
+	decUUIDStruct := fieldDecoratorConfig{
 		Name:       "uuid",
 		FieldName:  "UUID",
 		PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
@@ -294,7 +294,7 @@ func TestNewDecoratorConfig(t *testing.T) {
 	req.EqualValues(decUUIDStruct, *compare)
 
 	decIndexField := "index;name=index_field"
-	decIndexFieldStruct := decoratorConfig{
+	decIndexFieldStruct := fieldDecoratorConfig{
 		Index:      true,
 		Name:       "index_field",
 		Type:       reflect.TypeOf(""),
@@ -307,7 +307,7 @@ func TestNewDecoratorConfig(t *testing.T) {
 	req.EqualValues(decIndexFieldStruct, *compare)
 
 	decUniqueField := "unique;name=unique_name"
-	decUniqueFieldStruct := decoratorConfig{
+	decUniqueFieldStruct := fieldDecoratorConfig{
 		Unique:     true,
 		Name:       "unique_name",
 		Type:       reflect.TypeOf(""),
@@ -320,7 +320,7 @@ func TestNewDecoratorConfig(t *testing.T) {
 	req.EqualValues(decUniqueFieldStruct, *compare)
 
 	decOne2One := "relationship=one2one;direction=incoming"
-	decOne2OneStruct := decoratorConfig{
+	decOne2OneStruct := fieldDecoratorConfig{
 		FieldName:    "test_name",
 		Name:         "test_name",
 		Relationship: "one2one",
@@ -335,7 +335,7 @@ func TestNewDecoratorConfig(t *testing.T) {
 	req.EqualValues(decOne2OneStruct, *compare)
 
 	decProps := "properties;name=test"
-	decPropsStruct := decoratorConfig{
+	decPropsStruct := fieldDecoratorConfig{
 		Properties: true,
 		Name:       "test",
 		Type:       reflect.TypeOf(map[string]interface{}{}),
@@ -375,7 +375,7 @@ func TestNewDecoratorConfig(t *testing.T) {
 	compare, err = newDecoratorConfig(testGogm, "relationship=self2self;direction=both", "test_name", reflect.TypeOf(a{}), reflect.TypeOf(a{}))
 	req.Nil(err)
 	req.NotNil(compare)
-	req.EqualValues(decoratorConfig{
+	req.EqualValues(fieldDecoratorConfig{
 		ParentType:   reflect.TypeOf(a{}),
 		FieldName:    "test_name",
 		Name:         "test_name",
@@ -549,10 +549,10 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 	req.Nil(err)
 	req.NotNil(conf)
 	checkObj := structDecoratorConfig{
-		IsVertex: true,
-		Type:     reflect.TypeOf(validStruct{}),
-		Label:    "validStruct",
-		Fields: map[string]decoratorConfig{
+		Type:        true,
+		ReflectType: reflect.TypeOf(validStruct{}),
+		Label:       "validStruct",
+		Fields: map[string]fieldDecoratorConfig{
 			"Id": {
 				Name:       "id",
 				FieldName:  "Id",

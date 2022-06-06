@@ -674,5 +674,5 @@ func convertNodeToValue(gogm *Gogm, boltNode neo4j.Node) (*reflect.Value, error)
 		return nil, errors.New("unable to cast to struct decorator config")
 	}
 
-	return convertToValue(gogm, boltNode.Id, typeConfig, boltNode.Props, typeConfig.Type)
+	return convertToValue(gogm, boltNode.Id, typeConfig, boltNode.Props, typeConfig.ReflectType)
 }

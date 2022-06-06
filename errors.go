@@ -30,8 +30,8 @@ type InvalidDecoratorConfigError struct {
 	Issue string
 }
 
-// NewInvalidDecoratorConfigError creates an InvalidDecoratorConfigError structure
-func NewInvalidDecoratorConfigError(issue, field string) *InvalidDecoratorConfigError {
+// NewInvalidFieldDecoratorConfigError creates an InvalidDecoratorConfigError structure
+func NewInvalidFieldDecoratorConfigError(issue, field string) *InvalidDecoratorConfigError {
 	return &InvalidDecoratorConfigError{
 		Issue: issue,
 		Field: field,

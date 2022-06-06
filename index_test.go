@@ -37,9 +37,9 @@ func testIndexManagement(req *require.Assertions) {
 	//setup structure
 	_map := toHashmapStructdecconf(map[string]structDecoratorConfig{
 		"TEST1": {
-			Label:    "Test1",
-			IsVertex: true,
-			Fields: map[string]decoratorConfig{
+			Label: "Test1",
+			Type:  true,
+			Fields: map[string]fieldDecoratorConfig{
 				"UUID": {
 					Name:       "uuid",
 					PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
@@ -58,9 +58,9 @@ func testIndexManagement(req *require.Assertions) {
 			},
 		},
 		"TEST2": {
-			Label:    "Test2",
-			IsVertex: true,
-			Fields: map[string]decoratorConfig{
+			Label: "Test2",
+			Type:  true,
+			Fields: map[string]fieldDecoratorConfig{
 				"UUID": {
 					Name:       "uuid",
 					PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,

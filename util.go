@@ -179,8 +179,8 @@ func toCypherParamsMap(gogm *Gogm, val reflect.Value, config structDecoratorConf
 }
 
 type relationConfigs struct {
-	// [type-relationship][fieldType][]decoratorConfig
-	configs map[string]map[string][]decoratorConfig
+	// [type-relationship][fieldType][]fieldDecoratorConfig
+	configs map[string]map[string][]fieldDecoratorConfig
 
 	mutex sync.Mutex
 }
@@ -189,22 +189,22 @@ func (r *relationConfigs) getKey(nodeType, relationship string) string {
 	return fmt.Sprintf("%s-%s", nodeType, relationship)
 }
 
-func (r *relationConfigs) Add(nodeType, relationship, fieldType string, dec decoratorConfig) {
+func (r *relationConfigs) Add(nodeType, relationship, fieldType string, dec fieldDecoratorConfig) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	if r.configs == nil {
-		r.configs = map[string]map[string][]decoratorConfig{}
+		r.configs = map[string]map[string][]fieldDecoratorConfig{}
 	}
 
 	key := r.getKey(nodeType, relationship)
 
 	if _, ok := r.configs[key]; !ok {
-		r.configs[key] = map[string][]decoratorConfig{}
+		r.configs[key] = map[string][]fieldDecoratorConfig{}
 	}
 
 	if _, ok := r.configs[key][fieldType]; !ok {
-		r.configs[key][fieldType] = []decoratorConfig{}
+		r.configs[key][fieldType] = []fieldDecoratorConfig{}
 	}
 
 	//log.Debugf("mapped relations [%s][%s][%v]", key, fieldType, len(r.configs[key][fieldType]))
@@ -212,7 +212,7 @@ func (r *relationConfigs) Add(nodeType, relationship, fieldType string, dec deco
 	r.configs[key][fieldType] = append(r.configs[key][fieldType], dec)
 }
 
-func (r *relationConfigs) GetConfigs(startNodeType, startNodeFieldType, endNodeType, endNodeFieldType, relationship string) (start, end *decoratorConfig, err error) {
+func (r *relationConfigs) GetConfigs(startNodeType, startNodeFieldType, endNodeType, endNodeFieldType, relationship string) (start, end *fieldDecoratorConfig, err error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -233,7 +233,7 @@ func (r *relationConfigs) GetConfigs(startNodeType, startNodeFieldType, endNodeT
 	return start, end, nil
 }
 
-func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string, direction dsl.Direction) (*decoratorConfig, error) {
+func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string, direction dsl.Direction) (*fieldDecoratorConfig, error) {
 	if r.configs == nil {
 		return nil, errors.New("no configs provided")
 	}
@@ -245,7 +245,7 @@ func (r *relationConfigs) getConfig(nodeType, relationship, fieldType string, di
 	}
 
 	var ok bool
-	var confs []decoratorConfig
+	var confs []fieldDecoratorConfig
 
 	if confs, ok = r.configs[key][fieldType]; !ok {
 		return nil, fmt.Errorf("no configs for key [%s] and field type [%s]", key, fieldType)
@@ -412,7 +412,7 @@ func int64Ptr(n int64) *int64 {
 	return &n
 }
 
-// traverseRelType finds the label of a node from a relationship (decoratorConfig).
+// traverseRelType finds the label of a node from a relationship (fieldDecoratorConfig).
 // if a special edge is passed in, the linked node's label is returned.
 func traverseRelType(endType reflect.Type, direction dsl.Direction) (string, error) {
 	if !reflect.PtrTo(endType).Implements(edgeType) {
@@ -438,7 +438,7 @@ func traverseRelType(endType reflect.Type, direction dsl.Direction) (string, err
 
 	convertedType, ok := endTypeVal[0].Interface().(reflect.Type)
 	if !ok {
-		return "", errors.New("cannot convert to type reflect.Type")
+		return "", errors.New("cannot convert to type reflect.ReflectType")
 	}
 
 	if convertedType.Kind() == reflect.Ptr {

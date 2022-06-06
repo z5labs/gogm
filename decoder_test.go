@@ -120,8 +120,8 @@ func TestConvertNodeToValue(t *testing.T) {
 	req.NotNil(gogm)
 	mappedTypes := toHashmapStructdecconf(map[string]structDecoratorConfig{
 		"TestStruct": {
-			Type: reflect.TypeOf(TestStruct{}),
-			Fields: map[string]decoratorConfig{
+			ReflectType: reflect.TypeOf(TestStruct{}),
+			Fields: map[string]fieldDecoratorConfig{
 				"UUID": {
 					Type:       reflect.TypeOf(""),
 					PrimaryKey: UUIDPrimaryKeyStrategy.StrategyName,
@@ -136,8 +136,8 @@ func TestConvertNodeToValue(t *testing.T) {
 					Name: "other_field",
 				},
 			},
-			Label:    "TestStruct",
-			IsVertex: true,
+			Label: "TestStruct",
+			Type:  true,
 		},
 	})
 	gogm.mappedTypes = mappedTypes
@@ -177,7 +177,7 @@ func TestConvertNodeToValue(t *testing.T) {
 	te, ok = temp.(structDecoratorConfig)
 	req.True(ok)
 
-	te.Fields["tt"] = decoratorConfig{
+	te.Fields["tt"] = fieldDecoratorConfig{
 		Type: reflect.TypeOf(""),
 		Name: "test",
 	}

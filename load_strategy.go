@@ -180,7 +180,7 @@ func PathLoadStrategyEdgeConstraint(startVariable, startLabel, endLabel, endTarg
 	return builder.Return(false, dsl.ReturnPart{Name: "p"}), nil
 }
 
-func getRelationshipsForLabel(gogm *Gogm, label string) ([]decoratorConfig, error) {
+func getRelationshipsForLabel(gogm *Gogm, label string) ([]fieldDecoratorConfig, error) {
 	raw, ok := gogm.mappedTypes.Get(label)
 	if !ok {
 		return nil, fmt.Errorf("struct config not found type (%s)", label)
@@ -191,7 +191,7 @@ func getRelationshipsForLabel(gogm *Gogm, label string) ([]decoratorConfig, erro
 		return nil, errors.New("unable to cast into struct decorator config")
 	}
 
-	fields := []decoratorConfig{}
+	fields := []fieldDecoratorConfig{}
 	for _, field := range config.Fields {
 		if !field.Ignore && field.Relationship != "" {
 			fields = append(fields, field)
@@ -227,7 +227,7 @@ func expandBootstrap(gogm *Gogm, variable, label string, depth int) (string, err
 	return clause, nil
 }
 
-func expand(gogm *Gogm, variable, label string, rels []decoratorConfig, level, depth int) (string, error) {
+func expand(gogm *Gogm, variable, label string, rels []fieldDecoratorConfig, level, depth int) (string, error) {
 	clause := ""
 
 	for i, rel := range rels {
@@ -246,7 +246,7 @@ func expand(gogm *Gogm, variable, label string, rels []decoratorConfig, level, d
 	return clause, nil
 }
 
-func relString(variable string, rel decoratorConfig) string {
+func relString(variable string, rel fieldDecoratorConfig) string {
 	start := "-"
 	end := "-"
 
@@ -259,7 +259,7 @@ func relString(variable string, rel decoratorConfig) string {
 	return fmt.Sprintf("%s[%s:%s]%s", start, variable, rel.Relationship, end)
 }
 
-func listComprehension(gogm *Gogm, fromNodeVar, label string, rel decoratorConfig, level, depth int) (string, error) {
+func listComprehension(gogm *Gogm, fromNodeVar, label string, rel fieldDecoratorConfig, level, depth int) (string, error) {
 	relVar := fmt.Sprintf("r_%c_%d", rel.Relationship[0], level)
 
 	toNodeType := rel.Type.Elem()

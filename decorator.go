@@ -61,6 +61,12 @@ const (
 	//specifies if the field is map of type `map[string]interface{} or []<primitive>`
 	propertiesField = "properties"
 
+	// startField defines field which is start in a special edge
+	startField = "start"
+
+	// endField defines field which is end in a special edge
+	endField = "end"
+
 	//specifies if the field is to be ignored
 	ignoreField = "-"
 
@@ -80,46 +86,58 @@ type propConfig struct {
 	SubType      reflect.Type
 }
 
+type specialEdgeConfig struct {
+	Type reflect.Type
+}
+
 //decorator config defines configuration of GoGM field
-type decoratorConfig struct {
+type fieldDecoratorConfig struct {
 	// ParentType holds the type of the parent object in order to validate some relationships
 	ParentType reflect.Type
 	// holds reflect type for the field
-	Type reflect.Type `json:"-"`
+	Type reflect.Type
 	// holds the name of the field for neo4j
-	Name string `json:"name"`
+	Name string
 	// holds the name of the field in the struct
-	FieldName string `json:"field_name"`
+	FieldName string
 	// holds the name of the relationship
-	Relationship string `json:"relationship"`
+	Relationship string
 	// holds the direction
-	Direction dsl.Direction `json:"direction"`
+	Direction dsl.Direction
 	// specifies if field is to be unique
-	Unique bool `json:"unique"`
+	Unique bool
 	// specifies if field is to be indexed
-	Index bool `json:"index"`
+	Index bool
 	// specifies if field represents many relationship
-	ManyRelationship bool `json:"many_relationship"`
+	ManyRelationship bool
 	// uses edge specifies if the edge is a special node
-	UsesEdgeNode bool `json:"uses_edge_node"`
+	UsesEdgeNode bool
+	// SpecialEdgeTag defines whether this field is a special edge tag (start or end)
+	SpecialEdgeTag bool
+	// SpecialEdgeStart defines that this field is start
+	SpecialEdgeStart bool
+	// SpecialEdgeEnd defines that this field is end
+	SpecialEdgeEnd bool
+	// SpecialEdgeConfig stores information about this field for runtime use
+	SpecialEdgeConfig *specialEdgeConfig
 	// specifies whether the field is the nodes primary key
-	PrimaryKey string `json:"primary_key"`
+	PrimaryKey string
 	// specify if the field holds properties
-	Properties bool `json:"properties"`
+	Properties bool
 
-	PropConfig *propConfig `json:"prop_config"`
+	PropConfig *propConfig
 	// specifies if the field contains time value
 	//	IsTime bool `json:"is_time"`
 	// specifies if the field contains a typedef of another type
-	IsTypeDef bool `json:"is_type_def"`
+	IsTypeDef bool
 	// holds the reflect type of the root type if typedefed
-	TypedefActual reflect.Type `json:"-"`
+	TypedefActual reflect.Type
 	// specifies whether to ignore the field
-	Ignore bool `json:"ignore"`
+	Ignore bool
 }
 
 // equals checks equality of decorator configs
-func (d *decoratorConfig) equals(comp *decoratorConfig) bool {
+func (d *fieldDecoratorConfig) equals(comp *fieldDecoratorConfig) bool {
 	if comp == nil {
 		return false
 	}
@@ -127,20 +145,30 @@ func (d *decoratorConfig) equals(comp *decoratorConfig) bool {
 	return d.Name == comp.Name && d.FieldName == comp.FieldName && d.Relationship == comp.Relationship &&
 		d.Direction == comp.Direction && d.Unique == comp.Unique && d.Index == comp.Index && d.ManyRelationship == comp.ManyRelationship &&
 		d.UsesEdgeNode == comp.UsesEdgeNode && d.PrimaryKey == comp.PrimaryKey && d.Properties == comp.Properties &&
-		d.IsTypeDef == comp.IsTypeDef && d.Ignore == comp.Ignore
+		d.IsTypeDef == comp.IsTypeDef && d.Ignore == comp.Ignore && d.SpecialEdgeTag == comp.SpecialEdgeTag && d.SpecialEdgeStart == comp.SpecialEdgeStart && d.SpecialEdgeEnd == comp.SpecialEdgeEnd
 }
+
+type structType int
+
+const (
+	typeVertex        structType = 0
+	typeEdgeInterface structType = 1
+	typeEdgeTag       structType = 2
+)
 
 // specifies configuration on GoGM node
 type structDecoratorConfig struct {
 	// Holds fields -> their configurations
 	// field name : decorator configuration
-	Fields map[string]decoratorConfig `json:"fields"`
+	Fields map[string]fieldDecoratorConfig
 	// holds label for the node, maps to struct name
-	Label string `json:"label"`
-	// specifies if the node is a vertex or an edge (if true, its a vertex)
-	IsVertex bool `json:"is_vertex"`
+	Label string
+	// specifies if the node is a vertex or an edge (if true, it's a vertex)
+	Type structType
 	// holds the reflect type of the struct
-	Type reflect.Type `json:"-"`
+	ReflectType reflect.Type
+	// defines if there is a pk
+	HasPK bool
 }
 
 // equals checks equality of structDecoratorConfigs
@@ -163,15 +191,15 @@ func (s *structDecoratorConfig) equals(comp *structDecoratorConfig) bool {
 		return false
 	}
 
-	return s.IsVertex == comp.IsVertex && s.Label == comp.Label
+	return s.Type == comp.Type && s.Label == comp.Label
 }
 
 // validate checks if the configuration is valid
-func (d *decoratorConfig) validate(gogm *Gogm) error {
+func (d *fieldDecoratorConfig) validate(gogm *Gogm) error {
 	if d.Ignore {
-		if d.Relationship != "" || d.Unique || d.Index || d.ManyRelationship || d.UsesEdgeNode ||
+		if d.Relationship != "" || d.Unique || d.Index || d.ManyRelationship || d.UsesEdgeNode || d.SpecialEdgeTag ||
 			d.PrimaryKey != "" || d.Properties || d.Name != d.FieldName {
-			return NewInvalidDecoratorConfigError("ignore tag cannot be combined with any other tag", "")
+			return NewInvalidFieldDecoratorConfigError("ignore tag cannot be combined with any other tag", "")
 		}
 
 		return nil
@@ -179,7 +207,25 @@ func (d *decoratorConfig) validate(gogm *Gogm) error {
 
 	//shouldn't happen, more of a sanity check
 	if d.Name == "" {
-		return NewInvalidDecoratorConfigError("name must be defined", "")
+		return NewInvalidFieldDecoratorConfigError("name must be defined", "")
+	}
+
+	// check if this is a special edge field
+	if d.SpecialEdgeTag {
+		// verify that only start or end are defined
+		if (d.SpecialEdgeStart || d.SpecialEdgeEnd) && !(d.SpecialEdgeStart && d.SpecialEdgeEnd) {
+			// we're good
+		} else {
+			return NewInvalidFieldDecoratorConfigError("End and Start can not both be defined on the same tag, must be one or the other", d.Name)
+		}
+
+		// ensure nothing else is defined on this
+		if d.Index || d.Unique || d.Properties || d.Relationship != "" || d.PrimaryKey != "" {
+			return NewInvalidFieldDecoratorConfigError("Can not provide any additional tags on field marked as end or start", d.Name)
+		}
+
+		// special edge field is valid
+		return nil
 	}
 
 	kind := d.Type.Kind()
@@ -187,18 +233,18 @@ func (d *decoratorConfig) validate(gogm *Gogm) error {
 	// properties supports map and slices
 	if (kind == reflect.Map || kind == reflect.Slice) && d.Properties && d.Relationship == "" {
 		if d.PrimaryKey != "" || d.Relationship != "" || d.Direction != 0 || d.Index || d.Unique {
-			return NewInvalidDecoratorConfigError("field marked as properties can only have name defined", d.Name)
+			return NewInvalidFieldDecoratorConfigError("field marked as properties can only have name defined", d.Name)
 		}
 
 		if kind == reflect.Slice {
 			sliceType := reflect.SliceOf(d.Type)
 			sliceKind := sliceType.Elem().Elem().Kind()
 			if _, err := getPrimitiveType(sliceKind); err != nil && sliceKind != reflect.Interface {
-				return NewInvalidDecoratorConfigError("property slice not of type <primitive>", d.Name)
+				return NewInvalidFieldDecoratorConfigError("property slice not of type <primitive>", d.Name)
 			}
 		} else if kind == reflect.Map {
 			if d.Type.Key().Kind() != reflect.String {
-				return NewInvalidDecoratorConfigError("property map key not of type string", d.Name)
+				return NewInvalidFieldDecoratorConfigError("property map key not of type string", d.Name)
 			}
 			mapType := d.Type.Elem()
 			mapKind := mapType.Kind()
@@ -207,18 +253,18 @@ func (d *decoratorConfig) validate(gogm *Gogm) error {
 			if mapKind == reflect.Slice {
 				mapElem := mapType.Elem().Kind()
 				if _, err := getPrimitiveType(mapElem); err != nil {
-					return NewInvalidDecoratorConfigError("property map not of type <primitive> or []<primitive>", d.Name)
+					return NewInvalidFieldDecoratorConfigError("property map not of type <primitive> or []<primitive>", d.Name)
 				}
 			} else if _, err := getPrimitiveType(mapKind); err != nil && mapType.Kind() != reflect.Interface {
-				return NewInvalidDecoratorConfigError("property map not of type <primitive> or []<primitive> or interface{} or []interface{}", d.Name)
+				return NewInvalidFieldDecoratorConfigError("property map not of type <primitive> or []<primitive> or interface{} or []interface{}", d.Name)
 			}
 		} else {
-			return NewInvalidDecoratorConfigError("property muss be map[string]<primitive> or map[string][]<primitive> or []primitive", d.Name)
+			return NewInvalidFieldDecoratorConfigError("property muss be map[string]<primitive> or map[string][]<primitive> or []primitive", d.Name)
 		}
 	} else if d.Properties {
-		return NewInvalidDecoratorConfigError("property must be map[string]<primitive> or map[string][]<primitive> or []primitive", d.Name)
+		return NewInvalidFieldDecoratorConfigError("property must be map[string]<primitive> or map[string][]<primitive> or []primitive", d.Name)
 	} else if kind == reflect.Map {
-		return NewInvalidDecoratorConfigError("field with map must be marked as a property", d.Name)
+		return NewInvalidFieldDecoratorConfigError("field with map must be marked as a property", d.Name)
 	}
 
 	//check if type is pointer
@@ -230,7 +276,7 @@ func (d *decoratorConfig) validate(gogm *Gogm) error {
 	//check valid relationship
 	if d.Direction != 0 || d.Relationship != "" || (kind == reflect.Struct && d.Type != timeType) || (kind == reflect.Slice && !d.Properties) {
 		if d.Relationship == "" {
-			return NewInvalidDecoratorConfigError("relationship has to be defined when creating a relationship", d.FieldName)
+			return NewInvalidFieldDecoratorConfigError("relationship has to be defined when creating a relationship", d.FieldName)
 		}
 
 		//check empty/undefined direction
@@ -239,17 +285,17 @@ func (d *decoratorConfig) validate(gogm *Gogm) error {
 		}
 
 		if kind != reflect.Struct && kind != reflect.Slice {
-			return NewInvalidDecoratorConfigError("relationship can only be defined on a struct or a slice", d.Name)
+			return NewInvalidFieldDecoratorConfigError("relationship can only be defined on a struct or a slice", d.Name)
 		}
 
 		//check that it isn't defining anything else that shouldn't be defined
 		if d.PrimaryKey != "" || d.Properties || d.Index || d.Unique {
-			return NewInvalidDecoratorConfigError("can only define relationship, direction and name on a relationship", d.Name)
+			return NewInvalidFieldDecoratorConfigError("can only define relationship, direction and name on a relationship", d.Name)
 		}
 
 		// check that name is not defined (should be defaulted to field name)
 		if d.Name != d.FieldName {
-			return NewInvalidDecoratorConfigError("name tag can not be defined on a relationship (Name and FieldName must be the same)", d.Name)
+			return NewInvalidFieldDecoratorConfigError("name tag can not be defined on a relationship (Name and FieldName must be the same)", d.Name)
 		}
 
 		//relationship is valid now
@@ -260,11 +306,11 @@ func (d *decoratorConfig) validate(gogm *Gogm) error {
 
 	//check pk and index and unique on the same field
 	if d.PrimaryKey != "" && (d.Index || d.Unique) {
-		return NewInvalidDecoratorConfigError("can not specify Index or Unique on primary key", d.Name)
+		return NewInvalidFieldDecoratorConfigError("can not specify Index or Unique on primary key", d.Name)
 	}
 
 	if d.Index && d.Unique {
-		return NewInvalidDecoratorConfigError("can not specify Index and Unique on the same field", d.Name)
+		return NewInvalidFieldDecoratorConfigError("can not specify Index and Unique on the same field", d.Name)
 	}
 
 	//validate pk
@@ -289,15 +335,16 @@ var edgeType = reflect.TypeOf(new(Edge)).Elem()
 
 // newDecoratorConfig generates decorator config for field
 // takes in the raw tag, name of the field and reflect type
-func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type, parentType reflect.Type) (*decoratorConfig, error) {
-	fields := strings.Split(decorator, deliminator)
+// varType has NOT called .Elem()
+func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type, parentType reflect.Type) (*fieldDecoratorConfig, error) {
+	tags := strings.Split(decorator, deliminator)
 
-	if len(fields) == 0 {
+	if len(tags) == 0 {
 		return nil, errors.New("decorator can not be empty")
 	}
 
 	//init bools to false
-	toReturn := decoratorConfig{
+	toReturn := fieldDecoratorConfig{
 		ParentType: parentType,
 		Unique:     false,
 		Ignore:     false,
@@ -306,11 +353,11 @@ func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type
 		FieldName:  name,
 	}
 
-	for _, field := range fields {
+	for _, tag := range tags {
 
-		//if its an assignment, further parsing is needed
-		if strings.Contains(field, assignmentOperator) {
-			assign := strings.Split(field, assignmentOperator)
+		//if it's an assignment, further parsing is needed
+		if strings.Contains(tag, assignmentOperator) {
+			assign := strings.Split(tag, assignmentOperator)
 			if len(assign) != 2 {
 				return nil, errors.New("empty assignment") //todo replace with better error
 			}
@@ -369,7 +416,7 @@ func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type
 		}
 
 		//simple bool check
-		switch field {
+		switch tag {
 		case uniqueField:
 			toReturn.Unique = true
 			continue
@@ -412,14 +459,38 @@ func newDecoratorConfig(gogm *Gogm, decorator, name string, varType reflect.Type
 		case indexField:
 			toReturn.Index = true
 			continue
+		case startField:
+			toReturn.SpecialEdgeTag = true
+			toReturn.SpecialEdgeStart = true
+			// check if varType is a pointer, if it's not we can't continue
+			if varType.Kind() != reflect.Pointer {
+				return nil, fmt.Errorf("unable to get type from special edge start since the kind is not a pointer, but a %s: %w", varType.Kind().String(), ErrConfiguration)
+			}
+
+			toReturn.SpecialEdgeConfig = &specialEdgeConfig{
+				Type: varType.Elem(),
+			}
+			continue
+		case endField:
+			toReturn.SpecialEdgeTag = true
+			toReturn.SpecialEdgeEnd = true
+			// check if varType is a pointer, if it's not we can't continue
+			if varType.Kind() != reflect.Pointer {
+				return nil, fmt.Errorf("unable to get type from special edge start since the kind is not a pointer, but a %s: %w", varType.Kind().String(), ErrConfiguration)
+			}
+
+			toReturn.SpecialEdgeConfig = &specialEdgeConfig{
+				Type: varType.Elem(),
+			}
+			continue
 		default:
-			return nil, fmt.Errorf("key '%s' is not recognized", field) //todo replace with better error
+			return nil, fmt.Errorf("key '%s' is not recognized", tag) //todo replace with better error
 		}
 	}
 
-	//if its not a relationship, check if the field was typedeffed
+	//if its not a relationship, check if the tag was typedeffed
 	if toReturn.Relationship == "" {
-		//check if field is type def
+		//check if tag is type def
 		isTypeDef, newType, err := getActualTypeIfAliased(varType)
 		if err != nil {
 			return nil, err
@@ -462,6 +533,9 @@ func (s *structDecoratorConfig) validate() error {
 	pkCount := 0
 	rels := 0
 	defaultPkFound := false
+	startsFound := 0
+	endsFound := 0
+	markedAsTagEdge := false
 
 	for _, conf := range s.Fields {
 		// ignore default, we only care about custom pk's (like uuid)
@@ -474,21 +548,49 @@ func (s *structDecoratorConfig) validate() error {
 
 		}
 
+		if conf.SpecialEdgeTag {
+			markedAsTagEdge = true
+		}
+
+		if conf.SpecialEdgeStart {
+			startsFound++
+		}
+
+		if conf.SpecialEdgeEnd {
+			endsFound++
+		}
+
 		if conf.Relationship != "" {
 			rels++
 		}
 	}
 
-	if pkCount == 0 && !defaultPkFound {
-		return NewInvalidStructConfigError("primary key required on node/edge " + s.Label)
-	} else if pkCount > 1 {
-		return NewInvalidStructConfigError("too many primary keys defined")
+	// validate correct numbers of start and end
+	if markedAsTagEdge {
+		if startsFound != 1 {
+			return NewInvalidStructConfigError(fmt.Sprintf("invalid number of fields marked as `start`. Expected 1 found %v", startsFound))
+		}
+
+		if endsFound != 1 {
+			return NewInvalidStructConfigError(fmt.Sprintf("invalid number of fields marked as `end`. Expected 1 found %v", endsFound))
+		}
 	}
 
+	s.HasPK = pkCount > 0 || defaultPkFound
+
 	//edge specific check
-	if !s.IsVertex {
+	if s.Type == typeEdgeInterface || s.Type == typeEdgeTag {
 		if rels > 0 {
 			return NewInvalidStructConfigError("relationships can not be defined on edges")
+		}
+
+		// validate that there are no primary keys the edge
+	} else {
+		// pks only required on vertexes
+		if pkCount == 0 && !defaultPkFound {
+			return NewInvalidStructConfigError("primary key required on node/edge " + s.Label)
+		} else if pkCount > 1 {
+			return NewInvalidStructConfigError("too many primary keys defined")
 		}
 	}
 
@@ -508,30 +610,24 @@ func getStructDecoratorConfig(gogm *Gogm, i interface{}, mappedRelations *relati
 
 	t = t.Elem()
 
-	isEdge := false
-
-	//check if its an edge
-	if _, ok := i.(Edge); ok {
-		isEdge = true
-	}
-
-	toReturn.IsVertex = !isEdge
-
 	toReturn.Label = t.Name()
 
-	toReturn.Type = t
+	toReturn.ReflectType = t
 
 	if t.NumField() == 0 {
-		return nil, errors.New("struct has no fields") //todo make error more thorough
+		return nil, fmt.Errorf("struct has no fields: %w", ErrConfiguration)
 	}
 
-	toReturn.Fields = map[string]decoratorConfig{}
+	toReturn.Fields = map[string]fieldDecoratorConfig{}
 
 	fields := getFields(t)
 
 	if len(fields) == 0 {
 		return nil, errors.New("failed to parse fields")
 	}
+
+	// check if any of the fields are for start defined edge
+	fieldDefinedSpecialEdge := false
 
 	//iterate through fields and get their configuration
 	for _, field := range fields {
@@ -543,8 +639,8 @@ func getStructDecoratorConfig(gogm *Gogm, i interface{}, mappedRelations *relati
 				return nil, err
 			}
 
-			if config == nil {
-				return nil, errors.New("config is nil") //todo better error
+			if config.SpecialEdgeTag {
+				fieldDefinedSpecialEdge = true
 			}
 
 			if config.Relationship != "" {
@@ -577,6 +673,20 @@ func getStructDecoratorConfig(gogm *Gogm, i interface{}, mappedRelations *relati
 
 			toReturn.Fields[field.Name] = *config
 		}
+	}
+
+	//check if its an edge
+	_, implementsEdge := i.(Edge)
+	if implementsEdge && fieldDefinedSpecialEdge {
+		return nil, NewInvalidStructConfigError("can not define start/end with tags and implement Edge interface. It is recommended to delete interface implementation functions since Edge is now deprecated")
+	}
+
+	if implementsEdge {
+		toReturn.Type = typeEdgeInterface
+	} else if fieldDefinedSpecialEdge {
+		toReturn.Type = typeEdgeTag
+	} else {
+		toReturn.Type = typeVertex
 	}
 
 	err := toReturn.validate()

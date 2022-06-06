@@ -63,10 +63,10 @@ func (p *PrimaryKeyStrategy) validate() error {
 		return nil
 	}
 
-	// validate that the gen id function generates the same type as p.Type
+	// validate that the gen id function generates the same type as p.ReflectType
 	testType := reflect.TypeOf(p.GenIDFunc())
 	if testType != p.Type {
-		return fmt.Errorf("GenIDFunc does not return same type as strategy.Type %s != %s", testType.Name(), p.Type.String())
+		return fmt.Errorf("GenIDFunc does not return same type as strategy.ReflectType %s != %s", testType.Name(), p.Type.String())
 	}
 
 	return nil

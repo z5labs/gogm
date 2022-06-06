@@ -38,7 +38,7 @@ type BaseUUIDNode struct {
 	UUID string `gogm:"pk=UUID"`
 }
 
-// Specifies Type of testRelationship
+// Specifies ReflectType of testRelationship
 type RelationType int
 
 const (
