@@ -23,7 +23,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 
 	uuid2 "github.com/google/uuid"
@@ -48,42 +47,44 @@ func TestIntegration(t *testing.T) {
 		t.Skip()
 		return
 	}
-	suite.Run(t, &IntegrationTestSuite{})
+
+	for _, version := range []neo4jContainerVersion{neo3, neo4} {
+		fmt.Printf("Running integration test suite on neo4j version %s", version)
+		suite.Run(t, &IntegrationTestSuite{version: version})
+	}
 }
 
 type IntegrationTestSuite struct {
 	suite.Suite
-	gogm *Gogm
-	conf *Config
+	gogm      *Gogm
+	config    *Config
+	version   neo4jContainerVersion
+	container *neo4jContainer
+}
+
+func (integrationTest *IntegrationTestSuite) SetupSuite() {
+	var err error
+	integrationTest.container, err = setupNeo4jContainer(context.Background(), integrationTest.version)
+	integrationTest.Require().Nil(err)
+
+	integrationTest.config = integrationTest.container.GetGogmConfig()
+
+	// this is ignore because index management is part of the test
+	integrationTest.config.IndexStrategy = IGNORE_INDEX
+
+	integrationTest.gogm, err = New(integrationTest.config, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{}, &narcissisticTestNode{}, &Sides{}, &Middle{}, &Bottom{})
+	integrationTest.Require().Nil(err)
+	integrationTest.Require().NotNil(integrationTest.gogm)
 }
 
 func (integrationTest *IntegrationTestSuite) TearDownSuite() {
+	defer integrationTest.container.Teminate(context.Background())
 	sess, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: AccessModeWrite})
 	integrationTest.Require().Nil(err)
 	integrationTest.Require().NotNil(sess)
 	sess.QueryRaw(context.Background(), "match (n) detach delete n", nil)
 	integrationTest.Require().Nil(sess.Close())
 	integrationTest.Require().Nil(integrationTest.gogm.Close())
-}
-
-func (integrationTest *IntegrationTestSuite) SetupSuite() {
-	conf := Config{
-		Username: "neo4j",
-		Password: "changeme",
-		Host:     "0.0.0.0",
-		Protocol: "bolt",
-		Port:     7687,
-		PoolSize: 15,
-		// this is ignore because index management is part of the test
-		IndexStrategy:             IGNORE_INDEX,
-		EnableDriverLogs:          false,
-		DefaultTransactionTimeout: 2 * time.Minute,
-	}
-
-	gogm, err := New(&conf, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{}, &narcissisticTestNode{}, &Sides{}, &Middle{}, &Bottom{})
-	integrationTest.Require().Nil(err)
-	integrationTest.Require().NotNil(gogm)
-	integrationTest.gogm = gogm
 }
 
 func (integrationTest *IntegrationTestSuite) TestQueryRaw() {
@@ -121,38 +122,31 @@ func (integrationTest *IntegrationTestSuite) TestV4Index() {
 		return
 	}
 
-	assertCopy := *integrationTest.conf
+	assertCopy := *integrationTest.config
 	assertCopy.IndexStrategy = ASSERT_INDEX
 	_, err := New(&assertCopy, UUIDPrimaryKeyStrategy, &indexTestStruct{})
 	integrationTest.Assert().Nil(err)
 
-	validateCopy := *integrationTest.conf
+	validateCopy := *integrationTest.config
 	validateCopy.IndexStrategy = VALIDATE_INDEX
 	_, err = New(&validateCopy, UUIDPrimaryKeyStrategy, &indexTestStruct{})
 	integrationTest.Assert().Nil(err)
 }
 
 func (integrationTest *IntegrationTestSuite) TestSecureConnection() {
-	if integrationTest.gogm.boltMajorVersion < 4 {
+	if integrationTest.version == neo3 {
 		integrationTest.T().Log("skipping secure test for v3")
 		return
 	}
 
-	conf := Config{
-		Username:       "neo4j",
-		Password:       "changeme",
-		Host:           "0.0.0.0",
-		Protocol:       "neo4j+ssc",
-		CAFileLocation: os.Getenv("ROOT") + "/ca-public.crt",
-		Port:           7687,
-		PoolSize:       15,
-		// this is ignore because index management is part of the test
-		IndexStrategy:             IGNORE_INDEX,
-		EnableDriverLogs:          true,
-		DefaultTransactionTimeout: 2 * time.Minute,
-	}
-	integrationTest.conf = &conf
-	gogm, err := New(&conf, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{})
+	conf := integrationTest.container.GetGogmConfig()
+	conf.Protocol = "neo4j+ssc"
+	conf.CAFileLocation = integrationTest.container.CertDir + "/ca-public.crt"
+	// this is ignore because index management is part of the test
+	conf.IndexStrategy = IGNORE_INDEX
+
+	integrationTest.config = conf
+	gogm, err := New(conf, UUIDPrimaryKeyStrategy, &a{}, &b{}, &c{}, &propTest{})
 	integrationTest.Require().Nil(err)
 	integrationTest.Require().NotNil(gogm)
 	defer gogm.Close()

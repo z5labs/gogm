@@ -52,7 +52,7 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}OnField{{.StructField}}(t
 	}{{ end }}
 	{{if .StructFieldIsMany  }}
 	if l.{{ .StructField }} == nil {
-		l.{{ .StructField }} = make([]*{{ .SpecialEdgeType }}, 1, 1)
+		l.{{ .StructField }} = make([]*{{ .SpecialEdgeType }}, 1)
 		l.{{ .StructField }}[0] = edge
 	} else {
 		l.{{ .StructField }} = append(l.{{ .StructField }}, edge)
@@ -60,7 +60,7 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}OnField{{.StructField}}(t
 	l.{{ .StructField }} = edge{{ end }}
 	{{if .OtherStructFieldIsMany  }}
 	if target.{{ .OtherStructField }} == nil {
-		target.{{ .OtherStructField }} = make([]*{{ .SpecialEdgeType }}, 1, 1)
+		target.{{ .OtherStructField }} = make([]*{{ .SpecialEdgeType }}, 1)
 		target.{{ .OtherStructField }}[0] = edge
 	} else {
 		target.{{ .OtherStructField }} = append(target.{{ .OtherStructField }}, edge)
@@ -79,7 +79,7 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}OnField{{.StructField}}(t
 	}
 	{{if .StructFieldIsMany  }}
 	if l.{{ .StructField }} == nil {
-		l.{{ .StructField }} = make([]*{{ .OtherStructName }}, 1, 1)
+		l.{{ .StructField }} = make([]*{{ .OtherStructName }}, 1)
 		l.{{ .StructField }}[0] = target
 	} else {
 		l.{{ .StructField }} = append(l.{{ .StructField }}, target)
@@ -87,7 +87,7 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}OnField{{.StructField}}(t
 	l.{{ .StructField }} = target{{ end }}
 	{{if .OtherStructFieldIsMany  }}
 	if target.{{ .OtherStructField }} == nil {
-		target.{{ .OtherStructField }} = make([]*{{ .StructName }}, 1, 1)
+		target.{{ .OtherStructField }} = make([]*{{ .StructName }}, 1)
 		target.{{ .OtherStructField }}[0] = l
 	} else {
 		target.{{ .OtherStructField }} = append(target.{{ .OtherStructField }}, l)
@@ -108,7 +108,7 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}OnField{{.StructField}}(t
 	for _, target := range targets {
 		{{if .StructFieldIsMany  }}
 		if l.{{ .StructField }} == nil {
-			l.{{ .StructField }} = make([]*{{ .OtherStructName }}, 1, 1)
+			l.{{ .StructField }} = make([]*{{ .OtherStructName }}, 1)
 			l.{{ .StructField }}[0] = target
 		} else {
 			l.{{ .StructField }} = append(l.{{ .StructField }}, target)
@@ -116,7 +116,7 @@ func(l *{{ .StructName }}) LinkTo{{ .OtherStructName }}OnField{{.StructField}}(t
 		l.{{ .StructField }} = target{{ end }}
 		{{if .OtherStructFieldIsMany  }}
 		if target.{{ .OtherStructField }} == nil {
-			target.{{ .OtherStructField }} = make([]*{{ .StructName }}, 1, 1)
+			target.{{ .OtherStructField }} = make([]*{{ .StructName }}, 1)
 			target.{{ .OtherStructField }}[0] = l
 		} else {
 			target.{{ .OtherStructField }} = append(target.{{ .OtherStructField }}, l)
