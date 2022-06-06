@@ -258,19 +258,9 @@ func (s *SessionV2Impl) LoadDepthFilterPagination(ctx context.Context, respObj, 
 
 	//if the query requires pagination, set that up
 	if pagination != nil {
-		err := pagination.Validate()
-		if err != nil {
+		if err = pagination.Paginate(query); err != nil {
 			return err
 		}
-
-		query = query.
-			OrderBy(dsl.OrderByConfig{
-				Name:   pagination.OrderByVarName,
-				Member: pagination.OrderByField,
-				Desc:   pagination.OrderByDesc,
-			}).
-			Skip(pagination.LimitPerPage * pagination.PageNumber).
-			Limit(pagination.LimitPerPage)
 	}
 
 	if params == nil {
@@ -380,19 +370,9 @@ func (s *SessionV2Impl) LoadAllDepthFilterPagination(ctx context.Context, respOb
 
 	//if the query requires pagination, set that up
 	if pagination != nil {
-		err := pagination.Validate()
-		if err != nil {
+		if err = pagination.Paginate(query); err != nil {
 			return err
 		}
-
-		query = query.
-			OrderBy(dsl.OrderByConfig{
-				Name:   pagination.OrderByVarName,
-				Member: pagination.OrderByField,
-				Desc:   pagination.OrderByDesc,
-			}).
-			Skip(pagination.LimitPerPage * pagination.PageNumber).
-			Limit(pagination.LimitPerPage)
 	}
 
 	cyp, err := query.ToCypher()
