@@ -151,7 +151,7 @@ func TestConvertNodeToValue(t *testing.T) {
 		Labels: []string{"TestStruct"},
 	}
 
-	val, err := convertNodeToValue(gogm, bn, false, ptrToBool(false), nil)
+	val, err := convertNodeToValue(gogm, bn, false, false, ptrToBool(false), nil)
 	req.Nil(err)
 	req.NotNil(val)
 	req.EqualValues(TestStruct{
@@ -182,7 +182,7 @@ func TestConvertNodeToValue(t *testing.T) {
 		Name: "test",
 	}
 	mappedTypes.Set("TestStruct", te)
-	val, err = convertNodeToValue(gogm, bn, false, ptrToBool(false), nil)
+	val, err = convertNodeToValue(gogm, bn, false, false, ptrToBool(false), nil)
 	req.Nil(err)
 	req.NotNil(val)
 }
