@@ -39,6 +39,10 @@ func int64SliceContains(s []int64, e int64) bool {
 	return false
 }
 
+func ptrToBool(b bool) *bool {
+	return &b
+}
+
 // sets uuid for stuct if uuid field is empty
 func handleNodeState(pkStrat *PrimaryKeyStrategy, val *reflect.Value) (isNew bool, id int64, relConfig map[string]*RelationConfig, err error) {
 	if val == nil {

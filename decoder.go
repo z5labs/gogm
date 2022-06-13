@@ -57,10 +57,6 @@ func traverseResultRecordValues(values []interface{}) ([]neo4j.Path, []neo4j.Rel
 	return paths, strictRels, isolatedNodes
 }
 
-func ptrToBool(b bool) *bool {
-	return &b
-}
-
 //decodes raw path response from driver
 //example query `match p=(n)-[*0..5]-() return p`
 func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
