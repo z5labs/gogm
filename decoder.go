@@ -274,20 +274,34 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 			}
 
 			//set edge for end
-			if reflect.Indirect(*end).FieldByName(endConfig.FieldName).Kind() == reflect.Slice {
-				reflect.Indirect(*end).FieldByName(endConfig.FieldName).Set(reflect.Append(reflect.Indirect(*end).FieldByName(endConfig.FieldName), *specialEdgeValue))
+			if start.Kind() == reflect.Ptr {
+				*start = start.Elem()
+			}
+			if end.Kind() == reflect.Ptr {
+				*end = end.Elem()
+			}
+
+			if end.FieldByName(endConfig.FieldName).Kind() == reflect.Slice {
+				end.FieldByName(endConfig.FieldName).Set(reflect.Append(end.FieldByName(endConfig.FieldName), *specialEdgeValue))
 			} else {
 				//non slice relationships are already asserted to be pointers
 				end.FieldByName(endConfig.FieldName).Set(*specialEdgeValue)
 			}
 
 			//set edge for start
-			if reflect.Indirect(*start).FieldByName(startConfig.FieldName).Kind() == reflect.Slice {
-				reflect.Indirect(*start).FieldByName(startConfig.FieldName).Set(reflect.Append(reflect.Indirect(*start).FieldByName(startConfig.FieldName), *specialEdgeValue))
+			if start.FieldByName(startConfig.FieldName).Kind() == reflect.Slice {
+				start.FieldByName(startConfig.FieldName).Set(reflect.Append(start.FieldByName(startConfig.FieldName), *specialEdgeValue))
 			} else {
 				start.FieldByName(startConfig.FieldName).Set(*specialEdgeValue)
 			}
 		} else {
+			if start.Kind() == reflect.Ptr {
+				*start = start.Elem()
+			}
+			if end.Kind() == reflect.Ptr {
+				*end = end.Elem()
+			}
+
 			if end.FieldByName(endConfig.FieldName).Kind() == reflect.Slice {
 				end.FieldByName(endConfig.FieldName).Set(reflect.Append(end.FieldByName(endConfig.FieldName), start.Addr()))
 			} else {
@@ -340,12 +354,9 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 		reflect.Indirect(returnValue).Set(sliceValuePtr)
 
 		return err
-	} else {
-		//handles single -- already checked to make sure p2 is at least 1
-		// reflect.Indirect(returnValue).Set(*nodeLookup[pks[0]])
-
-		return err
 	}
+
+	return err
 }
 
 // getPrimaryLabel gets the label from a reflect type

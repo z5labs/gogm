@@ -122,7 +122,7 @@ func (n neo4jContainer) GetGogmConfig() *Config {
 		IsCluster:                 false,
 		Port:                      n.Port,
 		PoolSize:                  15,
-		EnableDriverLogs:          true,
+		EnableDriverLogs:          false,
 		DefaultTransactionTimeout: 2 * time.Minute,
 	}
 }
