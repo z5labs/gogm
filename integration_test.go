@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 	"sync"
 
 	uuid2 "github.com/google/uuid"
@@ -158,6 +159,52 @@ func (integrationTest *IntegrationTestSuite) TestSecureConnection() {
 
 	_, _, err = sess.QueryRaw(context.Background(), "return 1;", nil)
 	integrationTest.Require().Nil(err)
+}
+
+func (integrationTest *IntegrationTestSuite) TestFirstLayerSpecialEdgeLoad() {
+	req := integrationTest.Require()
+
+	/*
+		            a
+		          /   \
+		       EdgeC  EdgeC
+		       /        \
+		      b          b
+		verifying that loading from A places pointers correctly so that a change in edge is working
+	*/
+
+	// build base graph
+	_a := a{}
+	b1, b2 := b{}, b{}
+	c1, c2 := c{Start: &_a, End: &b1}, c{Start: &_a, End: &b2}
+	_a.MultiSpecA = []*c{&c1, &c2}
+	b1.SingleSpec = &c1
+	b2.SingleSpec = &c2
+	sess1, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	req.NoError(err)
+	req.NotNil(sess1)
+
+	req.NoError(sess1.SaveDepth(context.Background(), &_a, 1))
+
+	req.NoError(sess1.Close())
+
+	// now load stuff and verify that it loaded correctly
+	sess2, err := integrationTest.gogm.NewSessionV2(SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	req.NoError(err)
+	req.NotNil(sess2)
+	copyA := a{}
+	req.NoError(sess2.LoadDepth(context.Background(), &copyA, _a.UUID, 1))
+	// now we need to verify that the pointers match
+	// check that the slice length is correct
+	req.Equal(2, len(copyA.MultiSpecA), "length of C edges")
+	copyC1, copyC2 := copyA.MultiSpecA[0], copyA.MultiSpecA[1]
+	// check pointers are correct
+	req.Equal(reflect.ValueOf(&copyA).Pointer(), reflect.ValueOf(copyC1.Start).Pointer(), "edge pointer C1 Start back to A should match A pointer")
+	req.Equal(reflect.ValueOf(&copyA).Pointer(), reflect.ValueOf(copyC2.Start).Pointer(), "edge pointer C2 Start back to A should match A pointer")
+
+	// now to replicate the original error, clear the edges and try to save, this should pass if the issue is fixed
+	copyA.MultiSpecA = []*c{}
+	req.NoError(sess2.SaveDepth(context.Background(), &copyA, 1))
 }
 
 func (integrationTest *IntegrationTestSuite) TestManagedTx() {

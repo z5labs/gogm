@@ -835,6 +835,7 @@ func processStruct(gogm *Gogm, fieldConf decoratorConfig, relValue *reflect.Valu
 			return 0, "", false, 0, nil, nil, errors.New("edge is invalid, sides are not set")
 		}
 
+		// get actual type from interface
 		startVal := startValSlice[0].Elem()
 		endVal := endValSlice[0].Elem()
 
@@ -848,17 +849,11 @@ func processStruct(gogm *Gogm, fieldConf decoratorConfig, relValue *reflect.Valu
 			params = map[string]interface{}{}
 		}
 
-		if startVal.Pointer() == curPtr {
-
-			//follow the end
-			retVal := endValSlice[0].Elem()
-
-			return curPtr, edgeLabel, true, fieldConf.Direction, params, &retVal, nil
-		} else if endVal.Pointer() == curPtr {
-			///follow the start
-			retVal := startValSlice[0].Elem()
-
-			return curPtr, edgeLabel, false, fieldConf.Direction, params, &retVal, nil
+		startPtr, endPtr := startVal.Pointer(), endVal.Pointer()
+		if startPtr == curPtr {
+			return startPtr, edgeLabel, true, fieldConf.Direction, params, &endVal, nil
+		} else if endPtr == curPtr {
+			return endPtr, edgeLabel, false, fieldConf.Direction, params, &startVal, nil
 		} else {
 			return 0, "", false, 0, nil, nil, errors.New("edge is invalid, doesn't point to parent vertex")
 		}
