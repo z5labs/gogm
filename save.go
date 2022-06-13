@@ -438,7 +438,6 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 			for i := 0; i < slLen; i++ {
 				relVal := relField.Index(i)
 
-				fmt.Println("calling process struct many from generate cur rels")
 				newParentId, _, _, _, _, followVal, err := processStruct(gogm, conf, &relVal, curPtr)
 				if err != nil {
 					return err
@@ -472,7 +471,6 @@ func generateCurRels(gogm *Gogm, parentPtr uintptr, current *reflect.Value, curr
 				}
 			}
 		} else {
-			fmt.Println("calling processStruct many from generateCurRels")
 			newParentId, _, _, _, _, followVal, err := processStruct(gogm, conf, &relField, curPtr)
 			if err != nil {
 				return err
@@ -784,7 +782,6 @@ func parseStruct(gogm *Gogm, parentPtr uintptr, edgeLabel string, parentIsStart 
 
 			for i := 0; i < slLen; i++ {
 				relVal := relField.Index(i)
-				fmt.Printf("calling process struct many from parse struct\ntype=%v\n", current.Type().String())
 				newParentId, newEdgeLabel, newParentIsStart, newDirection, newEdgeParams, followVal, err := processStruct(gogm, conf, &relVal, curPtr)
 				if err != nil {
 					return err
@@ -796,7 +793,6 @@ func parseStruct(gogm *Gogm, parentPtr uintptr, edgeLabel string, parentIsStart 
 				}
 			}
 		} else {
-			fmt.Printf("calling process struct single from parse struct\n")
 			newParentId, newEdgeLabel, newParentIsStart, newDirection, newEdgeParams, followVal, err := processStruct(gogm, conf, &relField, curPtr)
 			if err != nil {
 				return err
@@ -853,20 +849,11 @@ func processStruct(gogm *Gogm, fieldConf decoratorConfig, relValue *reflect.Valu
 			params = map[string]interface{}{}
 		}
 
-		startPtr, endPtr, relPTR := startVal.Pointer(), endVal.Pointer(), relValue.Pointer()
-		fmt.Printf("startPTR=%v\nendPTR=%v\nrelPTR=%v\ncurPTR=%v\n", startPtr, endPtr, relPTR, curPtr)
-		fmt.Printf("startType=%v\nendType=%v\ncurType=%v\n", startVal.Type().String(), endVal.Type().String(), relValue.Type().String())
+		startPtr, endPtr := startVal.Pointer(), endVal.Pointer()
 		if startPtr == curPtr {
-
-			//follow the end
-			retVal := endValSlice[0].Elem()
-
-			return curPtr, edgeLabel, true, fieldConf.Direction, params, &retVal, nil
+			return startPtr, edgeLabel, true, fieldConf.Direction, params, &endVal, nil
 		} else if endPtr == curPtr {
-			///follow the start
-			retVal := startValSlice[0].Elem()
-
-			return curPtr, edgeLabel, false, fieldConf.Direction, params, &retVal, nil
+			return endPtr, edgeLabel, false, fieldConf.Direction, params, &startVal, nil
 		} else {
 			return 0, "", false, 0, nil, nil, errors.New("edge is invalid, doesn't point to parent vertex")
 		}

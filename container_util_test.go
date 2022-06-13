@@ -67,7 +67,7 @@ func setupNeo4jContainer(ctx context.Context, version neo4jContainerVersion) (*n
 			return nil, err
 		}
 
-		req.Image = "neo4j:4.3.2-enterprise"
+		req.Image = "neo4j:4.4-enterprise"
 
 		req.Env["NEO4J_dbms_default__listen__address"] = "0.0.0.0"
 

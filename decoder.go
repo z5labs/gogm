@@ -57,6 +57,10 @@ func traverseResultRecordValues(values []interface{}) ([]neo4j.Path, []neo4j.Rel
 	return paths, strictRels, isolatedNodes
 }
 
+func ptrToBool(b bool) *bool {
+	return &b
+}
+
 //decodes raw path response from driver
 //example query `match p=(n)-[*0..5]-() return p`
 func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
@@ -76,16 +80,23 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 		return fmt.Errorf("response object can not be nil - %w", ErrInvalidParams)
 	}
 
-	rv := reflect.ValueOf(respObj)
-	rt := reflect.TypeOf(respObj)
+	returnValue := reflect.ValueOf(respObj)
+	returnType := reflect.TypeOf(respObj)
 
-	primaryLabel := getPrimaryLabel(rt)
-
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+	// check type is valid
+	if returnValue.Kind() != reflect.Ptr || returnValue.IsNil() {
 		return fmt.Errorf("invalid resp type %T - %w", respObj, ErrInvalidParams)
 	}
 
-	//todo optimize with set array size
+	primaryLabel, err := getPrimaryLabel(returnType)
+	if err != nil {
+		return fmt.Errorf("failed to get primary label from returnType: %w", err)
+	}
+
+	if primaryLabel == "" {
+		return errors.New("label was empty for returnType")
+	}
+
 	var paths []neo4j.Path
 	var strictRels []neo4j.Relationship
 	var isolatedNodes []neo4j.Node
@@ -102,16 +113,18 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 	var pks []int64
 	rels := make(map[int64]*neoEdgeConfig)
 	labelLookup := map[int64]string{}
+	returnIsSingle := returnType.Elem().Kind() != reflect.Slice
+	returnUsed := ptrToBool(false)
 
 	if len(paths) != 0 {
-		err = sortPaths(gogm, paths, nodeLookup, rels, &pks, primaryLabel, relMaps)
+		err = sortPaths(gogm, paths, nodeLookup, rels, &pks, returnIsSingle, returnUsed, &returnValue, primaryLabel, relMaps)
 		if err != nil {
 			return err
 		}
 	}
 
 	if len(isolatedNodes) != 0 {
-		err = sortIsolatedNodes(gogm, isolatedNodes, labelLookup, nodeLookup, &pks, primaryLabel, relMaps)
+		err = sortIsolatedNodes(gogm, isolatedNodes, labelLookup, nodeLookup, &pks, returnIsSingle, returnUsed, &returnValue, primaryLabel, relMaps)
 		if err != nil {
 			return err
 		}
@@ -229,7 +242,7 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 			}
 
 			//create value
-			specialEdgeValue, err := convertToValue(gogm, relationConfig.Id, typeConfig, relationConfig.Obj, specialEdgeType)
+			specialEdgeValue, err := convertToValue(gogm, relationConfig.Id, typeConfig, relationConfig.Obj, specialEdgeType, false, returnUsed, nil)
 			if err != nil {
 				return err
 			}
@@ -302,8 +315,8 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 	}
 
 	//handle if its returning a slice -- validation has been done at an earlier step
-	if rt.Elem().Kind() == reflect.Slice {
-		reflection := reflect.MakeSlice(rt.Elem(), 0, cap(pks))
+	if !returnIsSingle {
+		reflection := reflect.MakeSlice(returnType.Elem(), 0, cap(pks))
 
 		reflectionValue := reflect.New(reflection.Type())
 		reflectionValue.Elem().Set(reflection)
@@ -312,7 +325,7 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 
 		sliceValuePtr := slicePtr.Elem()
 
-		sliceType := rt.Elem().Elem()
+		sliceType := returnType.Elem().Elem()
 
 		for _, id := range pks {
 			val, ok := nodeLookup[id]
@@ -328,19 +341,19 @@ func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 			}
 		}
 
-		reflect.Indirect(rv).Set(sliceValuePtr)
+		reflect.Indirect(returnValue).Set(sliceValuePtr)
 
 		return err
 	} else {
 		//handles single -- already checked to make sure p2 is at least 1
-		reflect.Indirect(rv).Set(*nodeLookup[pks[0]])
+		// reflect.Indirect(returnValue).Set(*nodeLookup[pks[0]])
 
 		return err
 	}
 }
 
 // getPrimaryLabel gets the label from a reflect type
-func getPrimaryLabel(rt reflect.Type) string {
+func getPrimaryLabel(rt reflect.Type) (string, error) {
 	//assume its already a pointer
 	rt = rt.Elem()
 
@@ -349,13 +362,15 @@ func getPrimaryLabel(rt reflect.Type) string {
 		if rt.Kind() == reflect.Ptr {
 			rt = rt.Elem()
 		}
+	} else if rt.Kind() == reflect.Ptr {
+		return "", errors.New("must be pointer to struct of slice, can not be a pointer to another pointer")
 	}
 
-	return rt.Name()
+	return rt.Name(), nil
 }
 
 // sortIsolatedNodes process nodes that are returned individually from bolt driver
-func sortIsolatedNodes(gogm *Gogm, isolatedNodes []neo4j.Node, labelLookup map[int64]string, nodeLookup map[int64]*reflect.Value, pks *[]int64, pkLabel string, relMaps map[int64]map[string]*RelationConfig) error {
+func sortIsolatedNodes(gogm *Gogm, isolatedNodes []neo4j.Node, labelLookup map[int64]string, nodeLookup map[int64]*reflect.Value, pks *[]int64, pkSingle bool, passTypeUsed *bool, passValue *reflect.Value, pkLabel string, relMaps map[int64]map[string]*RelationConfig) error {
 	if isolatedNodes == nil {
 		return fmt.Errorf("isolatedNodes can not be nil, %w", ErrInternal)
 	}
@@ -364,7 +379,7 @@ func sortIsolatedNodes(gogm *Gogm, isolatedNodes []neo4j.Node, labelLookup map[i
 		//check if node has already been found by another process
 		if _, ok := nodeLookup[node.Id]; !ok {
 			//if it hasn't, map it
-			val, err := convertNodeToValue(gogm, node)
+			val, err := convertNodeToValue(gogm, node, pkSingle, passTypeUsed, passValue)
 			if err != nil {
 				return err
 			}
@@ -421,7 +436,7 @@ func sortStrictRels(strictRels []neo4j.Relationship, labelLookup map[int64]strin
 }
 
 // sortPaths sorts nodes and relationships from bolt driver that dont specify the direction explicitly, instead uses the bolt spec to determine direction
-func sortPaths(gogm *Gogm, paths []neo4j.Path, nodeLookup map[int64]*reflect.Value, rels map[int64]*neoEdgeConfig, pks *[]int64, pkLabel string, relMaps map[int64]map[string]*RelationConfig) error {
+func sortPaths(gogm *Gogm, paths []neo4j.Path, nodeLookup map[int64]*reflect.Value, rels map[int64]*neoEdgeConfig, pks *[]int64, pkSingle bool, passTypeUsed *bool, passValue *reflect.Value, pkLabel string, relMaps map[int64]map[string]*RelationConfig) error {
 	if paths == nil {
 		return fmt.Errorf("paths is empty, that shouldn't have happened, %w", ErrInternal)
 	}
@@ -439,9 +454,9 @@ func sortPaths(gogm *Gogm, paths []neo4j.Path, nodeLookup map[int64]*reflect.Val
 			}
 			if _, ok := nodeLookup[node.Id]; !ok {
 				//we haven't parsed this one yet, lets do that now
-				val, err := convertNodeToValue(gogm, node)
+				val, err := convertNodeToValue(gogm, node, pkSingle, passTypeUsed, passValue)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to convert node to value, %w", err)
 				}
 
 				nodeLookup[node.Id] = val
@@ -508,10 +523,10 @@ var sliceOfEmptyInterface []interface{}
 var emptyInterfaceType = reflect.TypeOf(sliceOfEmptyInterface).Elem()
 
 // convertToValue converts properties map from neo4j to golang reflect value
-func convertToValue(gogm *Gogm, graphId int64, conf structDecoratorConfig, props map[string]interface{}, rtype reflect.Type) (valss *reflect.Value, err error) {
+func convertToValue(gogm *Gogm, graphId int64, conf structDecoratorConfig, props map[string]interface{}, rtype reflect.Type, pkSingle bool, passValueUsed *bool, passValue *reflect.Value) (valPtr *reflect.Value, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("%v", r)
+			err = fmt.Errorf("recovered converToValue: %v", r)
 		}
 	}()
 
@@ -524,7 +539,6 @@ func convertToValue(gogm *Gogm, graphId int64, conf structDecoratorConfig, props
 		isPtr = true
 		rtype = rtype.Elem()
 	}
-
 	val := reflect.New(rtype)
 
 	if graphId >= 0 {
@@ -646,6 +660,18 @@ func convertToValue(gogm *Gogm, graphId int64, conf structDecoratorConfig, props
 		}
 	}
 
+	// handle pk case
+	if pkSingle && !*passValueUsed {
+		// pass value will always be a pointer
+		if isPtr {
+			reflect.Indirect(*passValue).Set(val)
+		} else {
+			reflect.Indirect(*passValue).Set(val.Elem())
+		}
+		*passValueUsed = true
+		return passValue, nil
+	}
+
 	//if its not a pointer, dereference it
 	if !isPtr {
 		retV := reflect.Indirect(val)
@@ -656,7 +682,7 @@ func convertToValue(gogm *Gogm, graphId int64, conf structDecoratorConfig, props
 }
 
 // convertNodeToValue converts raw bolt node to reflect value
-func convertNodeToValue(gogm *Gogm, boltNode neo4j.Node) (*reflect.Value, error) {
+func convertNodeToValue(gogm *Gogm, boltNode neo4j.Node, pkSingle bool, passTypeUsed *bool, passValue *reflect.Value) (*reflect.Value, error) {
 
 	if boltNode.Labels == nil || len(boltNode.Labels) == 0 {
 		return nil, errors.New("boltNode has no labels")
@@ -674,5 +700,5 @@ func convertNodeToValue(gogm *Gogm, boltNode neo4j.Node) (*reflect.Value, error)
 		return nil, errors.New("unable to cast to struct decorator config")
 	}
 
-	return convertToValue(gogm, boltNode.Id, typeConfig, boltNode.Props, typeConfig.Type)
+	return convertToValue(gogm, boltNode.Id, typeConfig, boltNode.Props, typeConfig.Type, pkSingle, passTypeUsed, passValue)
 }
