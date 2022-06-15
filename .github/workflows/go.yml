@@ -42,7 +42,7 @@ jobs:
         cd testing_
         mv linking.go linking.go.bak
         go run ../cmd/gogmcli/gogm.go gen .
-        cmp linking.go linking.go.bak
+        cmp -l linking.go linking.go.bak
   build:
     name: Build and Test
     runs-on: ubuntu-latest
