@@ -25,24 +25,24 @@ on:
   pull_request: {}
   workflow_dispatch: {}
 jobs:
-  codegen_linking_verify:
-    name: Verify Generated Linking Code is Current
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-go@v3
-      with:
-        go-version-file: go.mod
-        cache-dependency-path: go.mod
-        cache: true
-    - name: Get dependencies
-      run: go get -v -t -d ./...
-    - name: Compare newly generated linking.go with existing one
-      run: |
-        cd testing_
-        mv linking.go linking.go.bak
-        go run ../cmd/gogmcli/gogm.go gen .
-        cmp -l -b linking.go linking.go.bak
+#  codegen_linking_verify:
+#    name: Verify Generated Linking Code is Current
+#    runs-on: ubuntu-latest
+#    steps:
+#    - uses: actions/checkout@v3
+#    - uses: actions/setup-go@v3
+#      with:
+#        go-version-file: go.mod
+#        cache-dependency-path: go.mod
+#        cache: true
+#    - name: Get dependencies
+#      run: go get -v -t -d ./...
+#    - name: Compare newly generated linking.go with existing one
+#      run: |
+#        cd testing_
+#        mv linking.go linking.go.bak
+#        go run ../cmd/gogmcli/gogm.go gen .
+#        cmp -l -b linking.go linking.go.bak
   build:
     name: Build and Test
     runs-on: ubuntu-latest
