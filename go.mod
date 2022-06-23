@@ -15,3 +15,8 @@ require (
 	github.com/testcontainers/testcontainers-go v0.13.0
 	github.com/urfave/cli/v2 v2.0.0
 )
+
+exclude (
+	github.com/adam-hanna/arrayOperations v1.0.0
+	github.com/adam-hanna/arrayOperations v1.0.1
+)
