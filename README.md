@@ -3,9 +3,13 @@
 [![GoDoc](https://godoc.org/github.com/mindstand/gogm/v2?status.svg)](https://godoc.org/github.com/mindstand/gogm/v2)
 # GoGM Golang Object Graph Mapper v2
 
+## Installation
 ```
-go get -u github.com/mindstand/gogm/v2
+go get github.com/mindstand/gogm/v2
 ```
+Note: Do not use `-u` when installing. If you do, gogm will not compile.
+
+This is caused by a dependency being updated to go1.18 making it incompatable with go1.17. In a future update, gogm will be updated to go1.18 eliminating this issue.
 
 ## Features
 - Struct Mapping through the `gogm` struct decorator
