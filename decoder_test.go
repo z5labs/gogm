@@ -891,7 +891,7 @@ func TestDecode2(t *testing.T) {
 	emptyErr := decode(gogm, newMockResult(vars7), &readin7)
 
 	req.NotNil(emptyErr)
-	req.True(errors.As(emptyErr, &ErrNotFound))
+	req.True(errors.Is(emptyErr, ErrNotFound))
 	req.True(len(readin7) == 0)
 
 	vars8 := [][]interface{}{
@@ -908,7 +908,7 @@ func TestDecode2(t *testing.T) {
 	emptyErr = decode(gogm, newMockResult(vars8), &readin8)
 
 	req.NotNil(emptyErr)
-	req.True(errors.As(emptyErr, &ErrNotFound))
+	req.True(errors.Is(emptyErr, ErrNotFound))
 	req.Zero(readin8)
 
 	vars9 := [][]interface{}{
