@@ -26,7 +26,7 @@ import (
 	"strconv"
 
 	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
 // nodeCreate holds configuration for creating new nodes

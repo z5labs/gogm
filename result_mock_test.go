@@ -20,7 +20,7 @@
 package gogm
 
 import (
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
 type testResult struct {
@@ -43,6 +43,10 @@ func (t *testResult) Next() bool {
 }
 
 func (t *testResult) NextRecord(record **neo4j.Record) bool {
+	panic("implement me")
+}
+
+func (t *testResult) PeekRecord(record **neo4j.Record) bool {
 	panic("implement me")
 }
 
@@ -96,6 +100,10 @@ func (m *mockResult) Next() bool {
 }
 
 func (m *mockResult) NextRecord(record **neo4j.Record) bool {
+	panic("implement me")
+}
+
+func (m *mockResult) PeekRecord(record **neo4j.Record) bool {
 	panic("implement me")
 }
 

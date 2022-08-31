@@ -27,7 +27,7 @@ import (
 	"sync"
 
 	uuid2 "github.com/google/uuid"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	assert2 "github.com/stretchr/testify/assert"
 
 	"testing"

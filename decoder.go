@@ -25,7 +25,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
 func traverseResultRecordValues(values []interface{}) ([]neo4j.Path, []neo4j.Relationship, []neo4j.Node) {

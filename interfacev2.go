@@ -23,7 +23,7 @@ import (
 	"context"
 
 	dsl "github.com/mindstand/go-cypherdsl"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
 //session version 2 is experimental to start trying breaking changes
