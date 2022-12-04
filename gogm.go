@@ -30,7 +30,7 @@ import (
 	"strings"
 
 	"github.com/cornelk/hashmap"
-	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
+	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
 var globalGogm = &Gogm{isNoOp: true, logger: GetDefaultLogger()}

@@ -20,7 +20,7 @@
 package gogm
 
 import (
-	_neoLog "github.com/neo4j/neo4j-go-driver/v4/neo4j/log"
+	_neoLog "github.com/neo4j/neo4j-go-driver/v5/neo4j/log"
 	"log"
 )
 
