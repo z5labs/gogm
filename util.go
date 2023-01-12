@@ -335,14 +335,14 @@ func (r *relationConfigs) Validate() error {
 		//check both direction
 		if len(validateConfig.Both) != 0 {
 			if len(validateConfig.Both)%2 != 0 {
-				return fmt.Errorf("invalid length for 'both' validation, %w", ErrValidation)
+				return fmt.Errorf("invalid length for 'both' validation on relationship [%s], %w", relType, ErrValidation)
 			}
 		}
 
 		//check none direction
 		if len(validateConfig.None) != 0 {
 			if len(validateConfig.None)%2 != 0 {
-				return fmt.Errorf("invalid length for 'none' validation, %w", ErrValidation)
+				return fmt.Errorf("invalid length for 'none' validation on relationship [%s], %w", relType, ErrValidation)
 			}
 		}
 	}
