@@ -25,7 +25,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 
@@ -190,7 +190,7 @@ func (g *Gogm) initDriver(ctx context.Context) error {
 		// handle deprecated config support
 		if g.config.CAFileLocation != "" {
 			g.logger.Debugf("loading ca file at location `%s`", g.config.CAFileLocation)
-			bytes, err := ioutil.ReadFile(g.config.CAFileLocation)
+			bytes, err := os.ReadFile(g.config.CAFileLocation)
 			if err != nil {
 				return fmt.Errorf("failed to open ca file, %w", err)
 			}
@@ -225,7 +225,13 @@ func (g *Gogm) initDriver(ctx context.Context) error {
 
 		if isEncrypted {
 			if g.config.TLSConfig.RootCAs != nil {
-				neoConf.RootCAs = g.config.TLSConfig.RootCAs
+				if neoConf.TlsConfig != nil {
+					neoConf.TlsConfig.RootCAs = g.config.TLSConfig.RootCAs
+				} else {
+					neoConf.TlsConfig = &tls.Config{
+						RootCAs: g.config.TLSConfig.RootCAs,
+					}
+				}
 			}
 		}
 	}

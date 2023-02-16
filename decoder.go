@@ -57,8 +57,8 @@ func traverseResultRecordValues(values []interface{}) ([]neo4j.Path, []neo4j.Rel
 	return paths, strictRels, isolatedNodes
 }
 
-//decodes raw path response from driver
-//example query `match p=(n)-[*0..5]-() return p`
+// decodes raw path response from driver
+// example query `match p=(n)-[*0..5]-() return p`
 func decode(gogm *Gogm, result neo4j.Result, respObj interface{}) (err error) {
 	//check nil params
 	if result == nil {
@@ -666,7 +666,15 @@ func convertToValue(gogm *Gogm, graphId int64, conf structDecoratorConfig, props
 			if indirect.FieldByName(field).Type() == rawVal.Type() {
 				indirect.FieldByName(field).Set(rawVal)
 			} else {
-				indirect.FieldByName(field).Set(rawVal.Convert(indirect.FieldByName(field).Type()))
+				if indirect.FieldByName(field).Kind() == reflect.Pointer {
+					// add the catch here in case reflect.IsZero doesnt catch a nil pointer
+					if !rawVal.IsNil() {
+						indirect.FieldByName(field).Set(rawVal.Convert(reflect.PointerTo(indirect.FieldByName(field).Type())))
+					}
+				} else {
+					// calling this on ptr value will panic as it tries to convert *T to **T, hence the guard in ln 669
+					indirect.FieldByName(field).Set(rawVal.Convert(indirect.FieldByName(field).Type()))
+				}
 			}
 		}
 	}

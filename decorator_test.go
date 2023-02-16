@@ -396,6 +396,7 @@ type validStruct struct {
 	embedTest
 	IndexField             string                 `gogm:"index;name=index_field"`
 	UniqueField            int                    `gogm:"unique;name=unique_field"`
+	PtrField               *string                `gogm:"name=ptr_field"`
 	OneToOne               *validStruct           `gogm:"relationship=one2one;direction=incoming"`
 	ManyToOne              []*a                   `gogm:"relationship=many2one;direction=outgoing"`
 	SpecialOne             *c                     `gogm:"relationship=specC;direction=outgoing"`
@@ -428,7 +429,7 @@ func (v *validStruct) GetLabels() []string {
 	return []string{"validStruct"}
 }
 
-//issue is that it has no id defined
+// issue is that it has no id defined
 type mostlyValidStruct struct {
 	IndexField  string `gogm:"index;name=index_field"`
 	UniqueField int    `gogm:"unique;name=unique_field"`
@@ -438,14 +439,14 @@ func (m *mostlyValidStruct) GetLabels() []string {
 	return []string{"mostlyValidStruct"}
 }
 
-//nothing defined
+// nothing defined
 type emptyStruct struct{}
 
 func (e *emptyStruct) GetLabels() []string {
 	return []string{"emptyStruct"}
 }
 
-//has a valid field but also has a messed up one
+// has a valid field but also has a messed up one
 type invalidStructDecorator struct {
 	Id   int64  `gogm:"name=id"`
 	UUID string `gogm:"pk;name=uuid"`
@@ -571,6 +572,13 @@ func TestGetStructDecoratorConfig(t *testing.T) {
 				Name:       "index_field",
 				Index:      true,
 				Type:       reflect.TypeOf(""),
+				ParentType: reflect.TypeOf(validStruct{}),
+			},
+			"PtrField": {
+				FieldName:  "PtrField",
+				Name:       "ptr_field",
+				Index:      false,
+				Type:       reflect.PointerTo(reflect.TypeOf("")),
 				ParentType: reflect.TypeOf(validStruct{}),
 			},
 			"UniqueField": {

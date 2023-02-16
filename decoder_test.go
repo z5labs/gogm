@@ -203,6 +203,7 @@ type a struct {
 	PropsTest2        []string               `gogm:"properties;name=props2"`
 	PropsTest3        []int                  `gogm:"properties;name=props3"`
 	TestField         string                 `gogm:"name=test_field"`
+	TestFieldPtr      *string                `gogm:"name=test_field_ptr"`
 	TestTypeDefString tdString               `gogm:"name=test_type_def_string"`
 	TestTypeDefInt    tdInt                  `gogm:"name=test_type_def_int"`
 	SingleA           *b                     `gogm:"direction=incoming;relationship=test_rel"`
@@ -437,6 +438,7 @@ func TestDecode2(t *testing.T) {
 
 	fTime := time.Now().UTC()
 
+	pS := "ptr value"
 	vars := [][]interface{}{
 		{
 			neo4j.Path{
@@ -444,9 +446,10 @@ func TestDecode2(t *testing.T) {
 					{
 						Labels: []string{"b"},
 						Props: map[string]interface{}{
-							"test_field": "test",
-							"uuid":       "dasdfas",
-							"test_time":  fTime,
+							"test_field":     "test",
+							"uuid":           "dasdfas",
+							"test_time":      fTime,
+							"test_field_ptr": &pS,
 						},
 						Id: 2,
 					},
