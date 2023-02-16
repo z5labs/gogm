@@ -668,9 +668,7 @@ func convertToValue(gogm *Gogm, graphId int64, conf structDecoratorConfig, props
 			} else {
 				if indirect.FieldByName(field).Kind() == reflect.Pointer {
 					// add the catch here in case reflect.IsZero doesnt catch a nil pointer
-					if !rawVal.IsNil() {
-						indirect.FieldByName(field).Set(rawVal.Convert(reflect.PointerTo(indirect.FieldByName(field).Type())))
-					}
+					indirect.FieldByName(field).Set(rawVal.Convert(reflect.PointerTo(indirect.FieldByName(field).Type())))
 				} else {
 					// calling this on ptr value will panic as it tries to convert *T to **T, hence the guard in ln 669
 					indirect.FieldByName(field).Set(rawVal.Convert(indirect.FieldByName(field).Type()))
