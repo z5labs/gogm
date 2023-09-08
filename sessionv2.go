@@ -59,6 +59,7 @@ func newSessionWithConfigV2(gogm *Gogm, conf SessionConfig) (*SessionV2Impl, err
 		Bookmarks:    conf.Bookmarks,
 		DatabaseName: conf.DatabaseName,
 		FetchSize:    neo4j.FetchDefault,
+		BoltLogger:   conf.BoltLogger,
 	})
 
 	return &SessionV2Impl{
